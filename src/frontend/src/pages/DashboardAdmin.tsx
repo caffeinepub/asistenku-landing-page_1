@@ -17,14 +17,20 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
 import { useNavigate } from "@tanstack/react-router";
 import {
   ChevronDown,
   ChevronUp,
+  ClipboardList,
+  ExternalLink,
+  FolderOpen,
   Loader2,
   LogOut,
   Pencil,
   Plus,
+  RefreshCw,
+  Send,
   ShieldCheck,
   UserCheck,
   UserX,
@@ -91,6 +97,27 @@ interface Service {
   unitLayanan: bigint;
   hargaPerLayanan: bigint;
   sharingLayanan: SharingEntry[];
+  status: Record<string, null>;
+  createdAt: bigint;
+}
+
+interface Task {
+  idTask: string;
+  judulTask: string;
+  detailTask: string;
+  deadline: bigint;
+  serviceId: string;
+  clientId: string;
+  clientNama: string;
+  partnerId: string;
+  partnerNama: string;
+  asistenmuId: string;
+  asistenmuNama: string;
+  notesAsistenmu: string;
+  jamEfektif: bigint;
+  unitLayanan: bigint;
+  linkGdriveInternal: string;
+  linkGdriveClient: string;
   status: Record<string, null>;
   createdAt: bigint;
 }
@@ -187,6 +214,32 @@ function formatDate(ts: bigint): string {
     month: "short",
     year: "numeric",
   });
+}
+
+function taskStatusLabel(status: string): string {
+  const map: Record<string, string> = {
+    permintaanbaru: "Permintaan Baru",
+    onprogress: "On Progress",
+    reviewclient: "Review Client",
+    qaasistenmu: "QA Asistenmu",
+    revisi: "Revisi",
+    ditolak: "Ditolak",
+    selesai: "Selesai",
+  };
+  return map[status] ?? status;
+}
+
+function taskStatusBadgeClass(status: string): string {
+  const map: Record<string, string> = {
+    permintaanbaru: "bg-orange-50 text-orange-700 border-orange-200",
+    onprogress: "bg-blue-50 text-blue-700 border-blue-200",
+    reviewclient: "bg-amber-50 text-amber-700 border-amber-200",
+    qaasistenmu: "bg-purple-50 text-purple-700 border-purple-200",
+    revisi: "bg-red-50 text-red-700 border-red-200",
+    ditolak: "bg-rose-50 text-rose-700 border-rose-200",
+    selesai: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  };
+  return map[status] ?? "bg-slate-50 text-slate-700 border-slate-200";
 }
 
 // ── Pagination helper ──────────────────────────────────────────────────────────
@@ -330,6 +383,471 @@ function Autocomplete({
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Partner Autocomplete (shows verifiedSkill) ────────────────────────────────
+function PartnerAutocomplete({
+  options,
+  value,
+  onChange,
+  placeholder,
+}: {
+  options: Partner[];
+  value: Partner | null;
+  onChange: (v: Partner | null) => void;
+  placeholder?: string;
+}) {
+  const [query, setQuery] = useState(
+    value ? `${value.idUser} — ${value.nama}` : "",
+  );
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (value) {
+      setQuery(`${value.idUser} — ${value.nama}`);
+    } else {
+      setQuery("");
+    }
+  }, [value]);
+
+  const filtered = query
+    ? options
+        .filter(
+          (o) =>
+            o.idUser.toLowerCase().includes(query.toLowerCase()) ||
+            o.nama.toLowerCase().includes(query.toLowerCase()) ||
+            o.verifiedSkill.some((s) =>
+              s.toLowerCase().includes(query.toLowerCase()),
+            ),
+        )
+        .slice(0, 8)
+    : options.slice(0, 8);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(e.target as Node)
+      ) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  return (
+    <div ref={containerRef} className="relative">
+      <Input
+        value={query}
+        placeholder={placeholder ?? "Cari partner (ID / Nama / Skill)..."}
+        autoComplete="off"
+        onChange={(e) => {
+          setQuery(e.target.value);
+          setOpen(true);
+          if (!e.target.value) onChange(null);
+        }}
+        onFocus={() => setOpen(true)}
+        className="text-sm"
+      />
+      {open && filtered.length > 0 && (
+        <div className="absolute z-50 top-full mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden">
+          {filtered.map((opt) => (
+            <button
+              key={opt.principalId}
+              type="button"
+              className="w-full text-left px-3 py-2.5 text-sm hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                onChange(opt);
+                setQuery(`${opt.idUser} — ${opt.nama}`);
+                setOpen(false);
+              }}
+            >
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-xs text-slate-500">
+                  {opt.idUser}
+                </span>
+                <span className="text-slate-900 font-medium">{opt.nama}</span>
+                <span
+                  className={`text-xs px-1.5 py-0.5 rounded border ${levelBadgeClass(Object.keys(opt.level)[0] ?? "")}`}
+                >
+                  {getLevelLabel(opt.level)}
+                </span>
+              </div>
+              {opt.verifiedSkill.length > 0 && (
+                <p className="text-xs text-teal-600 mt-0.5 truncate">
+                  {opt.verifiedSkill.join(", ")}
+                </p>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── GDrive Link Field ──────────────────────────────────────────────────────────
+function GDriveLinkField({
+  label,
+  value,
+  onChange,
+  readOnly,
+  id,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  readOnly?: boolean;
+  id?: string;
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Label
+        htmlFor={id}
+        className="text-sm font-medium flex items-center gap-1.5"
+      >
+        <FolderOpen size={13} className="text-slate-400" />
+        {label}
+      </Label>
+      <div className="flex gap-2 items-center">
+        <Input
+          id={id}
+          type="url"
+          placeholder="https://drive.google.com/..."
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          readOnly={readOnly}
+          className={`text-sm flex-1 ${readOnly ? "bg-slate-50 text-slate-500" : ""}`}
+        />
+        {value && (
+          <a
+            href={value}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:text-slate-900 hover:border-slate-300 transition-colors"
+            title="Buka link"
+          >
+            <ExternalLink size={14} />
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Delegasi Form ──────────────────────────────────────────────────────────────
+function DelegasiForm({
+  task,
+  partnersList,
+  onSuccess,
+  actor,
+  isReadOnly = false,
+}: {
+  task: Task;
+  partnersList: Partner[];
+  onSuccess: () => void;
+  actor: unknown;
+  isReadOnly?: boolean;
+}) {
+  const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null);
+  const [jamEfektif, setJamEfektif] = useState(
+    isReadOnly ? String(task.jamEfektif) : "",
+  );
+  const [unitLayanan, setUnitLayanan] = useState(
+    isReadOnly ? String(task.unitLayanan) : "",
+  );
+  const [notes, setNotes] = useState(isReadOnly ? task.notesAsistenmu : "");
+  const [linkInternal, setLinkInternal] = useState(
+    isReadOnly ? task.linkGdriveInternal : "",
+  );
+  const [linkClient, setLinkClient] = useState(
+    isReadOnly ? task.linkGdriveClient : "",
+  );
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  async function handleSubmit() {
+    if (!selectedPartner) {
+      toast.error("Pilih partner terlebih dahulu.");
+      return;
+    }
+    if (!isReadOnly && (!jamEfektif || !unitLayanan)) {
+      toast.error("Lengkapi jam efektif dan unit layanan.");
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      await (
+        actor as unknown as Record<
+          string,
+          (...args: unknown[]) => Promise<void>
+        >
+      ).delegasiTask(
+        task.idTask,
+        selectedPartner.principalId,
+        selectedPartner.nama,
+        BigInt(jamEfektif || "0"),
+        BigInt(unitLayanan || "0"),
+        notes,
+        linkInternal,
+        linkClient,
+      );
+      toast.success(
+        `Task ${task.idTask} berhasil didelegasikan ke ${selectedPartner.nama}.`,
+      );
+      onSuccess();
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error ? err.message : "Gagal mendelegasikan task.";
+      toast.error(msg);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="mt-3 p-4 bg-slate-50 rounded-xl border border-slate-200 flex flex-col gap-3">
+      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+        {isReadOnly ? "Delegasi Ulang" : "Form Delegasi"}
+      </p>
+
+      {/* Partner autocomplete (always editable) */}
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-sm font-medium">Partner</Label>
+        <PartnerAutocomplete
+          options={partnersList}
+          value={selectedPartner}
+          onChange={setSelectedPartner}
+          placeholder="Cari partner (ID / Nama / Skill)..."
+        />
+        {isReadOnly && task.partnerId && (
+          <p className="text-xs text-slate-400">
+            Partner sebelumnya: {task.partnerNama}
+          </p>
+        )}
+      </div>
+
+      {/* Jam Efektif */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor={`jam-${task.idTask}`} className="text-sm font-medium">
+            Jam Efektif Kerja
+          </Label>
+          <Input
+            id={`jam-${task.idTask}`}
+            type="number"
+            min="0"
+            placeholder="0"
+            value={jamEfektif}
+            onChange={(e) => setJamEfektif(e.target.value)}
+            readOnly={isReadOnly}
+            className={`text-sm ${isReadOnly ? "bg-white text-slate-500" : ""}`}
+          />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label
+            htmlFor={`unit-${task.idTask}`}
+            className="text-sm font-medium"
+          >
+            Unit Layanan Terpakai
+          </Label>
+          <Input
+            id={`unit-${task.idTask}`}
+            type="number"
+            min="0"
+            placeholder="0"
+            value={unitLayanan}
+            onChange={(e) => setUnitLayanan(e.target.value)}
+            readOnly={isReadOnly}
+            className={`text-sm ${isReadOnly ? "bg-white text-slate-500" : ""}`}
+          />
+        </div>
+      </div>
+
+      {/* Notes */}
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor={`notes-${task.idTask}`} className="text-sm font-medium">
+          Notes Asistenmu
+        </Label>
+        <Textarea
+          id={`notes-${task.idTask}`}
+          placeholder="Catatan untuk partner..."
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          readOnly={isReadOnly}
+          className={`text-sm min-h-[72px] resize-none ${isReadOnly ? "bg-white text-slate-500" : ""}`}
+        />
+      </div>
+
+      {/* GDrive links */}
+      <GDriveLinkField
+        label="Link GDrive Internal"
+        id={`gdrive-int-${task.idTask}`}
+        value={linkInternal}
+        onChange={setLinkInternal}
+        readOnly={isReadOnly}
+      />
+      <GDriveLinkField
+        label="Link GDrive Client"
+        id={`gdrive-client-${task.idTask}`}
+        value={linkClient}
+        onChange={setLinkClient}
+        readOnly={isReadOnly}
+      />
+
+      <Button
+        onClick={handleSubmit}
+        disabled={isSubmitting || !selectedPartner}
+        className="w-full bg-slate-900 text-white hover:bg-slate-700 mt-1"
+      >
+        {isSubmitting ? (
+          <>
+            <Loader2 size={14} className="animate-spin mr-2" />
+            Mendelegasikan...
+          </>
+        ) : (
+          <>
+            <Send size={14} className="mr-2" />
+            Delegasikan
+          </>
+        )}
+      </Button>
+    </div>
+  );
+}
+
+// ── Task Filter Bar ────────────────────────────────────────────────────────────
+function TaskFilterBar({
+  filterNamaClient,
+  setFilterNamaClient,
+  filterTipe,
+  setFilterTipe,
+}: {
+  filterNamaClient: string;
+  setFilterNamaClient: (v: string) => void;
+  filterTipe: string;
+  setFilterTipe: (v: string) => void;
+}) {
+  return (
+    <div className="flex flex-col sm:flex-row gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100 mt-3">
+      <div className="flex-1">
+        <Input
+          placeholder="Filter nama client..."
+          value={filterNamaClient}
+          onChange={(e) => setFilterNamaClient(e.target.value)}
+          className="text-sm h-8"
+        />
+      </div>
+      <Select value={filterTipe} onValueChange={setFilterTipe}>
+        <SelectTrigger className="h-8 text-sm w-full sm:w-36">
+          <SelectValue placeholder="Semua Tipe" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">Semua Tipe</SelectItem>
+          <SelectItem value="tenang">TENANG</SelectItem>
+          <SelectItem value="rapi">RAPI</SelectItem>
+          <SelectItem value="fokus">FOKUS</SelectItem>
+          <SelectItem value="jaga">JAGA</SelectItem>
+          <SelectItem value="efisien">EFISIEN</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
+// ── Task Row (shared display) ──────────────────────────────────────────────────
+function TaskRowBase({ task, services }: { task: Task; services: Service[] }) {
+  const statusKey = Object.keys(task.status)[0] ?? "";
+  const svc = services.find((s) => s.idService === task.serviceId);
+  const tipe = svc ? getTipe(svc.tipeLayanan) : "";
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-xs font-mono text-slate-500">{task.idTask}</span>
+        <span
+          className={`text-xs px-2 py-0.5 rounded-full border font-medium ${taskStatusBadgeClass(statusKey)}`}
+        >
+          {taskStatusLabel(statusKey)}
+        </span>
+        {tipe && (
+          <span
+            className={`text-xs px-2 py-0.5 rounded-full border font-medium ${tipeBadgeClass(tipe)}`}
+          >
+            {tipeLabel(tipe)}
+          </span>
+        )}
+      </div>
+      <p className="font-medium text-slate-900 text-sm">{task.judulTask}</p>
+      <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-slate-500">
+        <span>
+          Client:{" "}
+          <span className="text-slate-700">{task.clientNama || "—"}</span>
+        </span>
+        {task.partnerNama && (
+          <span>
+            Partner: <span className="text-slate-700">{task.partnerNama}</span>
+          </span>
+        )}
+        {task.asistenmuNama && (
+          <span>
+            Asistenmu:{" "}
+            <span className="text-slate-700">{task.asistenmuNama}</span>
+          </span>
+        )}
+        <span>
+          Dibuat:{" "}
+          <span className="text-slate-700">{formatDate(task.createdAt)}</span>
+        </span>
+        {task.deadline > 0n && (
+          <span>
+            Deadline:{" "}
+            <span className="text-slate-700">{formatDate(task.deadline)}</span>
+          </span>
+        )}
+        {task.jamEfektif > 0n && (
+          <span>
+            Jam:{" "}
+            <span className="text-slate-700">
+              {String(task.jamEfektif)} jam
+            </span>
+          </span>
+        )}
+        {task.unitLayanan > 0n && (
+          <span>
+            Unit:{" "}
+            <span className="text-slate-700">{String(task.unitLayanan)}</span>
+          </span>
+        )}
+      </div>
+      {/* GDrive links display */}
+      <div className="flex gap-3 mt-0.5">
+        {task.linkGdriveInternal && (
+          <a
+            href={task.linkGdriveInternal}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
+          >
+            <FolderOpen size={12} />
+            GDrive Internal
+          </a>
+        )}
+        {task.linkGdriveClient && (
+          <a
+            href={task.linkGdriveClient}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-xs text-teal-600 hover:text-teal-800"
+          >
+            <FolderOpen size={12} />
+            GDrive Client
+          </a>
+        )}
+      </div>
     </div>
   );
 }
@@ -1018,6 +1536,8 @@ export default function DashboardAdmin() {
   const [services, setServices] = useState<Service[]>([]);
   const [clientsList, setClientsList] = useState<Client[]>([]);
   const [asistenmuList, setAsistenmuList] = useState<User[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [partnersList, setPartnersList] = useState<Partner[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(false);
 
   // ── Filter state: Manajemen Pengguna ─────────────────────────────────────────
@@ -1039,6 +1559,11 @@ export default function DashboardAdmin() {
   const [editPartner, setEditPartner] = useState<Partner | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
 
+  // ── Task delegasi open state ─────────────────────────────────────────────────
+  const [openDelegasiTaskId, setOpenDelegasiTaskId] = useState<string | null>(
+    null,
+  );
+
   // ── Fetch all data ───────────────────────────────────────────────────────────
   const fetchAll = useCallback(async () => {
     if (!actor) return;
@@ -1048,13 +1573,15 @@ export default function DashboardAdmin() {
         string,
         (...args: unknown[]) => Promise<unknown>
       >;
-      const [u, p, c, svc, cl, am] = await Promise.all([
+      const [u, p, c, svc, cl, am, t, pl] = await Promise.all([
         act.getAllUsers() as Promise<User[]>,
         act.getAllPartners() as Promise<Partner[]>,
         act.getAllClients() as Promise<Client[]>,
         (act.getServices() as Promise<Service[]>).catch(() => [] as Service[]),
         (act.getClients() as Promise<Client[]>).catch(() => [] as Client[]),
         (act.getAsistenmu() as Promise<User[]>).catch(() => [] as User[]),
+        (act.getAllTasks() as Promise<Task[]>).catch(() => [] as Task[]),
+        (act.getPartners() as Promise<Partner[]>).catch(() => [] as Partner[]),
       ]);
       setUsers(u);
       setPartners(p);
@@ -1062,6 +1589,8 @@ export default function DashboardAdmin() {
       setServices(svc);
       setClientsList(cl);
       setAsistenmuList(am);
+      setTasks(t);
+      setPartnersList(pl);
     } catch {
       toast.error("Gagal memuat data pengguna.");
     } finally {
@@ -1794,6 +2323,19 @@ export default function DashboardAdmin() {
               )}
             </CollapsibleSection>
           </OuterCollapsible>
+
+          {/* ── Manajemen Task (Outer Collapsible) ── */}
+          <ManajemenTaskSection
+            tasks={tasks}
+            services={services}
+            partnersList={partnersList}
+            actor={actor}
+            fetchAll={fetchAll}
+            actionLoading={actionLoading}
+            runAction={runAction}
+            openDelegasiTaskId={openDelegasiTaskId}
+            setOpenDelegasiTaskId={setOpenDelegasiTaskId}
+          />
         </div>
       </main>
 
@@ -2117,6 +2659,501 @@ function PendingRow({
         </Button>
       </div>
     </div>
+  );
+}
+
+// ── Manajemen Task Section ─────────────────────────────────────────────────────
+function ManajemenTaskSection({
+  tasks,
+  services,
+  partnersList,
+  actor,
+  fetchAll,
+  actionLoading,
+  runAction,
+  openDelegasiTaskId,
+  setOpenDelegasiTaskId,
+}: {
+  tasks: Task[];
+  services: Service[];
+  partnersList: Partner[];
+  actor: unknown;
+  fetchAll: () => Promise<void>;
+  actionLoading: Record<string, boolean>;
+  runAction: (
+    key: string,
+    fn: () => Promise<void>,
+    msg: string,
+  ) => Promise<void>;
+  openDelegasiTaskId: string | null;
+  setOpenDelegasiTaskId: (id: string | null) => void;
+}) {
+  const act = actor as unknown as Record<
+    string,
+    (...args: unknown[]) => Promise<void>
+  >;
+
+  function getTasksByStatus(status: string) {
+    return tasks.filter((t) => Object.keys(t.status)[0] === status);
+  }
+
+  function filterTasks(list: Task[], namaClient: string, tipe: string) {
+    return list.filter((t) => {
+      const namaMatch =
+        namaClient === "" ||
+        t.clientNama.toLowerCase().includes(namaClient.toLowerCase());
+      const tipeMatch = (() => {
+        if (tipe === "all") return true;
+        const svc = services.find((s) => s.idService === t.serviceId);
+        if (!svc) return false;
+        return getTipe(svc.tipeLayanan) === tipe;
+      })();
+      return namaMatch && tipeMatch;
+    });
+  }
+
+  function toggleDelegasi(idTask: string) {
+    setOpenDelegasiTaskId(openDelegasiTaskId === idTask ? null : idTask);
+  }
+
+  // Per sub-card filter states
+  const [f1Nama, setF1Nama] = useState("");
+  const [f1Tipe, setF1Tipe] = useState("all");
+  const [f2Nama, setF2Nama] = useState("");
+  const [f2Tipe, setF2Tipe] = useState("all");
+  const [f3Nama, setF3Nama] = useState("");
+  const [f3Tipe, setF3Tipe] = useState("all");
+  const [f4Nama, setF4Nama] = useState("");
+  const [f4Tipe, setF4Tipe] = useState("all");
+  const [f5Nama, setF5Nama] = useState("");
+  const [f5Tipe, setF5Tipe] = useState("all");
+  const [f6Nama, setF6Nama] = useState("");
+  const [f6Tipe, setF6Tipe] = useState("all");
+  const [f7Nama, setF7Nama] = useState("");
+  const [f7Tipe, setF7Tipe] = useState("all");
+
+  const tasksBaru = filterTasks(
+    getTasksByStatus("permintaanbaru"),
+    f1Nama,
+    f1Tipe,
+  );
+  const tasksReview = filterTasks(
+    getTasksByStatus("reviewclient"),
+    f2Nama,
+    f2Tipe,
+  );
+  const tasksOnProgress = filterTasks(
+    getTasksByStatus("onprogress"),
+    f3Nama,
+    f3Tipe,
+  );
+  const tasksQA = filterTasks(getTasksByStatus("qaasistenmu"), f4Nama, f4Tipe);
+  const tasksRevisi = filterTasks(getTasksByStatus("revisi"), f5Nama, f5Tipe);
+  const tasksDitolak = filterTasks(getTasksByStatus("ditolak"), f6Nama, f6Tipe);
+  const tasksSelesai = filterTasks(getTasksByStatus("selesai"), f7Nama, f7Tipe);
+
+  const pag1 = usePagination(tasksBaru);
+  const pag2 = usePagination(tasksReview);
+  const pag3 = usePagination(tasksOnProgress);
+  const pag4 = usePagination(tasksQA);
+  const pag5 = usePagination(tasksRevisi);
+  const pag6 = usePagination(tasksDitolak);
+  const pag7 = usePagination(tasksSelesai);
+
+  function TaskEmptyState({ msg }: { msg: string }) {
+    return <p className="text-sm text-slate-400 py-4 text-center">{msg}</p>;
+  }
+
+  return (
+    <OuterCollapsible
+      title="Manajemen Task"
+      count={tasks.length}
+      countAccent="bg-orange-50 text-orange-700"
+    >
+      {/* 1. Task Baru */}
+      <CollapsibleSection
+        title="Task Baru"
+        count={getTasksByStatus("permintaanbaru").length}
+        accent="bg-orange-50 text-orange-700"
+        defaultOpen
+      >
+        <TaskFilterBar
+          filterNamaClient={f1Nama}
+          setFilterNamaClient={setF1Nama}
+          filterTipe={f1Tipe}
+          setFilterTipe={setF1Tipe}
+        />
+        {tasksBaru.length === 0 ? (
+          <TaskEmptyState msg="Tidak ada task baru." />
+        ) : (
+          <>
+            <div className="flex flex-col divide-y divide-slate-100 mt-2">
+              {pag1.paged.map((task) => (
+                <div key={task.idTask} className="py-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <TaskRowBase task={task} services={services} />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => toggleDelegasi(task.idTask)}
+                      className="flex-shrink-0 text-xs"
+                    >
+                      <Send size={12} className="mr-1" />
+                      {openDelegasiTaskId === task.idTask
+                        ? "Tutup"
+                        : "Delegasikan"}
+                    </Button>
+                  </div>
+                  {openDelegasiTaskId === task.idTask && (
+                    <DelegasiForm
+                      task={task}
+                      partnersList={partnersList}
+                      onSuccess={() => {
+                        setOpenDelegasiTaskId(null);
+                        void fetchAll();
+                      }}
+                      actor={actor}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+            <PaginationControls
+              page={pag1.page}
+              totalPages={pag1.totalPages}
+              setPage={pag1.setPage}
+            />
+          </>
+        )}
+      </CollapsibleSection>
+
+      {/* 2. Task Review Client */}
+      <CollapsibleSection
+        title="Task Review Client"
+        count={getTasksByStatus("reviewclient").length}
+        accent="bg-amber-50 text-amber-700"
+      >
+        <TaskFilterBar
+          filterNamaClient={f2Nama}
+          setFilterNamaClient={setF2Nama}
+          filterTipe={f2Tipe}
+          setFilterTipe={setF2Tipe}
+        />
+        {tasksReview.length === 0 ? (
+          <TaskEmptyState msg="Tidak ada task dalam review client." />
+        ) : (
+          <>
+            <div className="flex flex-col divide-y divide-slate-100 mt-2">
+              {pag2.paged.map((task) => (
+                <div
+                  key={task.idTask}
+                  className="py-3 flex items-start justify-between gap-3"
+                >
+                  <TaskRowBase task={task} services={services} />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={actionLoading[`status-${task.idTask}`]}
+                    onClick={() =>
+                      runAction(
+                        `status-${task.idTask}`,
+                        () =>
+                          act.updateTaskStatus(task.idTask, { revisi: null }),
+                        `Task ${task.idTask} dipindah ke Revisi.`,
+                      )
+                    }
+                    className="flex-shrink-0 text-xs text-red-600 border-red-200 hover:bg-red-50"
+                  >
+                    {actionLoading[`status-${task.idTask}`] ? (
+                      <Loader2 size={12} className="animate-spin" />
+                    ) : (
+                      <>
+                        <RefreshCw size={12} className="mr-1" />
+                        Minta Revisi
+                      </>
+                    )}
+                  </Button>
+                </div>
+              ))}
+            </div>
+            <PaginationControls
+              page={pag2.page}
+              totalPages={pag2.totalPages}
+              setPage={pag2.setPage}
+            />
+          </>
+        )}
+      </CollapsibleSection>
+
+      {/* 3. Task On Progress */}
+      <CollapsibleSection
+        title="Task On Progress"
+        count={getTasksByStatus("onprogress").length}
+        accent="bg-blue-50 text-blue-700"
+      >
+        <TaskFilterBar
+          filterNamaClient={f3Nama}
+          setFilterNamaClient={setF3Nama}
+          filterTipe={f3Tipe}
+          setFilterTipe={setF3Tipe}
+        />
+        {tasksOnProgress.length === 0 ? (
+          <TaskEmptyState msg="Tidak ada task on progress." />
+        ) : (
+          <>
+            <div className="flex flex-col divide-y divide-slate-100 mt-2">
+              {pag3.paged.map((task) => (
+                <div
+                  key={task.idTask}
+                  className="py-3 flex items-start justify-between gap-3"
+                >
+                  <TaskRowBase task={task} services={services} />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={actionLoading[`status-${task.idTask}`]}
+                    onClick={() =>
+                      runAction(
+                        `status-${task.idTask}`,
+                        () =>
+                          act.updateTaskStatus(task.idTask, {
+                            qaasistenmu: null,
+                          }),
+                        `Task ${task.idTask} dipindah ke QA Asistenmu.`,
+                      )
+                    }
+                    className="flex-shrink-0 text-xs text-purple-600 border-purple-200 hover:bg-purple-50"
+                  >
+                    {actionLoading[`status-${task.idTask}`] ? (
+                      <Loader2 size={12} className="animate-spin" />
+                    ) : (
+                      <>
+                        <ClipboardList size={12} className="mr-1" />
+                        Minta QA
+                      </>
+                    )}
+                  </Button>
+                </div>
+              ))}
+            </div>
+            <PaginationControls
+              page={pag3.page}
+              totalPages={pag3.totalPages}
+              setPage={pag3.setPage}
+            />
+          </>
+        )}
+      </CollapsibleSection>
+
+      {/* 4. Task QA Asistenmu */}
+      <CollapsibleSection
+        title="Task QA Asistenmu"
+        count={getTasksByStatus("qaasistenmu").length}
+        accent="bg-purple-50 text-purple-700"
+      >
+        <TaskFilterBar
+          filterNamaClient={f4Nama}
+          setFilterNamaClient={setF4Nama}
+          filterTipe={f4Tipe}
+          setFilterTipe={setF4Tipe}
+        />
+        {tasksQA.length === 0 ? (
+          <TaskEmptyState msg="Tidak ada task QA asistenmu." />
+        ) : (
+          <>
+            <div className="flex flex-col divide-y divide-slate-100 mt-2">
+              {pag4.paged.map((task) => (
+                <div
+                  key={task.idTask}
+                  className="py-3 flex items-start justify-between gap-3"
+                >
+                  <TaskRowBase task={task} services={services} />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={actionLoading[`status-${task.idTask}`]}
+                    onClick={() =>
+                      runAction(
+                        `status-${task.idTask}`,
+                        () =>
+                          act.updateTaskStatus(task.idTask, {
+                            reviewclient: null,
+                          }),
+                        `Task ${task.idTask} dipindah ke Review Client.`,
+                      )
+                    }
+                    className="flex-shrink-0 text-xs text-amber-600 border-amber-200 hover:bg-amber-50"
+                  >
+                    {actionLoading[`status-${task.idTask}`] ? (
+                      <Loader2 size={12} className="animate-spin" />
+                    ) : (
+                      <>
+                        <Send size={12} className="mr-1" />
+                        Minta Review Client
+                      </>
+                    )}
+                  </Button>
+                </div>
+              ))}
+            </div>
+            <PaginationControls
+              page={pag4.page}
+              totalPages={pag4.totalPages}
+              setPage={pag4.setPage}
+            />
+          </>
+        )}
+      </CollapsibleSection>
+
+      {/* 5. Task Revisi */}
+      <CollapsibleSection
+        title="Task Revisi"
+        count={getTasksByStatus("revisi").length}
+        accent="bg-red-50 text-red-700"
+      >
+        <TaskFilterBar
+          filterNamaClient={f5Nama}
+          setFilterNamaClient={setF5Nama}
+          filterTipe={f5Tipe}
+          setFilterTipe={setF5Tipe}
+        />
+        {tasksRevisi.length === 0 ? (
+          <TaskEmptyState msg="Tidak ada task revisi." />
+        ) : (
+          <>
+            <div className="flex flex-col divide-y divide-slate-100 mt-2">
+              {pag5.paged.map((task) => (
+                <div
+                  key={task.idTask}
+                  className="py-3 flex items-start justify-between gap-3"
+                >
+                  <TaskRowBase task={task} services={services} />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={actionLoading[`status-${task.idTask}`]}
+                    onClick={() =>
+                      runAction(
+                        `status-${task.idTask}`,
+                        () =>
+                          act.updateTaskStatus(task.idTask, {
+                            onprogress: null,
+                          }),
+                        `Task ${task.idTask} dikirim revisi ke partner.`,
+                      )
+                    }
+                    className="flex-shrink-0 text-xs text-blue-600 border-blue-200 hover:bg-blue-50"
+                  >
+                    {actionLoading[`status-${task.idTask}`] ? (
+                      <Loader2 size={12} className="animate-spin" />
+                    ) : (
+                      <>
+                        <Send size={12} className="mr-1" />
+                        Kirim Revisi ke Partner
+                      </>
+                    )}
+                  </Button>
+                </div>
+              ))}
+            </div>
+            <PaginationControls
+              page={pag5.page}
+              totalPages={pag5.totalPages}
+              setPage={pag5.setPage}
+            />
+          </>
+        )}
+      </CollapsibleSection>
+
+      {/* 6. Task Ditolak Partner */}
+      <CollapsibleSection
+        title="Task Ditolak Partner"
+        count={getTasksByStatus("ditolak").length}
+        accent="bg-rose-50 text-rose-700"
+      >
+        <TaskFilterBar
+          filterNamaClient={f6Nama}
+          setFilterNamaClient={setF6Nama}
+          filterTipe={f6Tipe}
+          setFilterTipe={setF6Tipe}
+        />
+        {tasksDitolak.length === 0 ? (
+          <TaskEmptyState msg="Tidak ada task ditolak." />
+        ) : (
+          <>
+            <div className="flex flex-col divide-y divide-slate-100 mt-2">
+              {pag6.paged.map((task) => (
+                <div key={task.idTask} className="py-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <TaskRowBase task={task} services={services} />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => toggleDelegasi(task.idTask)}
+                      className="flex-shrink-0 text-xs"
+                    >
+                      <RefreshCw size={12} className="mr-1" />
+                      {openDelegasiTaskId === task.idTask
+                        ? "Tutup"
+                        : "Delegasi Ulang"}
+                    </Button>
+                  </div>
+                  {openDelegasiTaskId === task.idTask && (
+                    <DelegasiForm
+                      task={task}
+                      partnersList={partnersList}
+                      onSuccess={() => {
+                        setOpenDelegasiTaskId(null);
+                        void fetchAll();
+                      }}
+                      actor={actor}
+                      isReadOnly
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+            <PaginationControls
+              page={pag6.page}
+              totalPages={pag6.totalPages}
+              setPage={pag6.setPage}
+            />
+          </>
+        )}
+      </CollapsibleSection>
+
+      {/* 7. Task Selesai */}
+      <CollapsibleSection
+        title="Task Selesai"
+        count={getTasksByStatus("selesai").length}
+        accent="bg-emerald-50 text-emerald-700"
+      >
+        <TaskFilterBar
+          filterNamaClient={f7Nama}
+          setFilterNamaClient={setF7Nama}
+          filterTipe={f7Tipe}
+          setFilterTipe={setF7Tipe}
+        />
+        {tasksSelesai.length === 0 ? (
+          <TaskEmptyState msg="Belum ada task yang selesai." />
+        ) : (
+          <>
+            <div className="flex flex-col divide-y divide-slate-100 mt-2">
+              {pag7.paged.map((task) => (
+                <div key={task.idTask} className="py-3">
+                  <TaskRowBase task={task} services={services} />
+                </div>
+              ))}
+            </div>
+            <PaginationControls
+              page={pag7.page}
+              totalPages={pag7.totalPages}
+              setPage={pag7.setPage}
+            />
+          </>
+        )}
+      </CollapsibleSection>
+    </OuterCollapsible>
   );
 }
 
