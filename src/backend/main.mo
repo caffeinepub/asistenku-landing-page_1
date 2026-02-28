@@ -9,9 +9,9 @@ import Array "mo:core/Array";
 import Order "mo:core/Order";
 import List "mo:core/List";
 import Runtime "mo:core/Runtime";
-import Migration "migration";
 
-(with migration = Migration.run)
+
+
 actor {
   public type Role = {
     #admin;
@@ -189,16 +189,16 @@ actor {
     createdAt : Int;
   };
 
-  var userCounter = 0;
-  var partnerCounter = 0;
-  var clientCounter = 0;
-  var serviceCounter = 0;
-  var topUpCounter = 0;
-  var taskCounter = 0;
-  var withdrawCounter = 0;
-  var fpRequestCounter = 0;
-  var logCounter = 0;
-  var adminClaimed = false;
+  stable var userCounter : Nat = 0;
+  stable var partnerCounter : Nat = 0;
+  stable var clientCounter : Nat = 0;
+  stable var serviceCounter : Nat = 0;
+  stable var topUpCounter : Nat = 0;
+  stable var taskCounter : Nat = 0;
+  stable var withdrawCounter : Nat = 0;
+  stable var fpRequestCounter : Nat = 0;
+  stable var logCounter : Nat = 0;
+  stable var adminClaimed : Bool = false;
 
   stable var stableUsers : [(Principal, User)] = [];
   stable var stablePartners : [(Principal, Partner)] = [];
