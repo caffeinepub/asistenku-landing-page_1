@@ -75,10 +75,48 @@ interface Client {
   nama: string;
   email: string;
   whatsapp: string;
-  Company: string;
+  Company?: string;
+  company?: string;
   role: Record<string, null>;
   status: Record<string, null>;
   createdAt: bigint;
+}
+
+interface WithdrawRequestLocal {
+  status: string;
+  partnerNama: string;
+  nominal: bigint;
+  idWithdraw: string;
+  createdAt: bigint;
+  partnerId: string;
+  nomorRekening: string;
+  namaRekening: string;
+  namaBankEwallet: string;
+}
+
+interface FinancialProfileLocal {
+  createdAt: bigint;
+  nomorRekening: string;
+  namaRekening: string;
+  namaBankEwallet: string;
+}
+
+interface FinancialProfileRequestLocal {
+  status: string;
+  partnerNama: string;
+  newProfile: FinancialProfileLocal;
+  createdAt: bigint;
+  partnerId: string;
+  oldProfile?: FinancialProfileLocal;
+  idRequest: string;
+}
+
+interface AdminLogLocal {
+  action: string;
+  adminPrincipalId: string;
+  createdAt: bigint;
+  idLog: string;
+  targetId: string;
 }
 
 interface SharingEntry {
@@ -214,6 +252,21 @@ function formatDate(ts: bigint): string {
     month: "short",
     year: "numeric",
   });
+}
+
+function formatDateTime(ts: bigint): string {
+  const ms = Number(ts) / 1_000_000;
+  return new Date(ms).toLocaleString("id-ID", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function getClientCompany(c: Client): string {
+  return c.company ?? c.Company ?? "";
 }
 
 function taskStatusLabel(status: string): string {
@@ -864,7 +917,7 @@ function PartnerEditModal({
   onOpenChange: (v: boolean) => void;
   onUpdate: (
     principalId: string,
-    level: Record<string, null>,
+    level: string,
     skills: string[],
   ) => Promise<void>;
 }) {
@@ -888,7 +941,7 @@ function PartnerEditModal({
         .split(",")
         .map((s) => s.trim())
         .filter(Boolean);
-      await onUpdate(partner.principalId, { [level]: null }, skills);
+      await onUpdate(partner.principalId, level, skills);
       onOpenChange(false);
     } finally {
       setIsUpdating(false);
@@ -1539,6 +1592,13 @@ export default function DashboardAdmin() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [partnersList, setPartnersList] = useState<Partner[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(false);
+  const [withdrawRequests, setWithdrawRequests] = useState<
+    WithdrawRequestLocal[]
+  >([]);
+  const [financialProfileRequests, setFinancialProfileRequests] = useState<
+    FinancialProfileRequestLocal[]
+  >([]);
+  const [adminLogs, setAdminLogs] = useState<AdminLogLocal[]>([]);
 
   // ── Filter state: Manajemen Pengguna ─────────────────────────────────────────
   const [filterRole, setFilterRole] = useState("all");
@@ -1573,15 +1633,28 @@ export default function DashboardAdmin() {
         string,
         (...args: unknown[]) => Promise<unknown>
       >;
-      const [u, p, c, svc, cl, am, t, pl] = await Promise.all([
-        act.getAllUsers() as Promise<User[]>,
-        act.getAllPartners() as Promise<Partner[]>,
-        act.getAllClients() as Promise<Client[]>,
+      const [u, p, c, svc, cl, am, t, pl, wr, fpr, logs] = await Promise.all([
+        (act.getAllUsers() as Promise<User[]>).catch(() => [] as User[]),
+        (act.getAllPartners() as Promise<Partner[]>).catch(
+          () => [] as Partner[],
+        ),
+        (act.getAllClients() as Promise<Client[]>).catch(() => [] as Client[]),
         (act.getServices() as Promise<Service[]>).catch(() => [] as Service[]),
         (act.getClients() as Promise<Client[]>).catch(() => [] as Client[]),
         (act.getAsistenmu() as Promise<User[]>).catch(() => [] as User[]),
         (act.getAllTasks() as Promise<Task[]>).catch(() => [] as Task[]),
         (act.getPartners() as Promise<Partner[]>).catch(() => [] as Partner[]),
+        (act.getWithdrawRequests() as Promise<WithdrawRequestLocal[]>).catch(
+          () => [] as WithdrawRequestLocal[],
+        ),
+        (
+          act.getFinancialProfileRequests() as Promise<
+            FinancialProfileRequestLocal[]
+          >
+        ).catch(() => [] as FinancialProfileRequestLocal[]),
+        (act.getAdminLogs() as Promise<AdminLogLocal[]>).catch(
+          () => [] as AdminLogLocal[],
+        ),
       ]);
       setUsers(u);
       setPartners(p);
@@ -1591,8 +1664,11 @@ export default function DashboardAdmin() {
       setAsistenmuList(am);
       setTasks(t);
       setPartnersList(pl);
+      setWithdrawRequests(wr);
+      setFinancialProfileRequests(fpr);
+      setAdminLogs(logs);
     } catch {
-      toast.error("Gagal memuat data pengguna.");
+      toast.error("Sesi berakhir, silakan login ulang.");
     } finally {
       setIsLoadingData(false);
     }
@@ -1753,7 +1829,7 @@ export default function DashboardAdmin() {
   // ── Partner update ────────────────────────────────────────────────────────────
   async function handleUpdatePartner(
     principalId: string,
-    level: Record<string, null>,
+    level: string,
     skills: string[],
   ) {
     await runAction(
@@ -1967,7 +2043,7 @@ export default function DashboardAdmin() {
                             {client.nama}
                           </p>
                           <p className="text-xs text-slate-500 truncate">
-                            {client.email} &middot; {client.Company}
+                            {client.email} &middot; {getClientCompany(client)}
                           </p>
                         </div>
                         <Button
@@ -2336,6 +2412,18 @@ export default function DashboardAdmin() {
             openDelegasiTaskId={openDelegasiTaskId}
             setOpenDelegasiTaskId={setOpenDelegasiTaskId}
           />
+
+          {/* ── Financial Management (Outer Collapsible) ── */}
+          <FinancialManagementSection
+            withdrawRequests={withdrawRequests}
+            financialProfileRequests={financialProfileRequests}
+            actor={actor}
+            actionLoading={actionLoading}
+            runAction={runAction}
+          />
+
+          {/* ── History Aktivitas Admin (Outer Collapsible) ── */}
+          <HistorySection adminLogs={adminLogs} />
         </div>
       </main>
 
@@ -2533,7 +2621,7 @@ function PendingRow({
             {c.nama}
           </p>
           <p className="text-xs text-slate-500 truncate">
-            {c.email} &middot; {c.Company}
+            {c.email} &middot; {getClientCompany(c)}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
@@ -3149,6 +3237,416 @@ function ManajemenTaskSection({
               page={pag7.page}
               totalPages={pag7.totalPages}
               setPage={pag7.setPage}
+            />
+          </>
+        )}
+      </CollapsibleSection>
+    </OuterCollapsible>
+  );
+}
+
+// ── Financial Management Section ──────────────────────────────────────────────
+function FinancialManagementSection({
+  withdrawRequests,
+  financialProfileRequests,
+  actor,
+  actionLoading,
+  runAction,
+}: {
+  withdrawRequests: WithdrawRequestLocal[];
+  financialProfileRequests: FinancialProfileRequestLocal[];
+  actor: unknown;
+  actionLoading: Record<string, boolean>;
+  runAction: (
+    key: string,
+    fn: () => Promise<void>,
+    msg: string,
+  ) => Promise<void>;
+}) {
+  const act = actor as unknown as Record<
+    string,
+    (...args: unknown[]) => Promise<void>
+  >;
+
+  const pendingWithdraws = withdrawRequests.filter(
+    (w) => w.status === "pending",
+  );
+  const pendingFPRequests = financialProfileRequests.filter(
+    (r) => r.status === "pending",
+  );
+
+  const withdrawPag = usePagination(withdrawRequests);
+  const fpPag = usePagination(financialProfileRequests);
+
+  function withdrawStatusBadge(status: string) {
+    if (status === "approved")
+      return "bg-emerald-50 text-emerald-700 border-emerald-200";
+    if (status === "rejected") return "bg-red-50 text-red-700 border-red-200";
+    return "bg-amber-50 text-amber-700 border-amber-200";
+  }
+
+  function withdrawStatusLabel(status: string) {
+    if (status === "approved") return "Disetujui";
+    if (status === "rejected") return "Ditolak";
+    return "Pending";
+  }
+
+  return (
+    <OuterCollapsible
+      title="Financial Management"
+      count={withdrawRequests.length + financialProfileRequests.length}
+      countAccent="bg-green-50 text-green-700"
+    >
+      {/* 1. Permintaan Withdraw */}
+      <CollapsibleSection
+        title="Permintaan Withdraw"
+        count={pendingWithdraws.length}
+        accent={
+          pendingWithdraws.length > 0
+            ? "bg-amber-100 text-amber-700"
+            : "bg-slate-100 text-slate-500"
+        }
+        defaultOpen
+      >
+        {withdrawRequests.length === 0 ? (
+          <p className="text-sm text-slate-400 py-4 text-center">
+            Belum ada permintaan withdraw.
+          </p>
+        ) : (
+          <>
+            <div className="flex flex-col divide-y divide-slate-100 mt-2">
+              {withdrawPag.paged.map((wr) => (
+                <div key={wr.idWithdraw} className="py-3 flex flex-col gap-2">
+                  <div className="flex items-start justify-between gap-3 flex-wrap">
+                    <div className="flex flex-col gap-0.5 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs font-mono text-slate-500">
+                          {wr.idWithdraw}
+                        </span>
+                        <span
+                          className={`text-xs px-2 py-0.5 rounded-full border font-medium ${withdrawStatusBadge(wr.status)}`}
+                        >
+                          {withdrawStatusLabel(wr.status)}
+                        </span>
+                      </div>
+                      <p className="font-medium text-slate-900 text-sm">
+                        {wr.partnerNama}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        Partner ID:{" "}
+                        <span className="font-mono">{wr.partnerId}</span>
+                      </p>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="font-bold text-slate-900 text-base">
+                        Rp {Number(wr.nominal).toLocaleString("id-ID")}
+                      </p>
+                      <p className="text-xs text-slate-400">
+                        {formatDate(wr.createdAt)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-xs text-slate-500 bg-slate-50 rounded-lg p-2.5">
+                    <div>
+                      <p className="text-slate-400">Bank/E-Wallet</p>
+                      <p className="text-slate-700 font-medium truncate">
+                        {wr.namaBankEwallet}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-slate-400">Nomor Rekening</p>
+                      <p className="text-slate-700 font-mono truncate">
+                        {wr.nomorRekening}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-slate-400">Nama Rekening</p>
+                      <p className="text-slate-700 font-medium truncate">
+                        {wr.namaRekening}
+                      </p>
+                    </div>
+                  </div>
+                  {wr.status === "pending" && (
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        disabled={actionLoading[`approve-wd-${wr.idWithdraw}`]}
+                        onClick={() =>
+                          runAction(
+                            `approve-wd-${wr.idWithdraw}`,
+                            () => act.approveWithdraw(wr.idWithdraw),
+                            `Withdraw ${wr.idWithdraw} berhasil disetujui.`,
+                          )
+                        }
+                        className="bg-emerald-600 text-white hover:bg-emerald-700 text-xs h-8"
+                      >
+                        {actionLoading[`approve-wd-${wr.idWithdraw}`] ? (
+                          <Loader2 size={13} className="animate-spin" />
+                        ) : (
+                          <>
+                            <UserCheck size={13} className="mr-1" />
+                            Approve
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={actionLoading[`reject-wd-${wr.idWithdraw}`]}
+                        onClick={() =>
+                          runAction(
+                            `reject-wd-${wr.idWithdraw}`,
+                            () => act.rejectWithdraw(wr.idWithdraw),
+                            `Withdraw ${wr.idWithdraw} ditolak.`,
+                          )
+                        }
+                        className="text-red-600 border-red-200 hover:bg-red-50 text-xs h-8"
+                      >
+                        {actionLoading[`reject-wd-${wr.idWithdraw}`] ? (
+                          <Loader2 size={13} className="animate-spin" />
+                        ) : (
+                          <>
+                            <XCircle size={13} className="mr-1" />
+                            Reject
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            <PaginationControls
+              page={withdrawPag.page}
+              totalPages={withdrawPag.totalPages}
+              setPage={withdrawPag.setPage}
+            />
+          </>
+        )}
+      </CollapsibleSection>
+
+      {/* 2. Permintaan Penggantian Financial Profile */}
+      <CollapsibleSection
+        title="Permintaan Penggantian Financial Profile"
+        count={pendingFPRequests.length}
+        accent={
+          pendingFPRequests.length > 0
+            ? "bg-blue-100 text-blue-700"
+            : "bg-slate-100 text-slate-500"
+        }
+      >
+        {financialProfileRequests.length === 0 ? (
+          <p className="text-sm text-slate-400 py-4 text-center">
+            Belum ada permintaan penggantian profil finansial.
+          </p>
+        ) : (
+          <>
+            <div className="flex flex-col divide-y divide-slate-100 mt-2">
+              {fpPag.paged.map((req) => (
+                <div key={req.idRequest} className="py-3 flex flex-col gap-3">
+                  <div className="flex items-start justify-between gap-3 flex-wrap">
+                    <div className="flex flex-col gap-0.5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-mono text-slate-500">
+                          {req.idRequest}
+                        </span>
+                        <span
+                          className={`text-xs px-2 py-0.5 rounded-full border font-medium ${
+                            req.status === "approved"
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                              : req.status === "rejected"
+                                ? "bg-red-50 text-red-700 border-red-200"
+                                : "bg-blue-50 text-blue-700 border-blue-200"
+                          }`}
+                        >
+                          {req.status === "approved"
+                            ? "Disetujui"
+                            : req.status === "rejected"
+                              ? "Ditolak"
+                              : "Pending"}
+                        </span>
+                      </div>
+                      <p className="font-medium text-slate-900 text-sm">
+                        {req.partnerNama}
+                      </p>
+                      <p className="text-xs text-slate-400">
+                        {formatDate(req.createdAt)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Old vs New profile comparison */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-slate-50 rounded-lg p-3 flex flex-col gap-1.5">
+                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                        Data Lama
+                      </p>
+                      {req.oldProfile ? (
+                        <>
+                          <p className="text-xs text-slate-600">
+                            <span className="text-slate-400">
+                              Bank/E-Wallet:
+                            </span>{" "}
+                            {req.oldProfile.namaBankEwallet}
+                          </p>
+                          <p className="text-xs text-slate-600">
+                            <span className="text-slate-400">Nomor:</span>{" "}
+                            <span className="font-mono">
+                              {req.oldProfile.nomorRekening}
+                            </span>
+                          </p>
+                          <p className="text-xs text-slate-600">
+                            <span className="text-slate-400">Nama:</span>{" "}
+                            {req.oldProfile.namaRekening}
+                          </p>
+                        </>
+                      ) : (
+                        <p className="text-xs text-slate-400 italic">
+                          Belum ada profil
+                        </p>
+                      )}
+                    </div>
+                    <div className="bg-blue-50 rounded-lg p-3 flex flex-col gap-1.5 border border-blue-100">
+                      <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide">
+                        Data Baru
+                      </p>
+                      <p className="text-xs text-slate-700">
+                        <span className="text-slate-400">Bank/E-Wallet:</span>{" "}
+                        {req.newProfile.namaBankEwallet}
+                      </p>
+                      <p className="text-xs text-slate-700">
+                        <span className="text-slate-400">Nomor:</span>{" "}
+                        <span className="font-mono">
+                          {req.newProfile.nomorRekening}
+                        </span>
+                      </p>
+                      <p className="text-xs text-slate-700">
+                        <span className="text-slate-400">Nama:</span>{" "}
+                        {req.newProfile.namaRekening}
+                      </p>
+                    </div>
+                  </div>
+
+                  {req.status === "pending" && (
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        disabled={actionLoading[`approve-fp-${req.idRequest}`]}
+                        onClick={() =>
+                          runAction(
+                            `approve-fp-${req.idRequest}`,
+                            () =>
+                              act.approveFinancialProfileRequest(req.idRequest),
+                            `Perubahan profil finansial ${req.partnerNama} disetujui.`,
+                          )
+                        }
+                        className="bg-emerald-600 text-white hover:bg-emerald-700 text-xs h-8"
+                      >
+                        {actionLoading[`approve-fp-${req.idRequest}`] ? (
+                          <Loader2 size={13} className="animate-spin" />
+                        ) : (
+                          <>
+                            <UserCheck size={13} className="mr-1" />
+                            Approve
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={actionLoading[`reject-fp-${req.idRequest}`]}
+                        onClick={() =>
+                          runAction(
+                            `reject-fp-${req.idRequest}`,
+                            () =>
+                              act.rejectFinancialProfileRequest(req.idRequest),
+                            `Perubahan profil finansial ${req.partnerNama} ditolak.`,
+                          )
+                        }
+                        className="text-red-600 border-red-200 hover:bg-red-50 text-xs h-8"
+                      >
+                        {actionLoading[`reject-fp-${req.idRequest}`] ? (
+                          <Loader2 size={13} className="animate-spin" />
+                        ) : (
+                          <>
+                            <XCircle size={13} className="mr-1" />
+                            Reject
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            <PaginationControls
+              page={fpPag.page}
+              totalPages={fpPag.totalPages}
+              setPage={fpPag.setPage}
+            />
+          </>
+        )}
+      </CollapsibleSection>
+    </OuterCollapsible>
+  );
+}
+
+// ── History Section ────────────────────────────────────────────────────────────
+function HistorySection({ adminLogs }: { adminLogs: AdminLogLocal[] }) {
+  const logsPag = usePagination(adminLogs, 10);
+
+  return (
+    <OuterCollapsible
+      title="History Aktivitas Admin"
+      count={adminLogs.length}
+      countAccent="bg-slate-100 text-slate-600"
+    >
+      <CollapsibleSection
+        title="Log Aktivitas"
+        count={adminLogs.length}
+        accent="bg-slate-100 text-slate-600"
+        defaultOpen
+      >
+        {adminLogs.length === 0 ? (
+          <p className="text-sm text-slate-400 py-4 text-center">
+            Belum ada aktivitas.
+          </p>
+        ) : (
+          <>
+            <div className="flex flex-col divide-y divide-slate-100 mt-2">
+              {logsPag.paged.map((log) => (
+                <div key={log.idLog} className="py-3 flex flex-col gap-1">
+                  <div className="flex items-start justify-between gap-3 flex-wrap">
+                    <div className="flex flex-col gap-0.5 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs font-mono text-slate-500">
+                          {log.idLog}
+                        </span>
+                      </div>
+                      <p className="text-sm font-medium text-slate-900">
+                        {log.action}
+                      </p>
+                      {log.targetId && (
+                        <p className="text-xs text-slate-500">
+                          Target:{" "}
+                          <span className="font-mono">{log.targetId}</span>
+                        </p>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-400 flex-shrink-0 text-right">
+                      {formatDateTime(log.createdAt)}
+                    </p>
+                  </div>
+                  <p className="text-xs text-slate-400 font-mono truncate">
+                    {log.adminPrincipalId}
+                  </p>
+                </div>
+              ))}
+            </div>
+            <PaginationControls
+              page={logsPag.page}
+              totalPages={logsPag.totalPages}
+              setPage={logsPag.setPage}
             />
           </>
         )}

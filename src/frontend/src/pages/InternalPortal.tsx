@@ -135,9 +135,21 @@ export default function InternalPortal() {
       } else if (
         roleKey === Role.asistenmu ||
         roleKey === "asistenmu" ||
+        roleKey === Role.operasional ||
         roleKey === "operasional"
       ) {
         void navigate({ to: "/dashboard-asistenmu" });
+      } else if (
+        roleKey === Role.client ||
+        roleKey === "client" ||
+        roleKey === Role.partner ||
+        roleKey === "partner" ||
+        roleKey === Role.public_ ||
+        roleKey === "public_" ||
+        roleKey === "public"
+      ) {
+        setRoleError("Akses ditolak. Halaman ini hanya untuk tim internal.");
+        toast.error("Akses ditolak. Halaman ini hanya untuk tim internal.");
       } else {
         setRoleError("Anda belum terdaftar. Silakan daftar terlebih dahulu.");
         toast.error("Anda belum terdaftar. Silakan daftar terlebih dahulu.");
@@ -157,7 +169,11 @@ export default function InternalPortal() {
     if (!actor) return;
     setIsClaiming(true);
     try {
-      await actor.claimAdmin();
+      await actor.claimAdmin(
+        "Admin Asistenku",
+        "admasistenku@gmail.com",
+        "08817743613",
+      );
       setAdminClaimed(true);
       toast.success("Berhasil! Anda sekarang adalah Admin.");
     } catch (err: unknown) {

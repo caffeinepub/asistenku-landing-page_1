@@ -10,10 +10,127 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
-export type Role = { 'admin' : null } |
-  { 'asistenmu' : null };
-export type Status = { 'active' : null } |
-  { 'pending' : null };
+export interface AdminLog {
+  'action' : string,
+  'adminPrincipalId' : string,
+  'createdAt' : bigint,
+  'idLog' : string,
+  'targetId' : string,
+}
+export interface Client {
+  'status' : Status,
+  'nama' : string,
+  'createdAt' : bigint,
+  'role' : Role,
+  'whatsapp' : string,
+  'email' : string,
+  'company' : string,
+  'idUser' : string,
+  'principalId' : string,
+}
+export type FPRequestStatus = { 'pending' : null } |
+  { 'approved' : null } |
+  { 'rejected' : null };
+export interface FinancialProfile {
+  'createdAt' : bigint,
+  'nomorRekening' : string,
+  'namaRekening' : string,
+  'namaBankEwallet' : string,
+}
+export interface FinancialProfileRequest {
+  'status' : FPRequestStatus,
+  'partnerNama' : string,
+  'newProfile' : FinancialProfile,
+  'createdAt' : bigint,
+  'partnerId' : string,
+  'oldProfile' : [] | [FinancialProfile],
+  'idRequest' : string,
+}
+export type LevelPartner = { 'junior' : null } |
+  { 'senior' : null } |
+  { 'expert' : null };
+export interface Partner {
+  'status' : Status,
+  'kota' : string,
+  'nama' : string,
+  'createdAt' : bigint,
+  'role' : Role,
+  'verifiedSkill' : Array<string>,
+  'whatsapp' : string,
+  'email' : string,
+  'level' : LevelPartner,
+  'idUser' : string,
+  'principalId' : string,
+}
+export type Role = { 'client' : null } |
+  { 'admin' : null } |
+  { 'operasional' : null } |
+  { 'public' : null } |
+  { 'asistenmu' : null } |
+  { 'partner' : null };
+export interface Service {
+  'unitLayanan' : bigint,
+  'status' : ServiceStatus,
+  'clientPrincipalId' : string,
+  'tipeLayanan' : TipeLayanan,
+  'clientNama' : string,
+  'createdAt' : bigint,
+  'asistenmuNama' : string,
+  'hargaPerLayanan' : bigint,
+  'sharingLayanan' : Array<SharingEntry>,
+  'asistenmuPrincipalId' : string,
+  'idService' : string,
+}
+export type ServiceStatus = { 'active' : null } |
+  { 'inactive' : null };
+export interface SharingEntry {
+  'nama' : string,
+  'idUser' : string,
+  'principalId' : string,
+}
+export type Status = { 'reject' : null } |
+  { 'active' : null } |
+  { 'pending' : null } |
+  { 'suspend' : null };
+export interface Task {
+  'unitLayanan' : bigint,
+  'status' : TaskStatus,
+  'clientId' : string,
+  'partnerNama' : string,
+  'clientNama' : string,
+  'notesAsistenmu' : string,
+  'asistenmuId' : string,
+  'createdAt' : bigint,
+  'jamEfektif' : bigint,
+  'asistenmuNama' : string,
+  'deadline' : bigint,
+  'detailTask' : string,
+  'partnerId' : string,
+  'linkGdriveInternal' : string,
+  'linkGdriveClient' : string,
+  'serviceId' : string,
+  'idTask' : string,
+  'judulTask' : string,
+}
+export type TaskStatus = { 'revisi' : null } |
+  { 'reviewclient' : null } |
+  { 'ditolak' : null } |
+  { 'permintaanbaru' : null } |
+  { 'qaasistenmu' : null } |
+  { 'selesai' : null } |
+  { 'onprogress' : null };
+export type TipeLayanan = { 'fokus' : null } |
+  { 'jaga' : null } |
+  { 'rapi' : null } |
+  { 'tenang' : null } |
+  { 'efisien' : null };
+export interface TopUp {
+  'createdAt' : bigint,
+  'unitTambahan' : bigint,
+  'idService' : string,
+  'idTopUp' : string,
+  'namaClient' : string,
+}
 export interface User {
   'status' : Status,
   'nama' : string,
@@ -24,14 +141,98 @@ export interface User {
   'idUser' : string,
   'principalId' : string,
 }
+export interface WithdrawRequest {
+  'status' : WithdrawStatus,
+  'partnerNama' : string,
+  'nominal' : bigint,
+  'idWithdraw' : string,
+  'createdAt' : bigint,
+  'partnerId' : string,
+  'nomorRekening' : string,
+  'namaRekening' : string,
+  'namaBankEwallet' : string,
+}
+export type WithdrawStatus = { 'pending' : null } |
+  { 'approved' : null } |
+  { 'rejected' : null };
 export interface _SERVICE {
-  'claimAdmin' : ActorMethod<[], undefined>,
+  'aktivasiLayanan' : ActorMethod<
+    [
+      TipeLayanan,
+      string,
+      string,
+      string,
+      string,
+      bigint,
+      bigint,
+      Array<SharingEntry>,
+    ],
+    string
+  >,
+  'approveClient' : ActorMethod<[Principal], undefined>,
+  'approveFinancialProfileRequest' : ActorMethod<[string], undefined>,
+  'approveInternalUser' : ActorMethod<[Principal, Role], undefined>,
+  'approvePartner' : ActorMethod<[Principal], undefined>,
+  'approveWithdraw' : ActorMethod<[string], undefined>,
+  'claimAdmin' : ActorMethod<[string, string, string], undefined>,
+  'createTask' : ActorMethod<
+    [string, string, bigint, string, string, string, string, string],
+    string
+  >,
+  'delegasiTask' : ActorMethod<
+    [string, string, string, bigint, bigint, string, string, string],
+    undefined
+  >,
+  'getAdminLogs' : ActorMethod<[], Array<AdminLog>>,
+  'getAllClients' : ActorMethod<[], Array<Client>>,
+  'getAllPartners' : ActorMethod<[], Array<Partner>>,
+  'getAllTasks' : ActorMethod<[], Array<Task>>,
+  'getAllUsers' : ActorMethod<[], Array<User>>,
+  'getAsistenmu' : ActorMethod<[], Array<User>>,
+  'getClients' : ActorMethod<[], Array<Client>>,
+  'getFinancialProfileByPartnerId' : ActorMethod<
+    [string],
+    [] | [FinancialProfile]
+  >,
+  'getFinancialProfileRequests' : ActorMethod<
+    [],
+    Array<FinancialProfileRequest>
+  >,
+  'getMyFinancialProfile' : ActorMethod<[], [] | [FinancialProfile]>,
   'getMyProfile' : ActorMethod<[], [] | [User]>,
   'getMyRole' : ActorMethod<[], [] | [Role]>,
+  'getMyServicesAsAsistenmu' : ActorMethod<[], Array<Service>>,
+  'getPartners' : ActorMethod<[], Array<Partner>>,
+  'getServices' : ActorMethod<[], Array<Service>>,
+  'getTasksByAsistenmu' : ActorMethod<[], Array<Task>>,
+  'getTasksByPartner' : ActorMethod<[], Array<Task>>,
+  'getTopUps' : ActorMethod<[], Array<TopUp>>,
   'getUsers' : ActorMethod<[], Array<User>>,
+  'getWithdrawRequests' : ActorMethod<[], Array<WithdrawRequest>>,
   'isAdmin' : ActorMethod<[Principal], boolean>,
   'isAdminClaimed' : ActorMethod<[], boolean>,
+  'reactivateClient' : ActorMethod<[Principal], undefined>,
+  'reactivatePartner' : ActorMethod<[Principal], undefined>,
+  'reactivateUser' : ActorMethod<[Principal], undefined>,
+  'registerClient' : ActorMethod<[string, string, string, string], string>,
+  'registerPartner' : ActorMethod<[string, string, string, string], string>,
   'registerUser' : ActorMethod<[string, string, string], string>,
+  'rejectClient' : ActorMethod<[Principal], undefined>,
+  'rejectFinancialProfileRequest' : ActorMethod<[string], undefined>,
+  'rejectPartner' : ActorMethod<[Principal], undefined>,
+  'rejectUser' : ActorMethod<[Principal], undefined>,
+  'rejectWithdraw' : ActorMethod<[string], undefined>,
+  'requestFinancialProfile' : ActorMethod<[string, string, string], string>,
+  'requestWithdraw' : ActorMethod<[bigint], string>,
+  'suspendClient' : ActorMethod<[Principal], undefined>,
+  'suspendPartner' : ActorMethod<[Principal], undefined>,
+  'suspendUser' : ActorMethod<[Principal], undefined>,
+  'topUpService' : ActorMethod<[string, bigint], string>,
+  'updatePartnerDetails' : ActorMethod<
+    [Principal, LevelPartner, Array<string>],
+    undefined
+  >,
+  'updateTaskStatus' : ActorMethod<[string, TaskStatus], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];
