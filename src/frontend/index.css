@@ -1,0 +1,101 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  src: url('/assets/fonts/PlusJakartaSans-VariableFont_wght.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Cabinet Grotesk';
+  src: url('/assets/fonts/CabinetGrotesk-Variable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@layer base {
+  :root {
+    --radius: 0.625rem;
+    --background: 1 0 0;
+    --foreground: 0.145 0 0;
+    --card: 1 0 0;
+    --card-foreground: 0.145 0 0;
+    --popover: 1 0 0;
+    --popover-foreground: 0.145 0 0;
+    --primary: 0.559 0.142 176.9;
+    --primary-foreground: 0.985 0 0;
+    --secondary: 0.97 0 0;
+    --secondary-foreground: 0.205 0 0;
+    --muted: 0.97 0 0;
+    --muted-foreground: 0.556 0 0;
+    --accent: 0.97 0 0;
+    --accent-foreground: 0.205 0 0;
+    --destructive: 0.577 0.245 27.325;
+    --destructive-foreground: 0.985 0 0;
+    --border: 0.922 0 0;
+    --input: 0.922 0 0;
+    --ring: 0.559 0.142 176.9;
+    --chart-1: 0.646 0.222 41.116;
+    --chart-2: 0.6 0.118 184.704;
+    --chart-3: 0.398 0.07 227.392;
+    --chart-4: 0.828 0.189 84.429;
+    --chart-5: 0.769 0.188 70.08;
+    --sidebar: 0.985 0 0;
+    --sidebar-foreground: 0.145 0 0;
+    --sidebar-primary: 0.559 0.142 176.9;
+    --sidebar-primary-foreground: 0.985 0 0;
+    --sidebar-accent: 0.97 0 0;
+    --sidebar-accent-foreground: 0.205 0 0;
+    --sidebar-border: 0.922 0 0;
+    --sidebar-ring: 0.559 0.142 176.9;
+  }
+
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+}
+
+@layer components {
+  .btn-teal {
+    @apply bg-teal-600 text-white hover:bg-teal-700 transition-all cursor-pointer;
+  }
+
+  .shadow-soft {
+    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.07);
+  }
+
+  .shadow-card {
+    box-shadow: 0 4px 24px 0 rgba(0, 0, 0, 0.10);
+  }
+
+  .step-circle {
+    background-color: #0d9488;
+    color: white;
+  }
+
+  .text-teal-brand {
+    color: #0d9488;
+  }
+
+  .text-teal-price {
+    color: #0f766e;
+  }
+
+  .bg-dark-navy {
+    background-color: #0f172a;
+  }
+
+  .font-display {
+    font-family: 'Cabinet Grotesk', sans-serif;
+    font-weight: 700;
+  }
+}
