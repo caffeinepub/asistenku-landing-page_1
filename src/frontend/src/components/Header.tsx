@@ -1,3 +1,5 @@
+import { Link } from "@tanstack/react-router";
+
 const WA_LINK = "https://wa.me/628817743613";
 
 export default function Header() {
@@ -11,14 +13,28 @@ export default function Header() {
             className="h-8 w-auto object-contain"
           />
         </a>
-        <a
-          href={WA_LINK}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="btn-teal px-5 py-2 rounded-full font-semibold text-sm"
-        >
-          Hubungi Kami
-        </a>
+        <div className="flex items-center gap-2">
+          <a
+            href={WA_LINK}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-teal px-5 py-2 rounded-full font-semibold text-sm"
+          >
+            Hubungi Kami
+          </a>
+          <Link
+            to="/client-login"
+            className="btn-teal px-5 py-2 rounded-full font-semibold text-sm"
+          >
+            Masuk
+          </Link>
+          <Link
+            to="/client-register"
+            className="btn-teal px-5 py-2 rounded-full font-semibold text-sm"
+          >
+            Daftar
+          </Link>
+        </div>
       </div>
     </header>
   );

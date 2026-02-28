@@ -26,6 +26,12 @@ export default function Footer() {
             >
               Portal Internal
             </Link>
+            <Link
+              to="/portal-partner"
+              className="text-slate-400 hover:text-slate-200 text-sm transition-colors"
+            >
+              Portal Partner
+            </Link>
             <p className="text-xs text-slate-500">
               Built with love using{" "}
               <a

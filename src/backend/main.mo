@@ -55,11 +55,8 @@ actor {
     };
   };
 
-  public query ({ caller }) func getMyProfile() : async User {
-    switch (users.get(caller)) {
-      case (?user) { user };
-      case (null) { Runtime.trap("User not found") };
-    };
+  public query ({ caller }) func getMyProfile() : async ?User {
+    users.get(caller);
   };
 
   public query ({ caller }) func getUsers() : async [User] {

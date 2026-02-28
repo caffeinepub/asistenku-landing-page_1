@@ -26,7 +26,7 @@ export const User = IDL.Record({
 
 export const idlService = IDL.Service({
   'claimAdmin' : IDL.Func([], [], []),
-  'getMyProfile' : IDL.Func([], [User], ['query']),
+  'getMyProfile' : IDL.Func([], [IDL.Opt(User)], ['query']),
   'getMyRole' : IDL.Func([], [IDL.Opt(Role)], ['query']),
   'getUsers' : IDL.Func([], [IDL.Vec(User)], ['query']),
   'isAdmin' : IDL.Func([IDL.Principal], [IDL.Bool], ['query']),
@@ -52,7 +52,7 @@ export const idlFactory = ({ IDL }) => {
   
   return IDL.Service({
     'claimAdmin' : IDL.Func([], [], []),
-    'getMyProfile' : IDL.Func([], [User], ['query']),
+    'getMyProfile' : IDL.Func([], [IDL.Opt(User)], ['query']),
     'getMyRole' : IDL.Func([], [IDL.Opt(Role)], ['query']),
     'getUsers' : IDL.Func([], [IDL.Vec(User)], ['query']),
     'isAdmin' : IDL.Func([IDL.Principal], [IDL.Bool], ['query']),

@@ -26,7 +26,7 @@ export interface User {
 }
 export interface _SERVICE {
   'claimAdmin' : ActorMethod<[], undefined>,
-  'getMyProfile' : ActorMethod<[], User>,
+  'getMyProfile' : ActorMethod<[], [] | [User]>,
   'getMyRole' : ActorMethod<[], [] | [Role]>,
   'getUsers' : ActorMethod<[], Array<User>>,
   'isAdmin' : ActorMethod<[Principal], boolean>,

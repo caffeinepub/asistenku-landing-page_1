@@ -27,7 +27,7 @@ export enum Status {
 }
 export interface backendInterface {
     claimAdmin(): Promise<void>;
-    getMyProfile(): Promise<User>;
+    getMyProfile(): Promise<User | null>;
     getMyRole(): Promise<Role | null>;
     getUsers(): Promise<Array<User>>;
     isAdmin(user: Principal): Promise<boolean>;

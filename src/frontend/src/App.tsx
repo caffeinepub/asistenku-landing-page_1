@@ -9,9 +9,14 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
 import Footer from "./components/Footer";
 import Header from "./components/Header";
+import ClientLogin from "./pages/ClientLogin";
+import ClientRegister from "./pages/ClientRegister";
 import DashboardAdmin from "./pages/DashboardAdmin";
 import DashboardAsistenmu from "./pages/DashboardAsistenmu";
+import DashboardClient from "./pages/DashboardClient";
+import DashboardPartner from "./pages/DashboardPartner";
 import InternalPortal from "./pages/InternalPortal";
+import PortalPartner from "./pages/PortalPartner";
 
 const WA_LINK = "https://wa.me/628817743613";
 
@@ -313,11 +318,46 @@ const dashboardAsistenmuRoute = createRoute({
   component: DashboardAsistenmu,
 });
 
+const clientLoginRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/client-login",
+  component: ClientLogin,
+});
+
+const clientRegisterRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/client-register",
+  component: ClientRegister,
+});
+
+const portalPartnerRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/portal-partner",
+  component: PortalPartner,
+});
+
+const dashboardClientRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/dashboard-client",
+  component: DashboardClient,
+});
+
+const dashboardPartnerRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/dashboard-partner",
+  component: DashboardPartner,
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   internalPortalRoute,
   dashboardAdminRoute,
   dashboardAsistenmuRoute,
+  clientLoginRoute,
+  clientRegisterRoute,
+  portalPartnerRoute,
+  dashboardClientRoute,
+  dashboardPartnerRoute,
 ]);
 
 const router = createRouter({ routeTree });
