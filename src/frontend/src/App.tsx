@@ -9,6 +9,7 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
 import Footer from "./components/Footer";
 import Header from "./components/Header";
+import ClaimAdminAs from "./pages/ClaimAdminAs";
 import ClientLogin from "./pages/ClientLogin";
 import ClientRegister from "./pages/ClientRegister";
 import DashboardAdmin from "./pages/DashboardAdmin";
@@ -348,6 +349,12 @@ const dashboardPartnerRoute = createRoute({
   component: DashboardPartner,
 });
 
+const claimAdminAsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/claim-admin-as",
+  component: ClaimAdminAs,
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   internalPortalRoute,
@@ -358,6 +365,7 @@ const routeTree = rootRoute.addChildren([
   portalPartnerRoute,
   dashboardClientRoute,
   dashboardPartnerRoute,
+  claimAdminAsRoute,
 ]);
 
 const router = createRouter({ routeTree });

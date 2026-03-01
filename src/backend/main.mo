@@ -9,9 +9,9 @@ import Array "mo:core/Array";
 import Order "mo:core/Order";
 import List "mo:core/List";
 import Runtime "mo:core/Runtime";
-import Migration "migration";
 
-(with migration = Migration.run)
+
+
 actor {
   public type Role = {
     #admin;
