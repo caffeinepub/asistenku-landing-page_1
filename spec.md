@@ -1,48 +1,47 @@
 # Asistenku Landing Page
 
 ## Current State
-- Backend: Motoko dengan stable var users (User internal INT-XXXX), partners (PA-XXXX), clients (CA-XXXXX), services (SA-XXXXX), topUps (TU-XXXXX)
-- Roles: #admin, #asistenmu, #operasional, #client, #partner, #public_
-- Status: #pending, #active, #reject, #suspend
-- Frontend pages: LandingPage, InternalPortal, PortalPartner, ClientLogin, ClientRegister, DashboardAdmin, DashboardPartner, DashboardAsistenmu, DashboardClient
-- DashboardAdmin: summary cards, manajemen pengguna (collapsible, filter), manajemen service (collapsible, aktivasi layanan, top up, list layanan)
-- DashboardPartner: hanya welcome card (stub)
-- DashboardAsistenmu: hanya welcome card (stub)
-- Belum ada stable var tasks di backend
+- Dashboard Partner sudah ada dengan task sections (On Progress, Review Client, QA, Revisi, Selesai, Ditolak)
+- Backend sudah punya: Partner data, FinancialProfile, WithdrawRequest, FinancialProfileRequest
+- Backend fungsi: requestFinancialProfile, requestWithdraw, approveWithdraw, getMyFinancialProfile, getTasksByPartner
+- Header menampilkan "Dashboard Partner" + icon Users
+- Footer menampilkan "Dashboard Partner — Area Terbatas"
+- Tidak ada card profil, finansial, level/skill, atau wallet di dashboard partner
 
 ## Requested Changes (Diff)
 
 ### Add
-- Backend stable var `tasks` dengan struktur: idTask (TSK-XXXXX auto-generate), judulTask, detailTask, deadline (Int), serviceId, clientId, clientNama, partnerId, partnerNama, asistenmuId, asistenmuNama, notesAsistenmu, jamEfektif (Nat), unitLayanan (Nat), linkGdriveInternal, linkGdriveClient, status (TaskStatus), createdAt (Int)
-- TaskStatus variants: #permintaanbaru, #onprogress, #reviewclient, #qaasistenmu, #revisi, #ditolak, #selesai
-- Backend functions: createTask, delegasiTask (set partnerId/partnerNama/jamEfektif/unitLayanan/notes/linkGdriveInternal/linkGdriveClient + status #onprogress), updateTaskStatus (generic), getAllTasks, getTasksByPartner (by partnerId), getTasksByAsistenmu (filter by asistenmuId melalui serviceId), getTasksByStatus
-- Dashboard Admin: tambah section "Manajemen Task" (OuterCollapsible) di bawah Manajemen Service:
-  - Filter per sub-card: nama client & tipe layanan (filter by serviceId -> lookup tipeLayanan)
-  - 7 sub-card CollapsibleSection, pagination 5 masing-masing:
-    1. Task Baru (#permintaanbaru) - tombol Delegasikan (form modal: autocomplete partner by idUser/nama/verifiedSkill, jam efektif, unit layanan, notes, linkGdriveInternal, linkGdriveClient, tombol Delegasikan)
-    2. Task Review Client (#reviewclient) - tombol Meminta Revisi (-> #revisi)
-    3. Task On Progress (#onprogress) - tombol Meminta QA Asistenmu (-> #qaasistenmu)
-    4. Task QA Asistenmu (#qaasistenmu) - tombol Meminta Review Client (-> #reviewclient)
-    5. Task Revisi (#revisi) - tombol Kirim Revisi ke Partner (-> #onprogress)
-    6. Task Ditolak Partner (#ditolak) - tombol Delegasi Ulang (form delegasi, partner bisa dipilih ulang, field lain read only)
-    7. Task Selesai (#selesai) - tampilan saja
-- Dashboard Partner: full replace stub dengan task list yang terdelegasi ke partner ini:
-  - Sub-card tasks by status: On Progress (tombol Meminta QA Asistenmu), Review Client, QA Asistenmu, Revisi, Selesai, Ditolak
-  - Data diambil dari getTasksByPartner(principalId)
-- Dashboard Asistenmu: full replace stub dengan:
-  - Summary cards: total layanan terkait, counter per status task (#permintaanbaru, #onprogress, #reviewclient, #qaasistenmu, #revisi, #ditolak, #selesai)
-  - List layanan yang servicenya asistenmuId == principalId asistenmu (pagination 5)
-  - List task #permintaanbaru yang serviceId-nya tertaut ke asistenmu ini (via getTasksByAsistenmu)
+- Backend: `getMyPartnerProfile` query untuk partner caller
+- Backend: `updateMyPartnerProfile` untuk partner update nama, email, whatsapp, kota sendiri
+- Backend: `getMyWallet` query yang menghitung saldo dari task selesai (jamEfektif x hourly rate per level: junior=35000, senior=55000, expert=75000), dikurangi saldo dalam pengajuan withdraw (pending), hasil withdraw approved sudah terkurang otomatis
+- Frontend: Card sapaan "Selamat datang, [nama]. Ruang Kerja kamu."
+- Frontend: Card Profil Partner (idUser, nama, email, whatsapp, kota) dengan tombol Edit inline + Update (simpan ke backend)
+- Frontend: Card Finansial (namaBankEwallet, nomorRekening, namaRekening) dengan tombol Edit + "Ajukan Perubahan Data" (kirim ke requestFinancialProfile)
+- Frontend: Card Level & Verified Skill (read only)
+- Frontend: Card Wallet (saldo tersedia, saldo dalam pengajuan withdraw, tombol Ajukan Withdraw dengan form nominal)
+- Frontend: Section "Task Manajemen" collapsible yang membungkus semua card task yang ada
+- Frontend: Card "Akademi Asistenku - Coming Soon" di bawah Task Manajemen
+- Frontend: Logo asistenku-horizontal di header (ganti icon + tulisan)
+- Frontend: Footer teks "Ruang Kerja Partner - Area terbatas"
 
 ### Modify
-- Backend: tambah taskCounter stable var, tambah fungsi-fungsi task ke actor
-- DashboardAdmin.tsx: tambah section Manajemen Task setelah Manajemen Service, tambah interface Task, tambah state tasks, tambah fetch tasks, tambah partnerList autocomplete
+- Backend: Tambah fungsi `getMyPartnerProfile` dan `updateMyPartnerProfile` dan `getMyWallet`
+- Frontend DashboardPartner: Header ganti dengan logo asistenku-horizontal.png
+- Frontend DashboardPartner: Footer teks diubah
+- Frontend DashboardPartner: Semua task sections dibungkus dalam satu section "Task Manajemen" collapsible
+- Frontend DashboardPartner: Summary cards ditambah data layanan + wallet info
+- Logika withdraw: saat ajukan withdraw, saldo berkurang (masuk pending); saat approved saldo dalam pengajuan berkurang; saat rejected saldo dikembalikan
 
 ### Remove
-- Tidak ada yang dihapus
+- Header icon Users dan teks "Dashboard Partner"
 
 ## Implementation Plan
-1. Generate Motoko backend baru dengan semua type dan fungsi tasks (tambah ke existing stable var)
-2. Update DashboardAdmin.tsx: tambah Task interface, fetch getAllTasks + getPartners, tambah section Manajemen Task dengan 7 sub-card, form delegasi modal/inline, semua tombol status update
-3. Rewrite DashboardPartner.tsx: fetch getTasksByPartner, tampilkan task per status dengan tombol Meminta QA Asistenmu di On Progress
-4. Rewrite DashboardAsistenmu.tsx: fetch getTasksByAsistenmu + getServices filtered by asistenmuId, summary cards, list layanan, list task permintaan baru
+1. Tambah backend fungsi: `getMyPartnerProfile`, `updateMyPartnerProfile`, `getMyWallet` (Wallet = {saldoTersedia: Nat, saldoPengajuan: Nat})
+2. Regenerate backend dan backend.d.ts
+3. Update DashboardPartner.tsx:
+   - Header: logo asistenku-horizontal.png di kiri, tombol Keluar di kanan
+   - Card sapaan dengan nama partner
+   - 4 card info: Profil (edit/update), Finansial (edit/ajukan), Level+Skill (readonly), Wallet (saldo+withdraw)
+   - Wrap semua task sections dalam CollapsibleSection "Task Manajemen"
+   - Card Akademi Asistenku coming soon
+   - Footer teks baru

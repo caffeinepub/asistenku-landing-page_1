@@ -146,6 +146,10 @@ export const Service = IDL.Record({
   'asistenmuPrincipalId' : IDL.Text,
   'idService' : IDL.Text,
 });
+export const WalletInfo = IDL.Record({
+  'saldoTersedia' : IDL.Nat,
+  'saldoPengajuan' : IDL.Nat,
+});
 export const TopUp = IDL.Record({
   'createdAt' : IDL.Int,
   'unitTambahan' : IDL.Nat,
@@ -241,9 +245,11 @@ export const idlService = IDL.Service({
       [IDL.Opt(FinancialProfile)],
       ['query'],
     ),
+  'getMyPartnerProfile' : IDL.Func([], [IDL.Opt(Partner)], ['query']),
   'getMyProfile' : IDL.Func([], [IDL.Opt(User)], ['query']),
   'getMyRole' : IDL.Func([], [IDL.Opt(Role)], ['query']),
   'getMyServicesAsAsistenmu' : IDL.Func([], [IDL.Vec(Service)], ['query']),
+  'getMyWallet' : IDL.Func([], [WalletInfo], ['query']),
   'getPartners' : IDL.Func([], [IDL.Vec(Partner)], ['query']),
   'getServices' : IDL.Func([], [IDL.Vec(Service)], ['query']),
   'getTasksByAsistenmu' : IDL.Func([], [IDL.Vec(Task)], ['query']),
@@ -282,6 +288,11 @@ export const idlService = IDL.Service({
   'suspendPartner' : IDL.Func([IDL.Principal], [], []),
   'suspendUser' : IDL.Func([IDL.Principal], [], []),
   'topUpService' : IDL.Func([IDL.Text, IDL.Nat], [IDL.Text], []),
+  'updateMyPartnerProfile' : IDL.Func(
+      [IDL.Text, IDL.Text, IDL.Text, IDL.Text],
+      [],
+      [],
+    ),
   'updatePartnerDetails' : IDL.Func(
       [IDL.Principal, LevelPartner, IDL.Vec(IDL.Text)],
       [],
@@ -431,6 +442,10 @@ export const idlFactory = ({ IDL }) => {
     'asistenmuPrincipalId' : IDL.Text,
     'idService' : IDL.Text,
   });
+  const WalletInfo = IDL.Record({
+    'saldoTersedia' : IDL.Nat,
+    'saldoPengajuan' : IDL.Nat,
+  });
   const TopUp = IDL.Record({
     'createdAt' : IDL.Int,
     'unitTambahan' : IDL.Nat,
@@ -526,9 +541,11 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Opt(FinancialProfile)],
         ['query'],
       ),
+    'getMyPartnerProfile' : IDL.Func([], [IDL.Opt(Partner)], ['query']),
     'getMyProfile' : IDL.Func([], [IDL.Opt(User)], ['query']),
     'getMyRole' : IDL.Func([], [IDL.Opt(Role)], ['query']),
     'getMyServicesAsAsistenmu' : IDL.Func([], [IDL.Vec(Service)], ['query']),
+    'getMyWallet' : IDL.Func([], [WalletInfo], ['query']),
     'getPartners' : IDL.Func([], [IDL.Vec(Partner)], ['query']),
     'getServices' : IDL.Func([], [IDL.Vec(Service)], ['query']),
     'getTasksByAsistenmu' : IDL.Func([], [IDL.Vec(Task)], ['query']),
@@ -567,6 +584,11 @@ export const idlFactory = ({ IDL }) => {
     'suspendPartner' : IDL.Func([IDL.Principal], [], []),
     'suspendUser' : IDL.Func([IDL.Principal], [], []),
     'topUpService' : IDL.Func([IDL.Text, IDL.Nat], [IDL.Text], []),
+    'updateMyPartnerProfile' : IDL.Func(
+        [IDL.Text, IDL.Text, IDL.Text, IDL.Text],
+        [],
+        [],
+      ),
     'updatePartnerDetails' : IDL.Func(
         [IDL.Principal, LevelPartner, IDL.Vec(IDL.Text)],
         [],

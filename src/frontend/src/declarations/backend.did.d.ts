@@ -141,6 +141,10 @@ export interface User {
   'idUser' : string,
   'principalId' : string,
 }
+export interface WalletInfo {
+  'saldoTersedia' : bigint,
+  'saldoPengajuan' : bigint,
+}
 export interface WithdrawRequest {
   'status' : WithdrawStatus,
   'partnerNama' : string,
@@ -199,9 +203,11 @@ export interface _SERVICE {
     Array<FinancialProfileRequest>
   >,
   'getMyFinancialProfile' : ActorMethod<[], [] | [FinancialProfile]>,
+  'getMyPartnerProfile' : ActorMethod<[], [] | [Partner]>,
   'getMyProfile' : ActorMethod<[], [] | [User]>,
   'getMyRole' : ActorMethod<[], [] | [Role]>,
   'getMyServicesAsAsistenmu' : ActorMethod<[], Array<Service>>,
+  'getMyWallet' : ActorMethod<[], WalletInfo>,
   'getPartners' : ActorMethod<[], Array<Partner>>,
   'getServices' : ActorMethod<[], Array<Service>>,
   'getTasksByAsistenmu' : ActorMethod<[], Array<Task>>,
@@ -228,6 +234,10 @@ export interface _SERVICE {
   'suspendPartner' : ActorMethod<[Principal], undefined>,
   'suspendUser' : ActorMethod<[Principal], undefined>,
   'topUpService' : ActorMethod<[string, bigint], string>,
+  'updateMyPartnerProfile' : ActorMethod<
+    [string, string, string, string],
+    undefined
+  >,
   'updatePartnerDetails' : ActorMethod<
     [Principal, LevelPartner, Array<string>],
     undefined

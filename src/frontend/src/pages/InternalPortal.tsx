@@ -37,9 +37,9 @@ export default function InternalPortal() {
   const [adminClaimed, setAdminClaimed] = useState<boolean | null>(null); // null = not checked yet
   const [isClaiming, setIsClaiming] = useState(false);
 
-  // Check isAdminClaimed when actor is ready
+  // Check isAdminClaimed as soon as actor is available (including anonymous actor)
   useEffect(() => {
-    if (!isActorReady || !actor) return;
+    if (!actor) return;
     let cancelled = false;
     actor
       .isAdminClaimed()
@@ -47,13 +47,13 @@ export default function InternalPortal() {
         if (!cancelled) setAdminClaimed(claimed);
       })
       .catch(() => {
-        // silently ignore; keep card hidden if error
-        if (!cancelled) setAdminClaimed(true);
+        // On error, show the card (assume not claimed) so user can still claim
+        if (!cancelled) setAdminClaimed(false);
       });
     return () => {
       cancelled = true;
     };
-  }, [isActorReady, actor]);
+  }, [actor]);
 
   // ── Login handler ─────────────────────────────────────────────
   function handleLogin() {
@@ -378,7 +378,16 @@ export default function InternalPortal() {
             </div>
           </div>
 
-          {/* ── Card 4: Claim Admin (hidden if admin already claimed) ── */}
+          {/* ── Card 4: Claim Admin ── */}
+          {/* Show loading skeleton while checking, show card if not claimed, hide if claimed */}
+          {adminClaimed === null && (
+            <div className="w-full max-w-xl bg-white rounded-2xl shadow-soft border border-slate-100 p-8 flex flex-col items-center gap-5">
+              <div className="flex items-center gap-2 text-slate-400">
+                <Loader2 size={18} className="animate-spin" />
+                <span className="text-sm">Memeriksa status admin...</span>
+              </div>
+            </div>
+          )}
           {adminClaimed === false && (
             <div className="w-full max-w-xl bg-white rounded-2xl shadow-soft border border-slate-100 p-8 flex flex-col items-center gap-5">
               <div className="flex items-center gap-2">

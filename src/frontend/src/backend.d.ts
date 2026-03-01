@@ -96,6 +96,10 @@ export interface TopUp {
     idTopUp: string;
     namaClient: string;
 }
+export interface WalletInfo {
+    saldoTersedia: bigint;
+    saldoPengajuan: bigint;
+}
 export interface SharingEntry {
     nama: string;
     idUser: string;
@@ -183,9 +187,11 @@ export interface backendInterface {
     getFinancialProfileByPartnerId(partnerId: string): Promise<FinancialProfile | null>;
     getFinancialProfileRequests(): Promise<Array<FinancialProfileRequest>>;
     getMyFinancialProfile(): Promise<FinancialProfile | null>;
+    getMyPartnerProfile(): Promise<Partner | null>;
     getMyProfile(): Promise<User | null>;
     getMyRole(): Promise<Role | null>;
     getMyServicesAsAsistenmu(): Promise<Array<Service>>;
+    getMyWallet(): Promise<WalletInfo>;
     getPartners(): Promise<Array<Partner>>;
     getServices(): Promise<Array<Service>>;
     getTasksByAsistenmu(): Promise<Array<Task>>;
@@ -212,6 +218,7 @@ export interface backendInterface {
     suspendPartner(principalId: Principal): Promise<void>;
     suspendUser(principalId: Principal): Promise<void>;
     topUpService(idService: string, unitTambahan: bigint): Promise<string>;
+    updateMyPartnerProfile(nama: string, email: string, whatsapp: string, kota: string): Promise<void>;
     updatePartnerDetails(principalId: Principal, level: LevelPartner, verifiedSkill: Array<string>): Promise<void>;
     updateTaskStatus(idTask: string, status: TaskStatus): Promise<void>;
 }

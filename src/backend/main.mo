@@ -9,9 +9,9 @@ import Array "mo:core/Array";
 import Order "mo:core/Order";
 import List "mo:core/List";
 import Runtime "mo:core/Runtime";
+import Migration "migration";
 
-
-
+(with migration = Migration.run)
 actor {
   public type Role = {
     #admin;
@@ -189,6 +189,11 @@ actor {
     createdAt : Int;
   };
 
+  public type WalletInfo = {
+    saldoTersedia : Nat;
+    saldoPengajuan : Nat;
+  };
+
   stable var userCounter : Nat = 0;
   stable var partnerCounter : Nat = 0;
   stable var clientCounter : Nat = 0;
@@ -309,6 +314,26 @@ actor {
     users.get(caller);
   };
 
+  public query ({ caller }) func getMyPartnerProfile() : async ?Partner {
+    partners.get(caller);
+  };
+
+  public shared ({ caller }) func updateMyPartnerProfile(nama : Text, email : Text, whatsapp : Text, kota : Text) : async () {
+    switch (partners.get(caller)) {
+      case (?partner) {
+        let updatedPartner = {
+          partner with
+          nama;
+          email;
+          whatsapp;
+          kota;
+        };
+        partners.add(caller, updatedPartner);
+      };
+      case (null) { Runtime.trap("Partner not found") };
+    };
+  };
+
   public query ({ caller }) func getUsers() : async [User] {
     checkAdmin(caller);
     users.values().toArray();
@@ -418,6 +443,54 @@ actor {
     };
 
     logs.sort();
+  };
+
+  public query ({ caller }) func getMyWallet() : async WalletInfo {
+    let callerText = caller.toText();
+    var rate = 0;
+    switch (partners.get(caller)) {
+      case (null) { Runtime.trap("Partner not found") };
+      case (?p) {
+        rate := switch (p.level) {
+          case (#junior) { 35000 };
+          case (#senior) { 55000 };
+          case (#expert) { 75000 };
+        };
+      };
+    };
+
+    let tasksForCaller = tasks.values().toArray().filter(
+      func(task) {
+        task.partnerId == callerText and task.status == #selesai
+      }
+    );
+    var saldoKotor = 0;
+    for (t in tasksForCaller.values()) {
+      saldoKotor += t.jamEfektif * rate;
+    };
+
+    let withdrawRequestsForCaller = withdrawRequests.values().toArray().filter(
+      func(wr) {
+        wr.partnerId == callerText
+      }
+    );
+    var saldoApproved = 0;
+    var saldoPengajuan = 0;
+    for (wr in withdrawRequestsForCaller.values()) {
+      switch (wr.status) {
+        case (#pending) { saldoPengajuan += wr.nominal };
+        case (#approved) { saldoApproved += wr.nominal };
+        case (_) {};
+      };
+    };
+
+    var saldoTersedia : Int = saldoKotor - saldoApproved - saldoPengajuan;
+    if (saldoTersedia < 0) { saldoTersedia := 0 };
+
+    {
+      saldoTersedia = saldoTersedia.toNat();
+      saldoPengajuan;
+    };
   };
 
   // Call mutations
