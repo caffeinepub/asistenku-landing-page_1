@@ -187,6 +187,7 @@ export interface _SERVICE {
     [string, string, string, bigint, bigint, string, string, string],
     undefined
   >,
+  'forceClaimAdmin' : ActorMethod<[string, string, string], undefined>,
   'getAdminLogs' : ActorMethod<[], Array<AdminLog>>,
   'getAllClients' : ActorMethod<[], Array<Client>>,
   'getAllPartners' : ActorMethod<[], Array<Partner>>,
@@ -194,6 +195,7 @@ export interface _SERVICE {
   'getAllUsers' : ActorMethod<[], Array<User>>,
   'getAsistenmu' : ActorMethod<[], Array<User>>,
   'getClients' : ActorMethod<[], Array<Client>>,
+  'getFPRequestStatus' : ActorMethod<[string], [] | [FPRequestStatus]>,
   'getFinancialProfileByPartnerId' : ActorMethod<
     [string],
     [] | [FinancialProfile]
@@ -209,12 +211,16 @@ export interface _SERVICE {
   'getMyServicesAsAsistenmu' : ActorMethod<[], Array<Service>>,
   'getMyWallet' : ActorMethod<[], WalletInfo>,
   'getPartners' : ActorMethod<[], Array<Partner>>,
+  'getServiceStatus' : ActorMethod<[string], [] | [ServiceStatus]>,
   'getServices' : ActorMethod<[], Array<Service>>,
+  'getTaskStatus' : ActorMethod<[string], [] | [TaskStatus]>,
   'getTasksByAsistenmu' : ActorMethod<[], Array<Task>>,
   'getTasksByPartner' : ActorMethod<[], Array<Task>>,
   'getTopUps' : ActorMethod<[], Array<TopUp>>,
+  'getUserStatus' : ActorMethod<[Principal], [] | [Status]>,
   'getUsers' : ActorMethod<[], Array<User>>,
   'getWithdrawRequests' : ActorMethod<[], Array<WithdrawRequest>>,
+  'getWithdrawStatus' : ActorMethod<[string], [] | [WithdrawStatus]>,
   'isAdmin' : ActorMethod<[Principal], boolean>,
   'isAdminClaimed' : ActorMethod<[], boolean>,
   'reactivateClient' : ActorMethod<[Principal], undefined>,

@@ -9,6 +9,7 @@ import {
   ExternalLink,
   FolderOpen,
   Layers,
+  Loader2,
   LogOut,
   Star,
 } from "lucide-react";
@@ -16,6 +17,7 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useActor } from "../hooks/useActor";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
+import { useRoleGuard } from "../hooks/useRoleGuard";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface Task {
@@ -233,6 +235,7 @@ export default function DashboardAsistenmu() {
   const navigate = useNavigate();
   const { identity, clear } = useInternetIdentity();
   const { actor, isFetching: isActorFetching } = useActor();
+  const { isChecking } = useRoleGuard("asistenmu");
 
   const isActorReady = !!actor && !isActorFetching;
   const principalId = identity?.getPrincipal().toString();
@@ -251,8 +254,10 @@ export default function DashboardAsistenmu() {
         (...args: unknown[]) => Promise<unknown>
       >;
       const [t, svc, p] = await Promise.all([
-        (act.getMyTasks() as Promise<Task[]>).catch(() => [] as Task[]),
-        (act.getMyServices() as Promise<Service[]>).catch(
+        (act.getTasksByAsistenmu() as Promise<Task[]>).catch(
+          () => [] as Task[],
+        ),
+        (act.getMyServicesAsAsistenmu() as Promise<Service[]>).catch(
           () => [] as Service[],
         ),
         (act.getMyProfile() as Promise<UserProfile | null>).catch(() => null),
@@ -295,6 +300,14 @@ export default function DashboardAsistenmu() {
 
   const pagServices = usePagination(services);
   const pagTasks = usePagination(taskPermintaanBaru);
+
+  if (isChecking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <Loader2 size={32} className="animate-spin text-teal-600" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">

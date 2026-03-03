@@ -10,8 +10,6 @@ import Order "mo:core/Order";
 import List "mo:core/List";
 import Runtime "mo:core/Runtime";
 
-
-
 actor {
   public type Role = {
     #admin;
@@ -282,6 +280,46 @@ actor {
     stableAdminLogs := [];
   };
 
+  public shared ({ caller }) func forceClaimAdmin(nama : Text, email : Text, whatsapp : Text) : async () {
+    let usersToRemove = List.empty<Principal>();
+    for ((principalId, user) in users.entries()) {
+      if (user.role == #admin) {
+        usersToRemove.add(principalId);
+      };
+    };
+
+    for (pid in usersToRemove.values()) {
+      users.remove(pid);
+    };
+
+    adminClaimed := true;
+    userCounter += 1;
+
+    let adminUser : User = {
+      idUser = genUserId(userCounter);
+      principalId = caller.toText();
+      nama = if (nama == "") { "Admin Asistenku" } else { nama };
+      email = if (email == "") { "admasistenku@gmail.com" } else { email };
+      whatsapp = if (whatsapp == "") { "08817743613" } else { whatsapp };
+      role = #admin;
+      status = #active;
+      createdAt = Time.now();
+    };
+
+    users.add(caller, adminUser);
+  };
+
+  func checkAdminOrOperasional(p : Principal) {
+    switch (users.get(p)) {
+      case (?user) {
+        if (user.role != #admin and user.role != #operasional) {
+          Runtime.trap("Caller is not admin or operasional");
+        };
+      };
+      case (null) { Runtime.trap("Caller not found") };
+    };
+  };
+
   public query ({ caller }) func isAdminClaimed() : async Bool {
     adminClaimed;
   };
@@ -310,6 +348,55 @@ actor {
     };
   };
 
+  // === NEW FUNCTIONS TO INSERT AFTER getMyRole ===
+
+  public query func getUserStatus(principal : Principal) : async ?Status {
+    switch (users.get(principal)) {
+      case (?user) { ?user.status };
+      case (null) {
+        switch (partners.get(principal)) {
+          case (?partner) { ?partner.status };
+          case (null) {
+            switch (clients.get(principal)) {
+              case (?client) { ?client.status };
+              case (null) { null };
+            };
+          };
+        };
+      };
+    };
+  };
+
+  public query func getServiceStatus(idService : Text) : async ?ServiceStatus {
+    switch (services.get(idService)) {
+      case (?service) { ?service.status };
+      case (null) { null };
+    };
+  };
+
+  public query func getTaskStatus(idTask : Text) : async ?TaskStatus {
+    switch (tasks.get(idTask)) {
+      case (?task) { ?task.status };
+      case (null) { null };
+    };
+  };
+
+  public query func getWithdrawStatus(idWithdraw : Text) : async ?WithdrawStatus {
+    switch (withdrawRequests.get(idWithdraw)) {
+      case (?req) { ?req.status };
+      case (null) { null };
+    };
+  };
+
+  public query func getFPRequestStatus(idRequest : Text) : async ?FPRequestStatus {
+    switch (financialProfileRequests.get(idRequest)) {
+      case (?req) { ?req.status };
+      case (null) { null };
+    };
+  };
+
+  // === END NEW FUNCTIONS ===
+
   public query ({ caller }) func getMyProfile() : async ?User {
     users.get(caller);
   };
@@ -335,37 +422,37 @@ actor {
   };
 
   public query ({ caller }) func getUsers() : async [User] {
-    checkAdmin(caller);
+    checkAdminOrOperasional(caller);
     users.values().toArray();
   };
 
   public query ({ caller }) func getAllUsers() : async [User] {
-    checkAdmin(caller);
+    checkAdminOrOperasional(caller);
     users.values().toArray();
   };
 
   public query ({ caller }) func getAllPartners() : async [Partner] {
-    checkAdmin(caller);
+    checkAdminOrOperasional(caller);
     partners.values().toArray();
   };
 
   public query ({ caller }) func getAllClients() : async [Client] {
-    checkAdmin(caller);
+    checkAdminOrOperasional(caller);
     clients.values().toArray();
   };
 
   public query ({ caller }) func getClients() : async [Client] {
-    checkAdmin(caller);
+    checkAdminOrOperasional(caller);
     clients.values().toArray();
   };
 
   public query ({ caller }) func getPartners() : async [Partner] {
-    checkAdmin(caller);
+    checkAdminOrOperasional(caller);
     partners.values().toArray();
   };
 
   public query ({ caller }) func getAsistenmu() : async [User] {
-    checkAdmin(caller);
+    checkAdminOrOperasional(caller);
     users.values().toArray().filter(
       func(user) {
         user.role == #asistenmu and user.status == #active;
@@ -374,7 +461,7 @@ actor {
   };
 
   public query ({ caller }) func getServices() : async [Service] {
-    checkAdmin(caller);
+    checkAdminOrOperasional(caller);
     services.values().toArray();
   };
 
@@ -388,12 +475,12 @@ actor {
   };
 
   public query ({ caller }) func getTopUps() : async [TopUp] {
-    checkAdmin(caller);
+    checkAdminOrOperasional(caller);
     topUps.values().toArray();
   };
 
   public query ({ caller }) func getAllTasks() : async [Task] {
-    checkAdmin(caller);
+    checkAdminOrOperasional(caller);
     tasks.values().toArray();
   };
 
@@ -425,17 +512,17 @@ actor {
   };
 
   public query ({ caller }) func getWithdrawRequests() : async [WithdrawRequest] {
-    checkAdmin(caller);
+    checkAdminOrOperasional(caller);
     withdrawRequests.values().toArray();
   };
 
   public query ({ caller }) func getFinancialProfileRequests() : async [FinancialProfileRequest] {
-    checkAdmin(caller);
+    checkAdminOrOperasional(caller);
     financialProfileRequests.values().toArray();
   };
 
   public query ({ caller }) func getAdminLogs() : async [AdminLog] {
-    checkAdmin(caller);
+    checkAdminOrOperasional(caller);
     let logs = adminLogs.values().toArray();
 
     func compare(t1 : AdminLog, t2 : AdminLog) : Order.Order {
@@ -572,7 +659,7 @@ actor {
   };
 
   public shared ({ caller }) func approveInternalUser(principalId : Principal, role : Role) : async () {
-    checkAdmin(caller);
+    checkAdminOrOperasional(caller);
     switch (users.get(principalId)) {
       case (?user) {
         let updatedUser = { user with role; status = #active };
@@ -584,7 +671,7 @@ actor {
   };
 
   public shared ({ caller }) func rejectUser(principalId : Principal) : async () {
-    checkAdmin(caller);
+    checkAdminOrOperasional(caller);
     switch (users.get(principalId)) {
       case (?user) {
         let updatedUser = { user with status = #reject };
@@ -596,7 +683,7 @@ actor {
   };
 
   public shared ({ caller }) func suspendUser(principalId : Principal) : async () {
-    checkAdmin(caller);
+    checkAdminOrOperasional(caller);
     switch (users.get(principalId)) {
       case (?user) {
         let updatedUser = { user with status = #suspend };
@@ -608,7 +695,7 @@ actor {
   };
 
   public shared ({ caller }) func reactivateUser(principalId : Principal) : async () {
-    checkAdmin(caller);
+    checkAdminOrOperasional(caller);
     switch (users.get(principalId)) {
       case (?user) {
         let updatedUser = { user with status = #active };
@@ -620,7 +707,7 @@ actor {
   };
 
   public shared ({ caller }) func approveClient(principalId : Principal) : async () {
-    checkAdmin(caller);
+    checkAdminOrOperasional(caller);
     switch (clients.get(principalId)) {
       case (?client) {
         let updatedClient = { client with status = #active };
@@ -632,7 +719,7 @@ actor {
   };
 
   public shared ({ caller }) func rejectClient(principalId : Principal) : async () {
-    checkAdmin(caller);
+    checkAdminOrOperasional(caller);
     switch (clients.get(principalId)) {
       case (?client) {
         let updatedClient = { client with status = #reject };
@@ -644,7 +731,7 @@ actor {
   };
 
   public shared ({ caller }) func suspendClient(principalId : Principal) : async () {
-    checkAdmin(caller);
+    checkAdminOrOperasional(caller);
     switch (clients.get(principalId)) {
       case (?client) {
         let updatedClient = { client with status = #suspend };
@@ -656,7 +743,7 @@ actor {
   };
 
   public shared ({ caller }) func reactivateClient(principalId : Principal) : async () {
-    checkAdmin(caller);
+    checkAdminOrOperasional(caller);
     switch (clients.get(principalId)) {
       case (?client) {
         let updatedClient = { client with status = #active };
@@ -668,7 +755,7 @@ actor {
   };
 
   public shared ({ caller }) func approvePartner(principalId : Principal) : async () {
-    checkAdmin(caller);
+    checkAdminOrOperasional(caller);
     switch (partners.get(principalId)) {
       case (?partner) {
         let updatedPartner = { partner with status = #active };
@@ -680,7 +767,7 @@ actor {
   };
 
   public shared ({ caller }) func rejectPartner(principalId : Principal) : async () {
-    checkAdmin(caller);
+    checkAdminOrOperasional(caller);
     switch (partners.get(principalId)) {
       case (?partner) {
         let updatedPartner = { partner with status = #reject };
@@ -692,7 +779,7 @@ actor {
   };
 
   public shared ({ caller }) func suspendPartner(principalId : Principal) : async () {
-    checkAdmin(caller);
+    checkAdminOrOperasional(caller);
     switch (partners.get(principalId)) {
       case (?partner) {
         let updatedPartner = { partner with status = #suspend };
@@ -704,7 +791,7 @@ actor {
   };
 
   public shared ({ caller }) func reactivatePartner(principalId : Principal) : async () {
-    checkAdmin(caller);
+    checkAdminOrOperasional(caller);
     switch (partners.get(principalId)) {
       case (?partner) {
         let updatedPartner = { partner with status = #active };
@@ -716,7 +803,7 @@ actor {
   };
 
   public shared ({ caller }) func updatePartnerDetails(principalId : Principal, level : LevelPartner, verifiedSkill : [Text]) : async () {
-    checkAdmin(caller);
+    checkAdminOrOperasional(caller);
     switch (partners.get(principalId)) {
       case (?partner) {
         let updatedPartner = {
@@ -741,7 +828,7 @@ actor {
     hargaPerLayanan : Nat,
     sharingLayanan : [SharingEntry]
   ) : async Text {
-    checkAdmin(caller);
+    checkAdminOrOperasional(caller);
     serviceCounter += 1;
     let idService = genServiceId(serviceCounter);
     let newService : Service = {
@@ -763,7 +850,7 @@ actor {
   };
 
   public shared ({ caller }) func topUpService(idService : Text, unitTambahan : Nat) : async Text {
-    checkAdmin(caller);
+    checkAdminOrOperasional(caller);
     switch (services.get(idService)) {
       case (?service) {
         let updatedService = {
@@ -833,7 +920,7 @@ actor {
     linkGdriveInternal : Text,
     linkGdriveClient : Text
   ) : async () {
-    checkAdmin(caller);
+    checkAdminOrOperasional(caller);
     switch (tasks.get(idTask)) {
       case (?task) {
         let updatedTask = {
@@ -855,7 +942,7 @@ actor {
   };
 
   public shared ({ caller }) func updateTaskStatus(idTask : Text, status : TaskStatus) : async () {
-    checkAdmin(caller);
+    checkAdminOrOperasional(caller);
     switch (tasks.get(idTask)) {
       case (?task) {
         let updatedTask = { task with status };
@@ -896,7 +983,7 @@ actor {
   };
 
   public shared ({ caller }) func approveFinancialProfileRequest(idRequest : Text) : async () {
-    checkAdmin(caller);
+    checkAdminOrOperasional(caller);
     switch (financialProfileRequests.get(idRequest)) {
       case (?request) {
         let updatedRequest = { request with status = #approved };
@@ -909,7 +996,7 @@ actor {
   };
 
   public shared ({ caller }) func rejectFinancialProfileRequest(idRequest : Text) : async () {
-    checkAdmin(caller);
+    checkAdminOrOperasional(caller);
     switch (financialProfileRequests.get(idRequest)) {
       case (?request) {
         let updatedRequest = { request with status = #rejected };
@@ -950,7 +1037,7 @@ actor {
   };
 
   public shared ({ caller }) func approveWithdraw(idWithdraw : Text) : async () {
-    checkAdmin(caller);
+    checkAdminOrOperasional(caller);
     switch (withdrawRequests.get(idWithdraw)) {
       case (?request) {
         let updatedRequest = { request with status = #approved };
@@ -962,7 +1049,7 @@ actor {
   };
 
   public shared ({ caller }) func rejectWithdraw(idWithdraw : Text) : async () {
-    checkAdmin(caller);
+    checkAdminOrOperasional(caller);
     switch (withdrawRequests.get(idWithdraw)) {
       case (?request) {
         let updatedRequest = { request with status = #rejected };

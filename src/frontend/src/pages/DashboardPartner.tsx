@@ -24,6 +24,7 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useActor } from "../hooks/useActor";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
+import { useRoleGuard } from "../hooks/useRoleGuard";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface Task {
@@ -432,6 +433,7 @@ export default function DashboardPartner() {
   const navigate = useNavigate();
   const { clear } = useInternetIdentity();
   const { actor, isFetching: isActorFetching } = useActor();
+  const { isChecking } = useRoleGuard("partner");
 
   const isActorReady = !!actor && !isActorFetching;
 
@@ -605,6 +607,14 @@ export default function DashboardPartner() {
 
   const levelInfo = profile ? getLevelInfo(profile.level) : null;
   const hasFinancialProfile = !!financialProfile;
+
+  if (isChecking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <Loader2 size={32} className="animate-spin text-teal-600" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">

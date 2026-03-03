@@ -1,10 +1,4 @@
-import {
-  AlertCircle,
-  CheckCircle2,
-  Loader2,
-  ShieldCheck,
-  XCircle,
-} from "lucide-react";
+import { CheckCircle2, Loader2, ShieldCheck, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useActor } from "../hooks/useActor";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
@@ -14,7 +8,7 @@ const ALLOWED_PRINCIPALS = [
   "mu7go-gesml-ultdd-tqrkp-465oz-ticdh-ir6fg-6i6yq-qfn7i-pqaft-mqe", // draft
 ];
 
-type ClaimStatus = "idle" | "success" | "already-claimed" | "error";
+type ClaimStatus = "idle" | "success" | "error";
 
 export default function ClaimAdminAs() {
   const { identity, login, isLoggingIn, isInitializing } =
@@ -46,7 +40,13 @@ export default function ClaimAdminAs() {
     setErrorMsg("");
 
     try {
-      await actor.claimAdmin(
+      // forceClaimAdmin overrides any existing admin with the current principal
+      await (
+        actor as unknown as Record<
+          string,
+          (...args: unknown[]) => Promise<void>
+        >
+      ).forceClaimAdmin(
         "Admin Asistenku",
         "admasistenku@gmail.com",
         "08817743613",
@@ -54,16 +54,8 @@ export default function ClaimAdminAs() {
       setClaimStatus("success");
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
-      if (
-        message.toLowerCase().includes("already claimed") ||
-        message.toLowerCase().includes("sudah diklaim") ||
-        message.toLowerCase().includes("already exists")
-      ) {
-        setClaimStatus("already-claimed");
-      } else {
-        setClaimStatus("error");
-        setErrorMsg(message);
-      }
+      setClaimStatus("error");
+      setErrorMsg(message);
     } finally {
       setIsClaiming(false);
     }
@@ -172,19 +164,6 @@ export default function ClaimAdminAs() {
             />
             <p className="text-xs text-green-800 font-medium">
               Berhasil! Anda sekarang adalah Admin.
-            </p>
-          </div>
-        )}
-
-        {claimStatus === "already-claimed" && (
-          <div className="w-full flex items-start gap-2 bg-yellow-50 border border-yellow-100 rounded-xl p-3">
-            <AlertCircle
-              size={16}
-              className="text-yellow-600 mt-0.5 flex-shrink-0"
-            />
-            <p className="text-xs text-yellow-800">
-              Admin sudah diklaim sebelumnya. Klaim ini akan menimpa admin lama.
-              Coba klik tombol Claim Admin lagi untuk memastikan.
             </p>
           </div>
         )}

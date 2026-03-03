@@ -109,16 +109,16 @@ export const User = IDL.Record({
   'idUser' : IDL.Text,
   'principalId' : IDL.Text,
 });
+export const FPRequestStatus = IDL.Variant({
+  'pending' : IDL.Null,
+  'approved' : IDL.Null,
+  'rejected' : IDL.Null,
+});
 export const FinancialProfile = IDL.Record({
   'createdAt' : IDL.Int,
   'nomorRekening' : IDL.Text,
   'namaRekening' : IDL.Text,
   'namaBankEwallet' : IDL.Text,
-});
-export const FPRequestStatus = IDL.Variant({
-  'pending' : IDL.Null,
-  'approved' : IDL.Null,
-  'rejected' : IDL.Null,
 });
 export const FinancialProfileRequest = IDL.Record({
   'status' : FPRequestStatus,
@@ -223,6 +223,7 @@ export const idlService = IDL.Service({
       [],
       [],
     ),
+  'forceClaimAdmin' : IDL.Func([IDL.Text, IDL.Text, IDL.Text], [], []),
   'getAdminLogs' : IDL.Func([], [IDL.Vec(AdminLog)], ['query']),
   'getAllClients' : IDL.Func([], [IDL.Vec(Client)], ['query']),
   'getAllPartners' : IDL.Func([], [IDL.Vec(Partner)], ['query']),
@@ -230,6 +231,11 @@ export const idlService = IDL.Service({
   'getAllUsers' : IDL.Func([], [IDL.Vec(User)], ['query']),
   'getAsistenmu' : IDL.Func([], [IDL.Vec(User)], ['query']),
   'getClients' : IDL.Func([], [IDL.Vec(Client)], ['query']),
+  'getFPRequestStatus' : IDL.Func(
+      [IDL.Text],
+      [IDL.Opt(FPRequestStatus)],
+      ['query'],
+    ),
   'getFinancialProfileByPartnerId' : IDL.Func(
       [IDL.Text],
       [IDL.Opt(FinancialProfile)],
@@ -251,12 +257,24 @@ export const idlService = IDL.Service({
   'getMyServicesAsAsistenmu' : IDL.Func([], [IDL.Vec(Service)], ['query']),
   'getMyWallet' : IDL.Func([], [WalletInfo], ['query']),
   'getPartners' : IDL.Func([], [IDL.Vec(Partner)], ['query']),
+  'getServiceStatus' : IDL.Func(
+      [IDL.Text],
+      [IDL.Opt(ServiceStatus)],
+      ['query'],
+    ),
   'getServices' : IDL.Func([], [IDL.Vec(Service)], ['query']),
+  'getTaskStatus' : IDL.Func([IDL.Text], [IDL.Opt(TaskStatus)], ['query']),
   'getTasksByAsistenmu' : IDL.Func([], [IDL.Vec(Task)], ['query']),
   'getTasksByPartner' : IDL.Func([], [IDL.Vec(Task)], ['query']),
   'getTopUps' : IDL.Func([], [IDL.Vec(TopUp)], ['query']),
+  'getUserStatus' : IDL.Func([IDL.Principal], [IDL.Opt(Status)], ['query']),
   'getUsers' : IDL.Func([], [IDL.Vec(User)], ['query']),
   'getWithdrawRequests' : IDL.Func([], [IDL.Vec(WithdrawRequest)], ['query']),
+  'getWithdrawStatus' : IDL.Func(
+      [IDL.Text],
+      [IDL.Opt(WithdrawStatus)],
+      ['query'],
+    ),
   'isAdmin' : IDL.Func([IDL.Principal], [IDL.Bool], ['query']),
   'isAdminClaimed' : IDL.Func([], [IDL.Bool], ['query']),
   'reactivateClient' : IDL.Func([IDL.Principal], [], []),
@@ -405,16 +423,16 @@ export const idlFactory = ({ IDL }) => {
     'idUser' : IDL.Text,
     'principalId' : IDL.Text,
   });
+  const FPRequestStatus = IDL.Variant({
+    'pending' : IDL.Null,
+    'approved' : IDL.Null,
+    'rejected' : IDL.Null,
+  });
   const FinancialProfile = IDL.Record({
     'createdAt' : IDL.Int,
     'nomorRekening' : IDL.Text,
     'namaRekening' : IDL.Text,
     'namaBankEwallet' : IDL.Text,
-  });
-  const FPRequestStatus = IDL.Variant({
-    'pending' : IDL.Null,
-    'approved' : IDL.Null,
-    'rejected' : IDL.Null,
   });
   const FinancialProfileRequest = IDL.Record({
     'status' : FPRequestStatus,
@@ -519,6 +537,7 @@ export const idlFactory = ({ IDL }) => {
         [],
         [],
       ),
+    'forceClaimAdmin' : IDL.Func([IDL.Text, IDL.Text, IDL.Text], [], []),
     'getAdminLogs' : IDL.Func([], [IDL.Vec(AdminLog)], ['query']),
     'getAllClients' : IDL.Func([], [IDL.Vec(Client)], ['query']),
     'getAllPartners' : IDL.Func([], [IDL.Vec(Partner)], ['query']),
@@ -526,6 +545,11 @@ export const idlFactory = ({ IDL }) => {
     'getAllUsers' : IDL.Func([], [IDL.Vec(User)], ['query']),
     'getAsistenmu' : IDL.Func([], [IDL.Vec(User)], ['query']),
     'getClients' : IDL.Func([], [IDL.Vec(Client)], ['query']),
+    'getFPRequestStatus' : IDL.Func(
+        [IDL.Text],
+        [IDL.Opt(FPRequestStatus)],
+        ['query'],
+      ),
     'getFinancialProfileByPartnerId' : IDL.Func(
         [IDL.Text],
         [IDL.Opt(FinancialProfile)],
@@ -547,12 +571,24 @@ export const idlFactory = ({ IDL }) => {
     'getMyServicesAsAsistenmu' : IDL.Func([], [IDL.Vec(Service)], ['query']),
     'getMyWallet' : IDL.Func([], [WalletInfo], ['query']),
     'getPartners' : IDL.Func([], [IDL.Vec(Partner)], ['query']),
+    'getServiceStatus' : IDL.Func(
+        [IDL.Text],
+        [IDL.Opt(ServiceStatus)],
+        ['query'],
+      ),
     'getServices' : IDL.Func([], [IDL.Vec(Service)], ['query']),
+    'getTaskStatus' : IDL.Func([IDL.Text], [IDL.Opt(TaskStatus)], ['query']),
     'getTasksByAsistenmu' : IDL.Func([], [IDL.Vec(Task)], ['query']),
     'getTasksByPartner' : IDL.Func([], [IDL.Vec(Task)], ['query']),
     'getTopUps' : IDL.Func([], [IDL.Vec(TopUp)], ['query']),
+    'getUserStatus' : IDL.Func([IDL.Principal], [IDL.Opt(Status)], ['query']),
     'getUsers' : IDL.Func([], [IDL.Vec(User)], ['query']),
     'getWithdrawRequests' : IDL.Func([], [IDL.Vec(WithdrawRequest)], ['query']),
+    'getWithdrawStatus' : IDL.Func(
+        [IDL.Text],
+        [IDL.Opt(WithdrawStatus)],
+        ['query'],
+      ),
     'isAdmin' : IDL.Func([IDL.Principal], [IDL.Bool], ['query']),
     'isAdminClaimed' : IDL.Func([], [IDL.Bool], ['query']),
     'reactivateClient' : IDL.Func([IDL.Principal], [], []),

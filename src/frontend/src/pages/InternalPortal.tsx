@@ -132,13 +132,10 @@ export default function InternalPortal() {
 
       if (roleKey === Role.admin || roleKey === "admin") {
         void navigate({ to: "/dashboard-admin" });
-      } else if (
-        roleKey === Role.asistenmu ||
-        roleKey === "asistenmu" ||
-        roleKey === Role.operasional ||
-        roleKey === "operasional"
-      ) {
+      } else if (roleKey === Role.asistenmu || roleKey === "asistenmu") {
         void navigate({ to: "/dashboard-asistenmu" });
+      } else if (roleKey === Role.operasional || roleKey === "operasional") {
+        void navigate({ to: "/dashboard-operasional" });
       } else if (
         roleKey === Role.client ||
         roleKey === "client" ||

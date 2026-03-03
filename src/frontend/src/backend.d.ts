@@ -177,6 +177,7 @@ export interface backendInterface {
     claimAdmin(nama: string, email: string, whatsapp: string): Promise<void>;
     createTask(judulTask: string, detailTask: string, deadline: bigint, serviceId: string, clientId: string, clientNama: string, asistenmuId: string, asistenmuNama: string): Promise<string>;
     delegasiTask(idTask: string, partnerId: string, partnerNama: string, jamEfektif: bigint, unitLayanan: bigint, notesAsistenmu: string, linkGdriveInternal: string, linkGdriveClient: string): Promise<void>;
+    forceClaimAdmin(nama: string, email: string, whatsapp: string): Promise<void>;
     getAdminLogs(): Promise<Array<AdminLog>>;
     getAllClients(): Promise<Array<Client>>;
     getAllPartners(): Promise<Array<Partner>>;
@@ -184,6 +185,7 @@ export interface backendInterface {
     getAllUsers(): Promise<Array<User>>;
     getAsistenmu(): Promise<Array<User>>;
     getClients(): Promise<Array<Client>>;
+    getFPRequestStatus(idRequest: string): Promise<FPRequestStatus | null>;
     getFinancialProfileByPartnerId(partnerId: string): Promise<FinancialProfile | null>;
     getFinancialProfileRequests(): Promise<Array<FinancialProfileRequest>>;
     getMyFinancialProfile(): Promise<FinancialProfile | null>;
@@ -193,12 +195,16 @@ export interface backendInterface {
     getMyServicesAsAsistenmu(): Promise<Array<Service>>;
     getMyWallet(): Promise<WalletInfo>;
     getPartners(): Promise<Array<Partner>>;
+    getServiceStatus(idService: string): Promise<ServiceStatus | null>;
     getServices(): Promise<Array<Service>>;
+    getTaskStatus(idTask: string): Promise<TaskStatus | null>;
     getTasksByAsistenmu(): Promise<Array<Task>>;
     getTasksByPartner(): Promise<Array<Task>>;
     getTopUps(): Promise<Array<TopUp>>;
+    getUserStatus(principal: Principal): Promise<Status | null>;
     getUsers(): Promise<Array<User>>;
     getWithdrawRequests(): Promise<Array<WithdrawRequest>>;
+    getWithdrawStatus(idWithdraw: string): Promise<WithdrawStatus | null>;
     isAdmin(user: Principal): Promise<boolean>;
     isAdminClaimed(): Promise<boolean>;
     reactivateClient(principalId: Principal): Promise<void>;

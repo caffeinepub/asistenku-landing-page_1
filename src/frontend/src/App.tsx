@@ -1,5 +1,6 @@
 import { Toaster } from "@/components/ui/sonner";
 import {
+  Link,
   RouterProvider,
   createRootRoute,
   createRoute,
@@ -15,9 +16,12 @@ import ClientRegister from "./pages/ClientRegister";
 import DashboardAdmin from "./pages/DashboardAdmin";
 import DashboardAsistenmu from "./pages/DashboardAsistenmu";
 import DashboardClient from "./pages/DashboardClient";
+import DashboardOperasional from "./pages/DashboardOperasional";
 import DashboardPartner from "./pages/DashboardPartner";
 import InternalPortal from "./pages/InternalPortal";
+import NotFound from "./pages/NotFound";
 import PortalPartner from "./pages/PortalPartner";
+import TentangPartnerAsistenku from "./pages/TentangPartnerAsistenku";
 
 const WA_LINK = "https://wa.me/628817743613";
 
@@ -265,14 +269,12 @@ function LandingPage() {
             <h2 className="font-display text-3xl sm:text-4xl font-bold text-slate-900 mb-6">
               Ingin jadi bagian dari Tim Asistenku?
             </h2>
-            <a
-              href={WA_LINK}
-              target="_blank"
-              rel="noopener noreferrer"
+            <Link
+              to="/tentang-partner-asistenku"
               className="inline-block border border-slate-300 text-slate-700 px-8 py-3 rounded-full font-semibold text-sm hover:border-slate-400 hover:bg-slate-50 transition-all"
             >
               Pelajari
-            </a>
+            </Link>
           </div>
         </section>
 
@@ -319,6 +321,12 @@ const dashboardAsistenmuRoute = createRoute({
   component: DashboardAsistenmu,
 });
 
+const dashboardOperasionalRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/dashboard-operasional",
+  component: DashboardOperasional,
+});
+
 const clientLoginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/client-login",
@@ -355,17 +363,32 @@ const claimAdminAsRoute = createRoute({
   component: ClaimAdminAs,
 });
 
+const tentangPartnerAsistemuRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/tentang-partner-asistenku",
+  component: TentangPartnerAsistenku,
+});
+
+const notFoundRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "$",
+  component: NotFound,
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   internalPortalRoute,
   dashboardAdminRoute,
   dashboardAsistenmuRoute,
+  dashboardOperasionalRoute,
   clientLoginRoute,
   clientRegisterRoute,
   portalPartnerRoute,
   dashboardClientRoute,
   dashboardPartnerRoute,
   claimAdminAsRoute,
+  tentangPartnerAsistemuRoute,
+  notFoundRoute,
 ]);
 
 const router = createRouter({ routeTree });

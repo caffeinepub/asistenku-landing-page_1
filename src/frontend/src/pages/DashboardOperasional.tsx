@@ -52,16 +52,14 @@ import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import { useRoleGuard } from "../hooks/useRoleGuard";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
-type VariantOrString = Record<string, null> | string;
-
 interface User {
   idUser: string;
   principalId: string;
   nama: string;
   email: string;
   whatsapp: string;
-  role: VariantOrString;
-  status: VariantOrString;
+  role: Record<string, null>;
+  status: Record<string, null>;
   createdAt: bigint;
 }
 
@@ -72,10 +70,10 @@ interface Partner {
   email: string;
   whatsapp: string;
   kota: string;
-  level: VariantOrString;
+  level: Record<string, null>;
   verifiedSkill: string[];
-  role: VariantOrString;
-  status: VariantOrString;
+  role: Record<string, null>;
+  status: Record<string, null>;
   createdAt: bigint;
 }
 
@@ -85,14 +83,15 @@ interface Client {
   nama: string;
   email: string;
   whatsapp: string;
-  company: string;
-  role: VariantOrString;
-  status: VariantOrString;
+  Company?: string;
+  company?: string;
+  role: Record<string, null>;
+  status: Record<string, null>;
   createdAt: bigint;
 }
 
 interface WithdrawRequestLocal {
-  status: VariantOrString;
+  status: string;
   partnerNama: string;
   nominal: bigint;
   idWithdraw: string;
@@ -111,7 +110,7 @@ interface FinancialProfileLocal {
 }
 
 interface FinancialProfileRequestLocal {
-  status: VariantOrString;
+  status: string;
   partnerNama: string;
   newProfile: FinancialProfileLocal;
   createdAt: bigint;
@@ -136,7 +135,7 @@ interface SharingEntry {
 
 interface Service {
   idService: string;
-  tipeLayanan: VariantOrString;
+  tipeLayanan: Record<string, null>;
   clientPrincipalId: string;
   clientNama: string;
   asistenmuPrincipalId: string;
@@ -144,7 +143,7 @@ interface Service {
   unitLayanan: bigint;
   hargaPerLayanan: bigint;
   sharingLayanan: SharingEntry[];
-  status: VariantOrString;
+  status: Record<string, null>;
   createdAt: bigint;
 }
 
@@ -165,7 +164,7 @@ interface Task {
   unitLayanan: bigint;
   linkGdriveInternal: string;
   linkGdriveClient: string;
-  status: VariantOrString;
+  status: Record<string, null>;
   createdAt: bigint;
 }
 
@@ -180,30 +179,20 @@ type SuspendedEntry =
   | ({ kind: "client" } & Client);
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
-// Handle both Motoko variant { key: null } and string enum values from backend
-function extractKey(obj: unknown): string {
-  if (typeof obj === "string") return obj;
-  if (typeof obj === "object" && obj !== null) {
-    const keys = Object.keys(obj as Record<string, unknown>);
-    return keys[0] ?? "";
-  }
-  return "";
+function getStatus(obj: Record<string, null>): string {
+  return Object.keys(obj)[0] ?? "";
 }
 
-function getStatus(obj: Record<string, null> | string): string {
-  return extractKey(obj);
+function getRole(obj: Record<string, null>): string {
+  return Object.keys(obj)[0] ?? "";
 }
 
-function getRole(obj: Record<string, null> | string): string {
-  return extractKey(obj);
+function getTipe(obj: Record<string, null>): string {
+  return Object.keys(obj)[0] ?? "";
 }
 
-function getTipe(obj: Record<string, null> | string): string {
-  return extractKey(obj);
-}
-
-function getLevelLabel(level: VariantOrString): string {
-  const k = extractKey(level);
+function getLevelLabel(level: Record<string, null>): string {
+  const k = Object.keys(level)[0] ?? "";
   const map: Record<string, string> = {
     junior: "Junior",
     senior: "Senior",
@@ -285,7 +274,7 @@ function formatDateTime(ts: bigint): string {
 }
 
 function getClientCompany(c: Client): string {
-  return c.company ?? "";
+  return c.company ?? c.Company ?? "";
 }
 
 function taskStatusLabel(status: string): string {
@@ -303,7 +292,11 @@ function taskStatusLabel(status: string): string {
 
 // Handles both string status and Motoko variant object { key: null }
 function getStatusStr(status: unknown): string {
-  return extractKey(status as VariantOrString);
+  if (typeof status === "string") return status;
+  if (typeof status === "object" && status !== null) {
+    return Object.keys(status as Record<string, unknown>)[0] ?? "";
+  }
+  return "";
 }
 
 function taskStatusBadgeClass(status: string): string {
@@ -550,7 +543,7 @@ function PartnerAutocomplete({
                 </span>
                 <span className="text-slate-900 font-medium">{opt.nama}</span>
                 <span
-                  className={`text-xs px-1.5 py-0.5 rounded border ${levelBadgeClass(extractKey(opt.level))}`}
+                  className={`text-xs px-1.5 py-0.5 rounded border ${levelBadgeClass(Object.keys(opt.level)[0] ?? "")}`}
                 >
                   {getLevelLabel(opt.level)}
                 </span>
@@ -838,7 +831,7 @@ function TaskFilterBar({
 
 // ── Task Row (shared display) ──────────────────────────────────────────────────
 function TaskRowBase({ task, services }: { task: Task; services: Service[] }) {
-  const statusKey = extractKey(task.status);
+  const statusKey = Object.keys(task.status)[0] ?? "";
   const svc = services.find((s) => s.idService === task.serviceId);
   const tipe = svc ? getTipe(svc.tipeLayanan) : "";
   return (
@@ -951,7 +944,7 @@ function PartnerEditModal({
 
   useEffect(() => {
     if (partner && open) {
-      const l = extractKey(partner.level);
+      const l = Object.keys(partner.level)[0] ?? "";
       setLevel(l);
       setSkillText(partner.verifiedSkill.join(", "));
     }
@@ -1317,18 +1310,7 @@ function AktivaasiLayananForm({
         }));
 
       await (
-        actor as unknown as {
-          aktivasiLayanan: (
-            tipe: TipeLayanan,
-            clientPrincipalId: string,
-            clientNama: string,
-            asistenmuPrincipalId: string,
-            asistenmuNama: string,
-            unitLayanan: bigint,
-            hargaPerLayanan: bigint,
-            sharingLayanan: SharingEntry[],
-          ) => Promise<string>;
-        }
+        actor as Record<string, (...args: unknown[]) => Promise<unknown>>
       ).aktivasiLayanan(
         tipe as TipeLayanan,
         selectedClient.principalId,
@@ -1535,9 +1517,7 @@ function TopUpForm({
     setIsSubmitting(true);
     try {
       await (
-        actor as unknown as {
-          topUpService: (idService: string, unit: bigint) => Promise<string>;
-        }
+        actor as Record<string, (...args: unknown[]) => Promise<unknown>>
       ).topUpService(idService.trim(), BigInt(unitTambahan));
       toast.success("Top Up berhasil.");
       setIdService("");
@@ -1611,11 +1591,11 @@ function TopUpForm({
 }
 
 // ── Main Component ─────────────────────────────────────────────────────────────
-export default function DashboardAdmin() {
+export default function DashboardOperasional() {
   const navigate = useNavigate();
   const { identity, clear } = useInternetIdentity();
   const { actor, isFetching: isActorFetching } = useActor();
-  const { isChecking } = useRoleGuard("admin");
+  const { isChecking } = useRoleGuard("operasional");
 
   const isActorReady = !!actor && !isActorFetching;
   const principalId = identity?.getPrincipal().toString();
@@ -1625,8 +1605,10 @@ export default function DashboardAdmin() {
   const [partners, setPartners] = useState<Partner[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [services, setServices] = useState<Service[]>([]);
+  const [clientsList, setClientsList] = useState<Client[]>([]);
   const [asistenmuList, setAsistenmuList] = useState<User[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [partnersList, setPartnersList] = useState<Partner[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [withdrawRequests, setWithdrawRequests] = useState<
     WithdrawRequestLocal[]
@@ -1665,29 +1647,44 @@ export default function DashboardAdmin() {
     if (!actor) return;
     setIsLoadingData(true);
     try {
-      const [u, p, c, svc, am, t, _pl, wr, fpr, logs] = await Promise.all([
-        actor.getAllUsers().catch(() => [] as User[]),
-        actor.getAllPartners().catch(() => [] as Partner[]),
-        actor.getAllClients().catch(() => [] as Client[]),
-        actor.getServices().catch(() => [] as Service[]),
-        actor.getAsistenmu().catch(() => [] as User[]),
-        actor.getAllTasks().catch(() => [] as Task[]),
-        actor.getPartners().catch(() => [] as Partner[]),
-        actor.getWithdrawRequests().catch(() => [] as WithdrawRequestLocal[]),
-        actor
-          .getFinancialProfileRequests()
-          .catch(() => [] as FinancialProfileRequestLocal[]),
-        actor.getAdminLogs().catch(() => [] as AdminLogLocal[]),
+      const act = actor as unknown as Record<
+        string,
+        (...args: unknown[]) => Promise<unknown>
+      >;
+      const [u, p, c, svc, cl, am, t, pl, wr, fpr, logs] = await Promise.all([
+        (act.getAllUsers() as Promise<User[]>).catch(() => [] as User[]),
+        (act.getAllPartners() as Promise<Partner[]>).catch(
+          () => [] as Partner[],
+        ),
+        (act.getAllClients() as Promise<Client[]>).catch(() => [] as Client[]),
+        (act.getServices() as Promise<Service[]>).catch(() => [] as Service[]),
+        (act.getClients() as Promise<Client[]>).catch(() => [] as Client[]),
+        (act.getAsistenmu() as Promise<User[]>).catch(() => [] as User[]),
+        (act.getAllTasks() as Promise<Task[]>).catch(() => [] as Task[]),
+        (act.getPartners() as Promise<Partner[]>).catch(() => [] as Partner[]),
+        (act.getWithdrawRequests() as Promise<WithdrawRequestLocal[]>).catch(
+          () => [] as WithdrawRequestLocal[],
+        ),
+        (
+          act.getFinancialProfileRequests() as Promise<
+            FinancialProfileRequestLocal[]
+          >
+        ).catch(() => [] as FinancialProfileRequestLocal[]),
+        (act.getAdminLogs() as Promise<AdminLogLocal[]>).catch(
+          () => [] as AdminLogLocal[],
+        ),
       ]);
-      setUsers(u as User[]);
-      setPartners(p as Partner[]);
-      setClients(c as Client[]);
-      setServices(svc as Service[]);
-      setAsistenmuList(am as User[]);
-      setTasks(t as Task[]);
-      setWithdrawRequests(wr as WithdrawRequestLocal[]);
-      setFinancialProfileRequests(fpr as FinancialProfileRequestLocal[]);
-      setAdminLogs(logs as AdminLogLocal[]);
+      setUsers(u);
+      setPartners(p);
+      setClients(c);
+      setServices(svc);
+      setClientsList(cl);
+      setAsistenmuList(am);
+      setTasks(t);
+      setPartnersList(pl);
+      setWithdrawRequests(wr);
+      setFinancialProfileRequests(fpr);
+      setAdminLogs(logs);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Gagal memuat data.";
       console.error("fetchAll error:", msg);
@@ -1855,11 +1852,15 @@ export default function DashboardAdmin() {
     level: string,
     skills: string[],
   ) {
-    if (!actor) return;
     await runAction(
       `update-${principalId}`,
       () =>
-        actor.updatePartnerDetails(
+        (
+          actor as unknown as Record<
+            string,
+            (...args: unknown[]) => Promise<void>
+          >
+        ).updatePartnerDetails(
           Principal.fromText(principalId),
           level as LevelPartner,
           skills,
@@ -1882,9 +1883,9 @@ export default function DashboardAdmin() {
       <header className="sticky top-0 z-50 bg-white border-b border-slate-100 shadow-soft">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <ShieldCheck size={20} className="text-slate-700" />
+            <ClipboardList size={20} className="text-slate-700" />
             <span className="font-display font-bold text-slate-900">
-              Dashboard Admin
+              Dashboard Operasional
             </span>
           </div>
           <button
@@ -1904,14 +1905,14 @@ export default function DashboardAdmin() {
           <div className="bg-white rounded-2xl shadow-soft border border-slate-100 p-6">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 rounded-full bg-slate-900 flex items-center justify-center flex-shrink-0">
-                <ShieldCheck size={20} className="text-white" />
+                <ClipboardList size={20} className="text-white" />
               </div>
               <div>
                 <h1 className="font-display text-xl font-bold text-slate-900">
-                  Selamat datang, Admin
+                  Selamat datang, Operasional
                 </h1>
                 <p className="text-sm text-slate-500">
-                  Anda memiliki akses penuh ke sistem Asistenku
+                  Anda memiliki akses manajemen ke sistem Asistenku
                 </p>
               </div>
             </div>
@@ -2145,7 +2146,7 @@ export default function DashboardAdmin() {
                               {partner.idUser}
                             </span>
                             <span
-                              className={`text-xs px-2 py-0.5 rounded-full border font-medium ${levelBadgeClass(extractKey(partner.level))}`}
+                              className={`text-xs px-2 py-0.5 rounded-full border font-medium ${levelBadgeClass(Object.keys(partner.level)[0] ?? "")}`}
                             >
                               {getLevelLabel(partner.level)}
                             </span>
@@ -2327,7 +2328,7 @@ export default function DashboardAdmin() {
               accent="bg-emerald-50 text-emerald-700"
             >
               <AktivaasiLayananForm
-                clientsList={clients}
+                clientsList={clientsList}
                 asistenmuList={asistenmuList}
                 serviceCount={services.length}
                 onSuccess={fetchAll}
@@ -2439,7 +2440,7 @@ export default function DashboardAdmin() {
           <ManajemenTaskSection
             tasks={tasks}
             services={services}
-            partnersList={partners}
+            partnersList={partnersList}
             actor={actor}
             fetchAll={fetchAll}
             actionLoading={actionLoading}
@@ -2476,8 +2477,8 @@ export default function DashboardAdmin() {
       <footer className="bg-slate-900 text-slate-400 py-8 mt-auto">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <p className="text-xs">
-            &copy; {new Date().getFullYear()} Asistenku. Panel Admin &mdash;
-            Akses Terbatas.
+            &copy; {new Date().getFullYear()} Asistenku. Panel Operasional
+            &mdash; Akses Terbatas.
           </p>
         </div>
       </footer>
@@ -2582,7 +2583,6 @@ function PendingRow({
               <SelectValue placeholder="Pilih role..." />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="operasional">Operasional</SelectItem>
               <SelectItem value="asistenmu">Asistenmu</SelectItem>
             </SelectContent>
           </Select>
@@ -2818,7 +2818,7 @@ function ManajemenTaskSection({
   >;
 
   function getTasksByStatus(status: string) {
-    return tasks.filter((t) => extractKey(t.status) === status);
+    return tasks.filter((t) => Object.keys(t.status)[0] === status);
   }
 
   function filterTasks(list: Task[], namaClient: string, tipe: string) {
