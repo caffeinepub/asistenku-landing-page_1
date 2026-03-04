@@ -1660,6 +1660,16 @@ export default function DashboardAdmin() {
     null,
   );
 
+  // ── Edit service modal state ─────────────────────────────────────────────────
+  const [editServiceModal, setEditServiceModal] = useState<Service | null>(
+    null,
+  );
+  const [editServiceStatus, setEditServiceStatus] = useState("");
+  const [editServiceSharing, setEditServiceSharing] = useState<SharingEntry[]>(
+    [],
+  );
+  const [isSavingService, setIsSavingService] = useState(false);
+
   // ── Fetch all data ───────────────────────────────────────────────────────────
   const fetchAll = useCallback(async () => {
     if (!actor) return;
@@ -1887,14 +1897,28 @@ export default function DashboardAdmin() {
               Dashboard Admin
             </span>
           </div>
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="flex items-center gap-2 border border-slate-200 text-slate-600 hover:text-slate-900 hover:border-slate-300 px-4 py-2 rounded-full text-sm font-medium transition-colors"
-          >
-            <LogOut size={15} />
-            Keluar
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => void fetchAll()}
+              disabled={isLoadingData}
+              className="flex items-center gap-2 border border-slate-200 text-slate-600 hover:text-slate-900 hover:border-slate-300 px-4 py-2 rounded-full text-sm font-medium transition-colors"
+            >
+              <RefreshCw
+                size={15}
+                className={isLoadingData ? "animate-spin" : ""}
+              />
+              Refresh
+            </button>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="flex items-center gap-2 border border-slate-200 text-slate-600 hover:text-slate-900 hover:border-slate-300 px-4 py-2 rounded-full text-sm font-medium transition-colors"
+            >
+              <LogOut size={15} />
+              Keluar
+            </button>
+          </div>
         </div>
       </header>
 
@@ -2390,6 +2414,19 @@ export default function DashboardAdmin() {
                             >
                               {statusStr === "active" ? "Aktif" : "Nonaktif"}
                             </span>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-xs ml-auto"
+                              onClick={() => {
+                                setEditServiceModal(svc);
+                                setEditServiceStatus(statusStr || "active");
+                                setEditServiceSharing([...svc.sharingLayanan]);
+                              }}
+                            >
+                              <Pencil size={12} className="mr-1" />
+                              Edit
+                            </Button>
                           </div>
                           <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
                             <div>
@@ -2472,6 +2509,128 @@ export default function DashboardAdmin() {
         }}
         onUpdate={handleUpdatePartner}
       />
+
+      {/* ── Edit Layanan Modal ── */}
+      <Dialog
+        open={editServiceModal !== null}
+        onOpenChange={(open) => {
+          if (!open) setEditServiceModal(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-display">
+              Edit Layanan {editServiceModal?.idService}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-4 py-2">
+            <div className="flex flex-col gap-1.5">
+              <Label>Status Layanan</Label>
+              <Select
+                value={editServiceStatus}
+                onValueChange={setEditServiceStatus}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih status..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Aktif</SelectItem>
+                  <SelectItem value="inactive">Nonaktif</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label>
+                Sharing Layanan{" "}
+                <span className="text-slate-400 font-normal text-xs">
+                  (maks. 6)
+                </span>
+              </Label>
+              {editServiceSharing.map((entry, idx) => (
+                <div
+                  key={`${entry.idUser}-${idx}`}
+                  className="flex items-center gap-2"
+                >
+                  <div className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700">
+                    {entry.nama}{" "}
+                    <span className="text-xs text-slate-400 font-mono">
+                      ({entry.idUser})
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setEditServiceSharing((prev) =>
+                        prev.filter((_, i) => i !== idx),
+                      )
+                    }
+                    className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-red-500"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ))}
+              {editServiceSharing.length < 6 && (
+                <p className="text-xs text-slate-400">
+                  Untuk menambah sharing, hapus dan buat ulang layanan.
+                </p>
+              )}
+            </div>
+          </div>
+          <div className="flex gap-2 pt-2">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => setEditServiceModal(null)}
+              disabled={isSavingService}
+            >
+              Batal
+            </Button>
+            <Button
+              className="flex-1 bg-slate-900 text-white hover:bg-slate-700"
+              disabled={isSavingService}
+              onClick={async () => {
+                if (!editServiceModal) return;
+                setIsSavingService(true);
+                try {
+                  const act = actor as unknown as Record<
+                    string,
+                    (...args: unknown[]) => Promise<void>
+                  >;
+                  await act.updateService(
+                    editServiceModal.idService,
+                    { [editServiceStatus]: null } as unknown as Record<
+                      string,
+                      null
+                    >,
+                    editServiceSharing,
+                  );
+                  toast.success("Layanan berhasil diperbarui.");
+                  setEditServiceModal(null);
+                  await fetchAll();
+                } catch (err) {
+                  const msg =
+                    err instanceof Error
+                      ? err.message
+                      : "Gagal memperbarui layanan.";
+                  toast.error(msg);
+                } finally {
+                  setIsSavingService(false);
+                }
+              }}
+            >
+              {isSavingService ? (
+                <>
+                  <Loader2 size={14} className="animate-spin mr-2" />
+                  Menyimpan...
+                </>
+              ) : (
+                "Simpan"
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <footer className="bg-slate-900 text-slate-400 py-8 mt-auto">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">

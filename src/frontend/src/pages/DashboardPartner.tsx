@@ -55,10 +55,10 @@ interface PartnerProfile {
   email: string;
   whatsapp: string;
   kota: string;
-  level: Record<string, null>;
+  level: Record<string, null> | string;
   verifiedSkill: string[];
-  role: Record<string, null>;
-  status: Record<string, null>;
+  role: Record<string, null> | string;
+  status: Record<string, null> | string;
   createdAt: bigint;
 }
 
@@ -118,11 +118,11 @@ function taskStatusBadgeClass(status: string): string {
   return map[status] ?? "bg-slate-50 text-slate-700 border-slate-200";
 }
 
-function getLevelInfo(level: Record<string, null>): {
+function getLevelInfo(level: Record<string, null> | string): {
   label: string;
   className: string;
 } {
-  const key = Object.keys(level)[0] ?? "";
+  const key = typeof level === "string" ? level : (Object.keys(level)[0] ?? "");
   const map: Record<string, { label: string; className: string }> = {
     junior: {
       label: "Junior",
@@ -472,18 +472,25 @@ export default function DashboardPartner() {
         string,
         (...args: unknown[]) => Promise<unknown>
       >;
-      const [t, p, fp, w] = await Promise.all([
+      const [t, pArr, fpArr, w] = await Promise.all([
         (act.getTasksByPartner() as Promise<Task[]>).catch(() => [] as Task[]),
-        (act.getMyPartnerProfile() as Promise<PartnerProfile | null>).catch(
-          () => null,
+        (act.getMyPartnerProfile() as Promise<PartnerProfile[]>).catch(
+          () => [] as PartnerProfile[],
         ),
-        (act.getMyFinancialProfile() as Promise<FinancialProfile | null>).catch(
-          () => null,
+        (act.getMyFinancialProfile() as Promise<FinancialProfile[]>).catch(
+          () => [] as FinancialProfile[],
         ),
         (act.getMyWallet() as Promise<WalletInfo>).catch(
           () => ({ saldoTersedia: 0n, saldoPengajuan: 0n }) as WalletInfo,
         ),
       ]);
+      // Motoko ?T is returned as [] or [value]
+      const p = Array.isArray(pArr)
+        ? (pArr[0] ?? null)
+        : (pArr as PartnerProfile | null);
+      const fp = Array.isArray(fpArr)
+        ? (fpArr[0] ?? null)
+        : (fpArr as FinancialProfile | null);
       setTasks(t);
       setProfile(p);
       setFinancialProfile(fp);
@@ -572,6 +579,10 @@ export default function DashboardPartner() {
       toast.error("Masukkan nominal yang valid.");
       return;
     }
+    if (nominal < 350000) {
+      toast.error("Nominal withdraw minimal Rp 350.000.");
+      return;
+    }
     await runAction(
       "withdraw",
       async () => {
@@ -605,7 +616,9 @@ export default function DashboardPartner() {
   const pag5 = usePagination(selesaiTasks);
   const pag6 = usePagination(ditolakTasks);
 
-  const levelInfo = profile ? getLevelInfo(profile.level) : null;
+  const levelInfo = profile
+    ? getLevelInfo(profile.level as Record<string, null> | string)
+    : null;
   const hasFinancialProfile = !!financialProfile;
 
   if (isChecking) {
@@ -1032,6 +1045,9 @@ export default function DashboardPartner() {
                             placeholder="Masukkan nominal"
                             className="h-8 text-sm"
                           />
+                          <p className="text-xs text-slate-400">
+                            Minimal Rp 350.000
+                          </p>
                         </div>
                         <div className="flex gap-2">
                           <Button

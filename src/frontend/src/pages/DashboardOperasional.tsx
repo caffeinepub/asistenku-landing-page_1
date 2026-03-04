@@ -179,20 +179,28 @@ type SuspendedEntry =
   | ({ kind: "client" } & Client);
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
-function getStatus(obj: Record<string, null>): string {
-  return Object.keys(obj)[0] ?? "";
+function extractKey(obj: unknown): string {
+  if (typeof obj === "string") return obj;
+  if (typeof obj === "object" && obj !== null) {
+    return Object.keys(obj as Record<string, unknown>)[0] ?? "";
+  }
+  return "";
 }
 
-function getRole(obj: Record<string, null>): string {
-  return Object.keys(obj)[0] ?? "";
+function getStatus(obj: Record<string, null> | string | unknown): string {
+  return extractKey(obj);
 }
 
-function getTipe(obj: Record<string, null>): string {
-  return Object.keys(obj)[0] ?? "";
+function getRole(obj: Record<string, null> | string | unknown): string {
+  return extractKey(obj);
 }
 
-function getLevelLabel(level: Record<string, null>): string {
-  const k = Object.keys(level)[0] ?? "";
+function getTipe(obj: Record<string, null> | string | unknown): string {
+  return extractKey(obj);
+}
+
+function getLevelLabel(level: Record<string, null> | string | unknown): string {
+  const k = extractKey(level);
   const map: Record<string, string> = {
     junior: "Junior",
     senior: "Senior",

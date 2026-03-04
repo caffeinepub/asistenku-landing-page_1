@@ -300,6 +300,12 @@ export default function DashboardAsistenmu() {
 
   const pagServices = usePagination(services);
   const pagTasks = usePagination(taskPermintaanBaru);
+  const pagOnProgress = usePagination(taskOnProgress);
+  const pagReviewClient = usePagination(taskReviewClient);
+  const pagQA = usePagination(taskQAAsistenmu);
+  const pagRevisi = usePagination(taskRevisi);
+  const pagDitolak = usePagination(taskDitolak);
+  const pagSelesai = usePagination(taskSelesai);
 
   if (isChecking) {
     return (
@@ -605,6 +611,331 @@ export default function DashboardAsistenmu() {
                   page={pagTasks.page}
                   totalPages={pagTasks.totalPages}
                   setPage={pagTasks.setPage}
+                />
+              </>
+            )}
+          </CollapsibleSection>
+
+          {/* Task On Progress */}
+          <CollapsibleSection
+            title="Task On Progress"
+            count={taskOnProgress.length}
+            accent="bg-blue-100 text-blue-700"
+          >
+            {taskOnProgress.length === 0 ? (
+              <p className="text-sm text-slate-400 py-4 text-center">
+                Tidak ada task on progress.
+              </p>
+            ) : (
+              <>
+                <div className="flex flex-col divide-y divide-slate-100 mt-2">
+                  {pagOnProgress.paged.map((task) => (
+                    <div
+                      key={task.idTask}
+                      className="py-3 flex flex-col gap-1.5"
+                    >
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs font-mono text-slate-500">
+                          {task.idTask}
+                        </span>
+                        <Badge
+                          variant="outline"
+                          className="text-xs bg-blue-50 text-blue-700 border-blue-200"
+                        >
+                          On Progress
+                        </Badge>
+                      </div>
+                      <p className="font-medium text-slate-900 text-sm">
+                        {task.judulTask}
+                      </p>
+                      <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-slate-500">
+                        <span>
+                          Client:{" "}
+                          <span className="text-slate-700">
+                            {task.clientNama || "—"}
+                          </span>
+                        </span>
+                        {task.partnerNama && (
+                          <span>
+                            Partner:{" "}
+                            <span className="text-slate-700">
+                              {task.partnerNama}
+                            </span>
+                          </span>
+                        )}
+                        {task.deadline > 0n && (
+                          <span>
+                            Deadline:{" "}
+                            <span className="text-slate-700">
+                              {formatDate(task.deadline)}
+                            </span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <PaginationControls
+                  page={pagOnProgress.page}
+                  totalPages={pagOnProgress.totalPages}
+                  setPage={pagOnProgress.setPage}
+                />
+              </>
+            )}
+          </CollapsibleSection>
+
+          {/* Task Review Client */}
+          <CollapsibleSection
+            title="Task Review Client"
+            count={taskReviewClient.length}
+            accent="bg-amber-100 text-amber-700"
+          >
+            {taskReviewClient.length === 0 ? (
+              <p className="text-sm text-slate-400 py-4 text-center">
+                Tidak ada task review client.
+              </p>
+            ) : (
+              <>
+                <div className="flex flex-col divide-y divide-slate-100 mt-2">
+                  {pagReviewClient.paged.map((task) => (
+                    <div
+                      key={task.idTask}
+                      className="py-3 flex flex-col gap-1.5"
+                    >
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs font-mono text-slate-500">
+                          {task.idTask}
+                        </span>
+                        <Badge
+                          variant="outline"
+                          className="text-xs bg-amber-50 text-amber-700 border-amber-200"
+                        >
+                          Review Client
+                        </Badge>
+                      </div>
+                      <p className="font-medium text-slate-900 text-sm">
+                        {task.judulTask}
+                      </p>
+                      <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-slate-500">
+                        <span>
+                          Client:{" "}
+                          <span className="text-slate-700">
+                            {task.clientNama || "—"}
+                          </span>
+                        </span>
+                        {task.deadline > 0n && (
+                          <span>
+                            Deadline:{" "}
+                            <span className="text-slate-700">
+                              {formatDate(task.deadline)}
+                            </span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <PaginationControls
+                  page={pagReviewClient.page}
+                  totalPages={pagReviewClient.totalPages}
+                  setPage={pagReviewClient.setPage}
+                />
+              </>
+            )}
+          </CollapsibleSection>
+
+          {/* Task QA Asistenmu */}
+          <CollapsibleSection
+            title="Task QA Asistenmu"
+            count={taskQAAsistenmu.length}
+            accent="bg-purple-100 text-purple-700"
+          >
+            {taskQAAsistenmu.length === 0 ? (
+              <p className="text-sm text-slate-400 py-4 text-center">
+                Tidak ada task QA.
+              </p>
+            ) : (
+              <>
+                <div className="flex flex-col divide-y divide-slate-100 mt-2">
+                  {pagQA.paged.map((task) => (
+                    <div
+                      key={task.idTask}
+                      className="py-3 flex flex-col gap-1.5"
+                    >
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs font-mono text-slate-500">
+                          {task.idTask}
+                        </span>
+                        <Badge
+                          variant="outline"
+                          className="text-xs bg-purple-50 text-purple-700 border-purple-200"
+                        >
+                          QA Asistenmu
+                        </Badge>
+                      </div>
+                      <p className="font-medium text-slate-900 text-sm">
+                        {task.judulTask}
+                      </p>
+                      <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-slate-500">
+                        <span>
+                          Client:{" "}
+                          <span className="text-slate-700">
+                            {task.clientNama || "—"}
+                          </span>
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <PaginationControls
+                  page={pagQA.page}
+                  totalPages={pagQA.totalPages}
+                  setPage={pagQA.setPage}
+                />
+              </>
+            )}
+          </CollapsibleSection>
+
+          {/* Task Revisi */}
+          <CollapsibleSection
+            title="Task Revisi"
+            count={taskRevisi.length}
+            accent="bg-red-100 text-red-700"
+          >
+            {taskRevisi.length === 0 ? (
+              <p className="text-sm text-slate-400 py-4 text-center">
+                Tidak ada task revisi.
+              </p>
+            ) : (
+              <>
+                <div className="flex flex-col divide-y divide-slate-100 mt-2">
+                  {pagRevisi.paged.map((task) => (
+                    <div
+                      key={task.idTask}
+                      className="py-3 flex flex-col gap-1.5"
+                    >
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs font-mono text-slate-500">
+                          {task.idTask}
+                        </span>
+                        <Badge
+                          variant="outline"
+                          className="text-xs bg-red-50 text-red-700 border-red-200"
+                        >
+                          Revisi
+                        </Badge>
+                      </div>
+                      <p className="font-medium text-slate-900 text-sm">
+                        {task.judulTask}
+                      </p>
+                      <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-slate-500">
+                        <span>
+                          Client:{" "}
+                          <span className="text-slate-700">
+                            {task.clientNama || "—"}
+                          </span>
+                        </span>
+                      </div>
+                      {task.notesAsistenmu && (
+                        <p className="text-xs text-slate-500 italic bg-slate-50 rounded-lg px-3 py-2 border border-slate-100">
+                          {task.notesAsistenmu}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <PaginationControls
+                  page={pagRevisi.page}
+                  totalPages={pagRevisi.totalPages}
+                  setPage={pagRevisi.setPage}
+                />
+              </>
+            )}
+          </CollapsibleSection>
+
+          {/* Task Ditolak */}
+          <CollapsibleSection
+            title="Task Ditolak"
+            count={taskDitolak.length}
+            accent="bg-rose-100 text-rose-700"
+          >
+            {taskDitolak.length === 0 ? (
+              <p className="text-sm text-slate-400 py-4 text-center">
+                Tidak ada task ditolak.
+              </p>
+            ) : (
+              <>
+                <div className="flex flex-col divide-y divide-slate-100 mt-2">
+                  {pagDitolak.paged.map((task) => (
+                    <div
+                      key={task.idTask}
+                      className="py-3 flex flex-col gap-1.5"
+                    >
+                      <span className="text-xs font-mono text-slate-500">
+                        {task.idTask}
+                      </span>
+                      <p className="font-medium text-slate-900 text-sm">
+                        {task.judulTask}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+                <PaginationControls
+                  page={pagDitolak.page}
+                  totalPages={pagDitolak.totalPages}
+                  setPage={pagDitolak.setPage}
+                />
+              </>
+            )}
+          </CollapsibleSection>
+
+          {/* Task Selesai */}
+          <CollapsibleSection
+            title="Task Selesai"
+            count={taskSelesai.length}
+            accent="bg-emerald-100 text-emerald-700"
+          >
+            {taskSelesai.length === 0 ? (
+              <p className="text-sm text-slate-400 py-4 text-center">
+                Belum ada task yang selesai.
+              </p>
+            ) : (
+              <>
+                <div className="flex flex-col divide-y divide-slate-100 mt-2">
+                  {pagSelesai.paged.map((task) => (
+                    <div
+                      key={task.idTask}
+                      className="py-3 flex flex-col gap-1.5"
+                    >
+                      <span className="text-xs font-mono text-slate-500">
+                        {task.idTask}
+                      </span>
+                      <p className="font-medium text-slate-900 text-sm">
+                        {task.judulTask}
+                      </p>
+                      <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-slate-500">
+                        <span>
+                          Client:{" "}
+                          <span className="text-slate-700">
+                            {task.clientNama || "—"}
+                          </span>
+                        </span>
+                        {task.deadline > 0n && (
+                          <span>
+                            Deadline:{" "}
+                            <span className="text-slate-700">
+                              {formatDate(task.deadline)}
+                            </span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <PaginationControls
+                  page={pagSelesai.page}
+                  totalPages={pagSelesai.totalPages}
+                  setPage={pagSelesai.setPage}
                 />
               </>
             )}

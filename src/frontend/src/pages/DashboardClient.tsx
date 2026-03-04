@@ -88,16 +88,23 @@ interface Task {
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
+function extractKey(obj: unknown): string {
+  if (typeof obj === "string") return obj;
+  if (typeof obj === "object" && obj !== null)
+    return Object.keys(obj as Record<string, unknown>)[0] ?? "";
+  return "";
+}
+
 function getTaskStatus(task: Task): string {
-  return Object.keys(task.status)[0] ?? "";
+  return extractKey(task.status);
 }
 
 function getTipeLayanan(svc: Service): string {
-  return Object.keys(svc.tipeLayanan)[0] ?? "";
+  return extractKey(svc.tipeLayanan);
 }
 
 function getServiceStatus(svc: Service): string {
-  return Object.keys(svc.status)[0] ?? "";
+  return extractKey(svc.status);
 }
 
 function tipeLabel(tipe: string): string {
@@ -343,11 +350,10 @@ export default function DashboardClient() {
       setClientData(me);
 
       // Filter services for this client (active only)
-      const myServices = allServices.filter(
-        (s) =>
-          s.clientPrincipalId === principalId &&
-          getServiceStatus(s) === "active",
-      );
+      const myServices = allServices.filter((s) => {
+        const status = getServiceStatus(s).toLowerCase();
+        return s.clientPrincipalId === principalId && status === "active";
+      });
       setServices(myServices);
 
       // Filter tasks for this client
