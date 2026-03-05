@@ -1274,7 +1274,7 @@ function AktivaasiLayananForm({
     nama: u.nama,
   }));
 
-  const nextServiceId = `SA_${String(serviceCount + 1).padStart(5, "0")}`;
+  const nextServiceId = `SA-${String(serviceCount + 1).padStart(5, "0")}`;
 
   function addSharingField() {
     if (sharingFields.length < 6) {

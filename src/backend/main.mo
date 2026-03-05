@@ -1,15 +1,16 @@
 import Map "mo:core/Map";
 import Time "mo:core/Time";
-import Text "mo:core/Text";
 import Nat "mo:core/Nat";
-import Char "mo:core/Char";
 import Iter "mo:core/Iter";
-import Principal "mo:core/Principal";
-import Array "mo:core/Array";
-import Order "mo:core/Order";
-import List "mo:core/List";
 import Runtime "mo:core/Runtime";
+import Order "mo:core/Order";
+import Text "mo:core/Text";
+import List "mo:core/List";
+import Array "mo:core/Array";
+import Principal "mo:core/Principal";
+import Migration "migration";
 
+(with migration = Migration.run)
 actor {
   public type Role = {
     #admin;
@@ -41,7 +42,11 @@ actor {
     #efisien;
   };
 
-  public type ServiceStatus = { #active; #inactive };
+  public type ServiceStatus = {
+    #active;
+    #inactive;
+  };
+
   public type TaskStatus = {
     #permintaanbaru;
     #onprogress;
@@ -192,6 +197,7 @@ actor {
     saldoPengajuan : Nat;
   };
 
+  // Stable variables
   stable var userCounter : Nat = 0;
   stable var partnerCounter : Nat = 0;
   stable var clientCounter : Nat = 0;
@@ -213,7 +219,9 @@ actor {
   stable var stableWithdrawRequests : [(Text, WithdrawRequest)] = [];
   stable var stableFinancialProfileRequests : [(Text, FinancialProfileRequest)] = [];
   stable var stableAdminLogs : [(Text, AdminLog)] = [];
+  stable var stableArchivedServices : [(Text, Service)] = [];
 
+  // Persistent Maps
   let users = Map.fromIter<Principal, User>(
     stableUsers.values()
   );
@@ -254,6 +262,11 @@ actor {
     stableAdminLogs.values()
   );
 
+  let archivedServices = Map.fromIter<Text, Service>(
+    stableArchivedServices.values()
+  );
+
+  /// System
   system func preupgrade() {
     stableUsers := users.toArray();
     stablePartners := partners.toArray();
@@ -265,6 +278,7 @@ actor {
     stableWithdrawRequests := withdrawRequests.toArray();
     stableFinancialProfileRequests := financialProfileRequests.toArray();
     stableAdminLogs := adminLogs.toArray();
+    stableArchivedServices := archivedServices.toArray();
   };
 
   system func postupgrade() {
@@ -278,10 +292,15 @@ actor {
     stableWithdrawRequests := [];
     stableFinancialProfileRequests := [];
     stableAdminLogs := [];
+    stableArchivedServices := [];
   };
 
+  // === CANISTER ENTRYPOINTS (Public Functions) ===
+
+  /// Admin Functions
   public shared ({ caller }) func forceClaimAdmin(nama : Text, email : Text, whatsapp : Text) : async () {
     let usersToRemove = List.empty<Principal>();
+
     for ((principalId, user) in users.entries()) {
       if (user.role == #admin) {
         usersToRemove.add(principalId);
@@ -309,11 +328,14 @@ actor {
     users.add(caller, adminUser);
   };
 
+  /// Check admin or operational role
   func checkAdminOrOperasional(p : Principal) {
     switch (users.get(p)) {
       case (?user) {
-        if (user.role != #admin and user.role != #operasional) {
-          Runtime.trap("Caller is not admin or operasional");
+        switch (user.role) {
+          case (#admin) {};
+          case (#operasional) {};
+          case (_) { Runtime.trap("Caller is not admin or operasional") };
         };
       };
       case (null) { Runtime.trap("Caller not found") };
@@ -331,6 +353,7 @@ actor {
     };
   };
 
+  /// Get role of the caller
   public query ({ caller }) func getMyRole() : async ?Role {
     switch (users.get(caller)) {
       case (?user) { ?user.role };
@@ -348,8 +371,7 @@ actor {
     };
   };
 
-  // === NEW FUNCTIONS TO INSERT AFTER getMyRole ===
-
+  /// Get status of user by principal
   public query func getUserStatus(principal : Principal) : async ?Status {
     switch (users.get(principal)) {
       case (?user) { ?user.status };
@@ -395,8 +417,6 @@ actor {
     };
   };
 
-  // === END NEW FUNCTIONS ===
-
   public query ({ caller }) func getMyProfile() : async ?User {
     users.get(caller);
   };
@@ -421,6 +441,12 @@ actor {
     };
   };
 
+  /// NEW FUNCTION: Get client profile of the caller
+  public query ({ caller }) func getMyClientProfile() : async ?Client {
+    clients.get(caller);
+  };
+
+  /// Get all users, partners, clients, services, topups, etc.
   public query ({ caller }) func getUsers() : async [User] {
     checkAdminOrOperasional(caller);
     users.values().toArray();
@@ -493,11 +519,47 @@ actor {
     );
   };
 
+  /// NEW FUNCTION: Get tasks for the currently logged in partner
+  public query ({ caller }) func getMyTasksAsPartner() : async [Task] {
+    let callerText = caller.toText();
+    tasks.values().toArray().filter(
+      func(task) {
+        task.partnerId == callerText;
+      }
+    );
+  };
+
+  /// NEW FUNCTION: Get tasks for the currently logged in client
+  public query ({ caller }) func getMyTasksAsClient() : async [Task] {
+    let callerText = caller.toText();
+    switch (clients.get(caller)) {
+      case (?_) {
+        tasks.values().toArray().filter(
+          func(task) {
+            task.clientId == callerText;
+          }
+        );
+      };
+      case (null) {
+        Runtime.trap("Caller is not a valid client");
+      };
+    };
+  };
+
   public query ({ caller }) func getTasksByAsistenmu() : async [Task] {
     let callerText = caller.toText();
     tasks.values().toArray().filter(
       func(task) {
         task.asistenmuId == callerText and task.status == #permintaanbaru;
+      }
+    );
+  };
+
+  public query ({ caller }) func getAllTasksByAsistenmu() : async [Task] {
+    let callerText = caller.toText();
+    tasks.values().toArray().filter(
+      func(task) {
+        task.asistenmuId == callerText;
       }
     );
   };
@@ -525,8 +587,8 @@ actor {
     checkAdminOrOperasional(caller);
     let logs = adminLogs.values().toArray();
 
-    func compare(t1 : AdminLog, t2 : AdminLog) : Order.Order {
-      Nat.compare(t2.createdAt.toNat(), t1.createdAt.toNat());
+    func compare(l1 : AdminLog, l2 : AdminLog) : Order.Order {
+      Nat.compare(l2.createdAt.toNat(), l1.createdAt.toNat());
     };
 
     logs.sort();
@@ -580,7 +642,35 @@ actor {
     };
   };
 
-  // Call mutations
+  // === Service Archiving ===
+
+  /// Archive a service (admin/operasional only)
+  public shared ({ caller }) func archiveService(idService : Text) : async () {
+    checkAdminOrOperasional(caller);
+
+    switch (services.get(idService)) {
+      case (null) { Runtime.trap("Service not found") };
+      case (?service) {
+        services.remove(idService);
+        archivedServices.add(idService, service);
+
+        await addAdminLog(
+          caller,
+          "Archived service",
+          idService,
+        );
+      };
+    };
+  };
+
+  /// Get all archived services (admin/operasional only)
+  public query ({ caller }) func getArchivedServices() : async [Service] {
+    checkAdminOrOperasional(caller);
+    archivedServices.values().toArray();
+  };
+
+  // === User registration and approval ===
+
   public shared ({ caller }) func claimAdmin(nama : Text, email : Text, whatsapp : Text) : async () {
     if (adminClaimed) { Runtime.trap("Admin already claimed") };
     adminClaimed := true;
@@ -818,6 +908,8 @@ actor {
     };
   };
 
+  // === Service-related ===
+
   public shared ({ caller }) func aktivasiLayanan(
     tipe : TipeLayanan,
     clientPrincipalId : Text,
@@ -847,6 +939,28 @@ actor {
     services.add(idService, newService);
     await addAdminLog(caller, "Activated service", idService);
     idService;
+  };
+
+  public shared ({ caller }) func updateService(
+    idService : Text,
+    newStatus : ServiceStatus,
+    newSharing : [SharingEntry],
+  ) : async () {
+    checkAdminOrOperasional(caller);
+
+    switch (services.get(idService)) {
+      case (null) { Runtime.trap("Service not found") };
+      case (?existingService) {
+        let updatedService = {
+          existingService with
+          status = newStatus;
+          sharingLayanan = newSharing;
+        };
+
+        services.add(idService, updatedService);
+        await addAdminLog(caller, "Updated service", idService);
+      };
+    };
   };
 
   public shared ({ caller }) func topUpService(idService : Text, unitTambahan : Nat) : async Text {
@@ -952,6 +1066,8 @@ actor {
       case (null) { Runtime.trap("Task not found") };
     };
   };
+
+  // === FINANCIALS ===
 
   public shared ({ caller }) func requestFinancialProfile(namaBankEwallet : Text, nomorRekening : Text, namaRekening : Text) : async Text {
     switch (partners.get(caller)) {
@@ -1086,12 +1202,13 @@ actor {
     adminLogs.add(idLog, newLog);
   };
 
+  // ID generation functions
   func genUserId(num : Nat) : Text {
     let numStr = num.toText();
     let zerosToPad = 4 - numStr.size();
     var result = "INT-";
     for (i in Nat.range(0, zerosToPad)) {
-      result #= "\u{30}";
+      result #= "0";
     };
     result # numStr;
   };
@@ -1101,7 +1218,7 @@ actor {
     let zerosToPad = 4 - numStr.size();
     var result = "PA-";
     for (i in Nat.range(0, zerosToPad)) {
-      result #= "\u{30}";
+      result #= "0";
     };
     result # numStr;
   };
@@ -1111,7 +1228,7 @@ actor {
     let zerosToPad = 4 - numStr.size();
     var result = "CA-";
     for (i in Nat.range(0, zerosToPad)) {
-      result #= "\u{30}";
+      result #= "0";
     };
     result # numStr;
   };
@@ -1121,7 +1238,7 @@ actor {
     let zerosToPad = 5 - numStr.size();
     var result = "SA-";
     for (i in Nat.range(0, zerosToPad)) {
-      result #= "\u{30}";
+      result #= "0";
     };
     result # numStr;
   };
@@ -1131,7 +1248,7 @@ actor {
     let zerosToPad = 5 - numStr.size();
     var result = "TU-";
     for (i in Nat.range(0, zerosToPad)) {
-      result #= "\u{30}";
+      result #= "0";
     };
     result # numStr;
   };
@@ -1141,7 +1258,7 @@ actor {
     let zerosToPad = 5 - numStr.size();
     var result = "TSK-";
     for (i in Nat.range(0, zerosToPad)) {
-      result #= "\u{30}";
+      result #= "0";
     };
     result # numStr;
   };
@@ -1151,7 +1268,7 @@ actor {
     let zerosToPad = 5 - numStr.size();
     var result = "WD-";
     for (i in Nat.range(0, zerosToPad)) {
-      result #= "\u{30}";
+      result #= "0";
     };
     result # numStr;
   };
@@ -1161,7 +1278,7 @@ actor {
     let zerosToPad = 5 - numStr.size();
     var result = "FP-";
     for (i in Nat.range(0, zerosToPad)) {
-      result #= "\u{30}";
+      result #= "0";
     };
     result # numStr;
   };
@@ -1171,8 +1288,9 @@ actor {
     let zerosToPad = 5 - numStr.size();
     var result = "LOG-";
     for (i in Nat.range(0, zerosToPad)) {
-      result #= "\u{30}";
+      result #= "0";
     };
     result # numStr;
   };
 };
+

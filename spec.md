@@ -1,25 +1,42 @@
-# Asistenku Landing Page
+# Asistenku Platform
 
 ## Current State
-Full-stack app with landing page, portal internal, dashboard admin, dashboard partner, dashboard asistenmu, dashboard client, client login/register, portal partner. Backend has full user/partner/client/service/task/withdraw/financial management with stable vars.
+
+Full-stack ICP application with:
+- Motoko backend with stable vars: users, partners, clients, services, topUps, tasks, financialProfiles, withdrawRequests, financialProfileRequests, adminLogs
+- Landing page (App.tsx) with 7 sections, accordion service cards
+- Pages: /portal-internal, /dashboard-admin, /dashboard-asistenmu, /dashboard-operasional, /dashboard-client, /dashboard-partner, /client-login, /client-register, /portal-partner, /claim-admin-as, /tentang-partner-asistenku
+- Role guard on all dashboards
+- Backend functions: getUsers, getAllTasks, getTasksByPartner, getTasksByAsistenmu, getServices, getMyServicesAsAsistenmu, aktivasiLayanan, updateService, topUpService, createTask, delegasiTask, updateTaskStatus, claimAdmin, forceClaimAdmin, withdraw/financial profile functions
+- DashboardAdmin has: Summary cards, Manajemen Pengguna (collapsible with filter), Manajemen Service, Manajemen Task, Financial Management, History sections
+- DashboardClient has: greeting, profil, layanan, summary task, Task Manajemen sections. Data fetched via getAllClients/getServices/getAllTasks filtered by principalId.
+- DashboardPartner: greeting, profil, finansial, level/skill, wallet, task manajemen sections. getTasksByPartner from backend.
+- getAdminLogs() has bug: calls logs.sort() without comparator causing compile error
 
 ## Requested Changes (Diff)
 
 ### Add
-- New page `/claim-admin-as`: a minimal page (no Header/Footer) with only a Claim Admin card centered on the page.
-- Access restricted to exactly 2 principals:
-  - `fjkli-fsbma-6it5u-allin-kv6rp-v6j7f-bayef-3iut6-bd3td-2corr-gqe` (live)
-  - `mu7go-gesml-ultdd-tqrkp-465oz-ticdh-ir6fg-6i6yq-qfn7i-pqaft-mqe` (draft)
-- Any other principal sees "Akses ditolak" message.
-- New backend function `claimAdminOverride`: same as `claimAdmin` but can override existing admin. Removes any existing admin user from users map, resets adminClaimed, then inserts new admin with caller's principalId, nama="Admin Asistenku", email="admasistenku@gmail.com", whatsapp="08817743613", role=#admin, status=#active. Only callable by the 2 allowed principals (checked on-chain).
+- Backend: `archiveService(idService: Text)` -- soft delete, moves service to archivedServices stable map with `archived: true`
+- Backend: `getArchivedServices()` -- returns archived services for admin/operasional
+- Backend: Fix `getAdminLogs()` -- sort by createdAt descending using proper Array.sort with compare function
+- DashboardAdmin: In Edit Service modal, add "Tambah Sharing" button to add sharing entries without creating new service
+- DashboardAdmin: "Hapus Layanan" button (soft delete) in service list, archives service
+- DashboardAdmin: New "Arsip Layanan" card below List Layanan, collapsible, pagination 5, showing archived services
+- DashboardClient: Fix service filter -- match by `clientPrincipalId === principalId` AND fallback by `clientNama` matching client name. Also check `idUser` from getMyProfile.
+- DashboardClient: Fix profile fetch -- use `getMyProfile()` directly (returns the logged-in client profile)
 
 ### Modify
-- App router: add `/claim-admin-as` route.
+- DashboardClient: Instead of calling getAllClients (admin-only), use `getMyProfile()` to get client profile directly. Filter services by matching `clientPrincipalId` to the logged-in principal. Filter tasks by `clientId === clientData.idUser` or `clientId === principalId`.
+- DashboardAdmin: Edit Service modal now also supports adding new sharing entries inline.
+- Backend: Fix getAdminLogs sort comparator to avoid compile error.
 
 ### Remove
-- Nothing removed.
+- DashboardClient: Remove dependency on `getAllClients` and `getAllTasks` (admin-only calls). Use client-specific queries only.
 
 ## Implementation Plan
-1. Add `claimAdminOverride` to backend (checks caller against 2 allowed principals, overrides existing admin, saves to stable var).
-2. Create `ClaimAdminAs.tsx` page: login II required, check principal on frontend before showing card, call `claimAdminOverride` on click, show success/denied message.
-3. Add route `/claim-admin-as` in App.tsx.
+1. Fix backend: `getAdminLogs` sort bug, add `archiveService`, add `getArchivedServices`, add `getMyClientProfile` query for clients
+2. Regenerate backend.d.ts
+3. Fix DashboardClient: use `getMyClientProfile()` instead of getAllClients; use client-specific task fetch
+4. Fix DashboardAdmin Edit Service modal: add inline sharing management
+5. Add archiveService button + Arsip Layanan card in DashboardAdmin
+6. Validate and build

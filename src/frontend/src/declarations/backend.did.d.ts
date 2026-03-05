@@ -178,6 +178,10 @@ export interface _SERVICE {
   'approveInternalUser' : ActorMethod<[Principal, Role], undefined>,
   'approvePartner' : ActorMethod<[Principal], undefined>,
   'approveWithdraw' : ActorMethod<[string], undefined>,
+  /**
+   * / Archive a service (admin/operasional only)
+   */
+  'archiveService' : ActorMethod<[string], undefined>,
   'claimAdmin' : ActorMethod<[string, string, string], undefined>,
   'createTask' : ActorMethod<
     [string, string, bigint, string, string, string, string, string],
@@ -187,12 +191,20 @@ export interface _SERVICE {
     [string, string, string, bigint, bigint, string, string, string],
     undefined
   >,
+  /**
+   * / Admin Functions
+   */
   'forceClaimAdmin' : ActorMethod<[string, string, string], undefined>,
   'getAdminLogs' : ActorMethod<[], Array<AdminLog>>,
   'getAllClients' : ActorMethod<[], Array<Client>>,
   'getAllPartners' : ActorMethod<[], Array<Partner>>,
   'getAllTasks' : ActorMethod<[], Array<Task>>,
+  'getAllTasksByAsistenmu' : ActorMethod<[], Array<Task>>,
   'getAllUsers' : ActorMethod<[], Array<User>>,
+  /**
+   * / Get all archived services (admin/operasional only)
+   */
+  'getArchivedServices' : ActorMethod<[], Array<Service>>,
   'getAsistenmu' : ActorMethod<[], Array<User>>,
   'getClients' : ActorMethod<[], Array<Client>>,
   'getFPRequestStatus' : ActorMethod<[string], [] | [FPRequestStatus]>,
@@ -204,11 +216,26 @@ export interface _SERVICE {
     [],
     Array<FinancialProfileRequest>
   >,
+  /**
+   * / NEW FUNCTION: Get client profile of the caller
+   */
+  'getMyClientProfile' : ActorMethod<[], [] | [Client]>,
   'getMyFinancialProfile' : ActorMethod<[], [] | [FinancialProfile]>,
   'getMyPartnerProfile' : ActorMethod<[], [] | [Partner]>,
   'getMyProfile' : ActorMethod<[], [] | [User]>,
+  /**
+   * / Get role of the caller
+   */
   'getMyRole' : ActorMethod<[], [] | [Role]>,
   'getMyServicesAsAsistenmu' : ActorMethod<[], Array<Service>>,
+  /**
+   * / NEW FUNCTION: Get tasks for the currently logged in client
+   */
+  'getMyTasksAsClient' : ActorMethod<[], Array<Task>>,
+  /**
+   * / NEW FUNCTION: Get tasks for the currently logged in partner
+   */
+  'getMyTasksAsPartner' : ActorMethod<[], Array<Task>>,
   'getMyWallet' : ActorMethod<[], WalletInfo>,
   'getPartners' : ActorMethod<[], Array<Partner>>,
   'getServiceStatus' : ActorMethod<[string], [] | [ServiceStatus]>,
@@ -217,7 +244,13 @@ export interface _SERVICE {
   'getTasksByAsistenmu' : ActorMethod<[], Array<Task>>,
   'getTasksByPartner' : ActorMethod<[], Array<Task>>,
   'getTopUps' : ActorMethod<[], Array<TopUp>>,
+  /**
+   * / Get status of user by principal
+   */
   'getUserStatus' : ActorMethod<[Principal], [] | [Status]>,
+  /**
+   * / Get all users, partners, clients, services, topups, etc.
+   */
   'getUsers' : ActorMethod<[], Array<User>>,
   'getWithdrawRequests' : ActorMethod<[], Array<WithdrawRequest>>,
   'getWithdrawStatus' : ActorMethod<[string], [] | [WithdrawStatus]>,
@@ -246,6 +279,10 @@ export interface _SERVICE {
   >,
   'updatePartnerDetails' : ActorMethod<
     [Principal, LevelPartner, Array<string>],
+    undefined
+  >,
+  'updateService' : ActorMethod<
+    [string, ServiceStatus, Array<SharingEntry>],
     undefined
   >,
   'updateTaskStatus' : ActorMethod<[string, TaskStatus], undefined>,

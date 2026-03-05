@@ -174,25 +174,52 @@ export interface backendInterface {
     approveInternalUser(principalId: Principal, role: Role): Promise<void>;
     approvePartner(principalId: Principal): Promise<void>;
     approveWithdraw(idWithdraw: string): Promise<void>;
+    /**
+     * / Archive a service (admin/operasional only)
+     */
+    archiveService(idService: string): Promise<void>;
     claimAdmin(nama: string, email: string, whatsapp: string): Promise<void>;
     createTask(judulTask: string, detailTask: string, deadline: bigint, serviceId: string, clientId: string, clientNama: string, asistenmuId: string, asistenmuNama: string): Promise<string>;
     delegasiTask(idTask: string, partnerId: string, partnerNama: string, jamEfektif: bigint, unitLayanan: bigint, notesAsistenmu: string, linkGdriveInternal: string, linkGdriveClient: string): Promise<void>;
+    /**
+     * / Admin Functions
+     */
     forceClaimAdmin(nama: string, email: string, whatsapp: string): Promise<void>;
     getAdminLogs(): Promise<Array<AdminLog>>;
     getAllClients(): Promise<Array<Client>>;
     getAllPartners(): Promise<Array<Partner>>;
     getAllTasks(): Promise<Array<Task>>;
+    getAllTasksByAsistenmu(): Promise<Array<Task>>;
     getAllUsers(): Promise<Array<User>>;
+    /**
+     * / Get all archived services (admin/operasional only)
+     */
+    getArchivedServices(): Promise<Array<Service>>;
     getAsistenmu(): Promise<Array<User>>;
     getClients(): Promise<Array<Client>>;
     getFPRequestStatus(idRequest: string): Promise<FPRequestStatus | null>;
     getFinancialProfileByPartnerId(partnerId: string): Promise<FinancialProfile | null>;
     getFinancialProfileRequests(): Promise<Array<FinancialProfileRequest>>;
+    /**
+     * / NEW FUNCTION: Get client profile of the caller
+     */
+    getMyClientProfile(): Promise<Client | null>;
     getMyFinancialProfile(): Promise<FinancialProfile | null>;
     getMyPartnerProfile(): Promise<Partner | null>;
     getMyProfile(): Promise<User | null>;
+    /**
+     * / Get role of the caller
+     */
     getMyRole(): Promise<Role | null>;
     getMyServicesAsAsistenmu(): Promise<Array<Service>>;
+    /**
+     * / NEW FUNCTION: Get tasks for the currently logged in client
+     */
+    getMyTasksAsClient(): Promise<Array<Task>>;
+    /**
+     * / NEW FUNCTION: Get tasks for the currently logged in partner
+     */
+    getMyTasksAsPartner(): Promise<Array<Task>>;
     getMyWallet(): Promise<WalletInfo>;
     getPartners(): Promise<Array<Partner>>;
     getServiceStatus(idService: string): Promise<ServiceStatus | null>;
@@ -201,7 +228,13 @@ export interface backendInterface {
     getTasksByAsistenmu(): Promise<Array<Task>>;
     getTasksByPartner(): Promise<Array<Task>>;
     getTopUps(): Promise<Array<TopUp>>;
+    /**
+     * / Get status of user by principal
+     */
     getUserStatus(principal: Principal): Promise<Status | null>;
+    /**
+     * / Get all users, partners, clients, services, topups, etc.
+     */
     getUsers(): Promise<Array<User>>;
     getWithdrawRequests(): Promise<Array<WithdrawRequest>>;
     getWithdrawStatus(idWithdraw: string): Promise<WithdrawStatus | null>;
@@ -226,5 +259,6 @@ export interface backendInterface {
     topUpService(idService: string, unitTambahan: bigint): Promise<string>;
     updateMyPartnerProfile(nama: string, email: string, whatsapp: string, kota: string): Promise<void>;
     updatePartnerDetails(principalId: Principal, level: LevelPartner, verifiedSkill: Array<string>): Promise<void>;
+    updateService(idService: string, newStatus: ServiceStatus, newSharing: Array<SharingEntry>): Promise<void>;
     updateTaskStatus(idTask: string, status: TaskStatus): Promise<void>;
 }

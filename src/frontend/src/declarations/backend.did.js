@@ -109,6 +109,23 @@ export const User = IDL.Record({
   'idUser' : IDL.Text,
   'principalId' : IDL.Text,
 });
+export const ServiceStatus = IDL.Variant({
+  'active' : IDL.Null,
+  'inactive' : IDL.Null,
+});
+export const Service = IDL.Record({
+  'unitLayanan' : IDL.Nat,
+  'status' : ServiceStatus,
+  'clientPrincipalId' : IDL.Text,
+  'tipeLayanan' : TipeLayanan,
+  'clientNama' : IDL.Text,
+  'createdAt' : IDL.Int,
+  'asistenmuNama' : IDL.Text,
+  'hargaPerLayanan' : IDL.Nat,
+  'sharingLayanan' : IDL.Vec(SharingEntry),
+  'asistenmuPrincipalId' : IDL.Text,
+  'idService' : IDL.Text,
+});
 export const FPRequestStatus = IDL.Variant({
   'pending' : IDL.Null,
   'approved' : IDL.Null,
@@ -128,23 +145,6 @@ export const FinancialProfileRequest = IDL.Record({
   'partnerId' : IDL.Text,
   'oldProfile' : IDL.Opt(FinancialProfile),
   'idRequest' : IDL.Text,
-});
-export const ServiceStatus = IDL.Variant({
-  'active' : IDL.Null,
-  'inactive' : IDL.Null,
-});
-export const Service = IDL.Record({
-  'unitLayanan' : IDL.Nat,
-  'status' : ServiceStatus,
-  'clientPrincipalId' : IDL.Text,
-  'tipeLayanan' : TipeLayanan,
-  'clientNama' : IDL.Text,
-  'createdAt' : IDL.Int,
-  'asistenmuNama' : IDL.Text,
-  'hargaPerLayanan' : IDL.Nat,
-  'sharingLayanan' : IDL.Vec(SharingEntry),
-  'asistenmuPrincipalId' : IDL.Text,
-  'idService' : IDL.Text,
 });
 export const WalletInfo = IDL.Record({
   'saldoTersedia' : IDL.Nat,
@@ -194,6 +194,7 @@ export const idlService = IDL.Service({
   'approveInternalUser' : IDL.Func([IDL.Principal, Role], [], []),
   'approvePartner' : IDL.Func([IDL.Principal], [], []),
   'approveWithdraw' : IDL.Func([IDL.Text], [], []),
+  'archiveService' : IDL.Func([IDL.Text], [], []),
   'claimAdmin' : IDL.Func([IDL.Text, IDL.Text, IDL.Text], [], []),
   'createTask' : IDL.Func(
       [
@@ -228,7 +229,9 @@ export const idlService = IDL.Service({
   'getAllClients' : IDL.Func([], [IDL.Vec(Client)], ['query']),
   'getAllPartners' : IDL.Func([], [IDL.Vec(Partner)], ['query']),
   'getAllTasks' : IDL.Func([], [IDL.Vec(Task)], ['query']),
+  'getAllTasksByAsistenmu' : IDL.Func([], [IDL.Vec(Task)], ['query']),
   'getAllUsers' : IDL.Func([], [IDL.Vec(User)], ['query']),
+  'getArchivedServices' : IDL.Func([], [IDL.Vec(Service)], ['query']),
   'getAsistenmu' : IDL.Func([], [IDL.Vec(User)], ['query']),
   'getClients' : IDL.Func([], [IDL.Vec(Client)], ['query']),
   'getFPRequestStatus' : IDL.Func(
@@ -246,6 +249,7 @@ export const idlService = IDL.Service({
       [IDL.Vec(FinancialProfileRequest)],
       ['query'],
     ),
+  'getMyClientProfile' : IDL.Func([], [IDL.Opt(Client)], ['query']),
   'getMyFinancialProfile' : IDL.Func(
       [],
       [IDL.Opt(FinancialProfile)],
@@ -255,6 +259,8 @@ export const idlService = IDL.Service({
   'getMyProfile' : IDL.Func([], [IDL.Opt(User)], ['query']),
   'getMyRole' : IDL.Func([], [IDL.Opt(Role)], ['query']),
   'getMyServicesAsAsistenmu' : IDL.Func([], [IDL.Vec(Service)], ['query']),
+  'getMyTasksAsClient' : IDL.Func([], [IDL.Vec(Task)], ['query']),
+  'getMyTasksAsPartner' : IDL.Func([], [IDL.Vec(Task)], ['query']),
   'getMyWallet' : IDL.Func([], [WalletInfo], ['query']),
   'getPartners' : IDL.Func([], [IDL.Vec(Partner)], ['query']),
   'getServiceStatus' : IDL.Func(
@@ -313,6 +319,11 @@ export const idlService = IDL.Service({
     ),
   'updatePartnerDetails' : IDL.Func(
       [IDL.Principal, LevelPartner, IDL.Vec(IDL.Text)],
+      [],
+      [],
+    ),
+  'updateService' : IDL.Func(
+      [IDL.Text, ServiceStatus, IDL.Vec(SharingEntry)],
       [],
       [],
     ),
@@ -423,6 +434,23 @@ export const idlFactory = ({ IDL }) => {
     'idUser' : IDL.Text,
     'principalId' : IDL.Text,
   });
+  const ServiceStatus = IDL.Variant({
+    'active' : IDL.Null,
+    'inactive' : IDL.Null,
+  });
+  const Service = IDL.Record({
+    'unitLayanan' : IDL.Nat,
+    'status' : ServiceStatus,
+    'clientPrincipalId' : IDL.Text,
+    'tipeLayanan' : TipeLayanan,
+    'clientNama' : IDL.Text,
+    'createdAt' : IDL.Int,
+    'asistenmuNama' : IDL.Text,
+    'hargaPerLayanan' : IDL.Nat,
+    'sharingLayanan' : IDL.Vec(SharingEntry),
+    'asistenmuPrincipalId' : IDL.Text,
+    'idService' : IDL.Text,
+  });
   const FPRequestStatus = IDL.Variant({
     'pending' : IDL.Null,
     'approved' : IDL.Null,
@@ -442,23 +470,6 @@ export const idlFactory = ({ IDL }) => {
     'partnerId' : IDL.Text,
     'oldProfile' : IDL.Opt(FinancialProfile),
     'idRequest' : IDL.Text,
-  });
-  const ServiceStatus = IDL.Variant({
-    'active' : IDL.Null,
-    'inactive' : IDL.Null,
-  });
-  const Service = IDL.Record({
-    'unitLayanan' : IDL.Nat,
-    'status' : ServiceStatus,
-    'clientPrincipalId' : IDL.Text,
-    'tipeLayanan' : TipeLayanan,
-    'clientNama' : IDL.Text,
-    'createdAt' : IDL.Int,
-    'asistenmuNama' : IDL.Text,
-    'hargaPerLayanan' : IDL.Nat,
-    'sharingLayanan' : IDL.Vec(SharingEntry),
-    'asistenmuPrincipalId' : IDL.Text,
-    'idService' : IDL.Text,
   });
   const WalletInfo = IDL.Record({
     'saldoTersedia' : IDL.Nat,
@@ -508,6 +519,7 @@ export const idlFactory = ({ IDL }) => {
     'approveInternalUser' : IDL.Func([IDL.Principal, Role], [], []),
     'approvePartner' : IDL.Func([IDL.Principal], [], []),
     'approveWithdraw' : IDL.Func([IDL.Text], [], []),
+    'archiveService' : IDL.Func([IDL.Text], [], []),
     'claimAdmin' : IDL.Func([IDL.Text, IDL.Text, IDL.Text], [], []),
     'createTask' : IDL.Func(
         [
@@ -542,7 +554,9 @@ export const idlFactory = ({ IDL }) => {
     'getAllClients' : IDL.Func([], [IDL.Vec(Client)], ['query']),
     'getAllPartners' : IDL.Func([], [IDL.Vec(Partner)], ['query']),
     'getAllTasks' : IDL.Func([], [IDL.Vec(Task)], ['query']),
+    'getAllTasksByAsistenmu' : IDL.Func([], [IDL.Vec(Task)], ['query']),
     'getAllUsers' : IDL.Func([], [IDL.Vec(User)], ['query']),
+    'getArchivedServices' : IDL.Func([], [IDL.Vec(Service)], ['query']),
     'getAsistenmu' : IDL.Func([], [IDL.Vec(User)], ['query']),
     'getClients' : IDL.Func([], [IDL.Vec(Client)], ['query']),
     'getFPRequestStatus' : IDL.Func(
@@ -560,6 +574,7 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Vec(FinancialProfileRequest)],
         ['query'],
       ),
+    'getMyClientProfile' : IDL.Func([], [IDL.Opt(Client)], ['query']),
     'getMyFinancialProfile' : IDL.Func(
         [],
         [IDL.Opt(FinancialProfile)],
@@ -569,6 +584,8 @@ export const idlFactory = ({ IDL }) => {
     'getMyProfile' : IDL.Func([], [IDL.Opt(User)], ['query']),
     'getMyRole' : IDL.Func([], [IDL.Opt(Role)], ['query']),
     'getMyServicesAsAsistenmu' : IDL.Func([], [IDL.Vec(Service)], ['query']),
+    'getMyTasksAsClient' : IDL.Func([], [IDL.Vec(Task)], ['query']),
+    'getMyTasksAsPartner' : IDL.Func([], [IDL.Vec(Task)], ['query']),
     'getMyWallet' : IDL.Func([], [WalletInfo], ['query']),
     'getPartners' : IDL.Func([], [IDL.Vec(Partner)], ['query']),
     'getServiceStatus' : IDL.Func(
@@ -627,6 +644,11 @@ export const idlFactory = ({ IDL }) => {
       ),
     'updatePartnerDetails' : IDL.Func(
         [IDL.Principal, LevelPartner, IDL.Vec(IDL.Text)],
+        [],
+        [],
+      ),
+    'updateService' : IDL.Func(
+        [IDL.Text, ServiceStatus, IDL.Vec(SharingEntry)],
         [],
         [],
       ),

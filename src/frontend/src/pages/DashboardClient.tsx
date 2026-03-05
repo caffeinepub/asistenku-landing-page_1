@@ -339,28 +339,48 @@ export default function DashboardClient() {
         string,
         (...args: unknown[]) => Promise<unknown>
       >;
-      const [allClients, allServices, allTasks] = await Promise.all([
-        (act.getAllClients() as Promise<Client[]>).catch(() => [] as Client[]),
-        (act.getServices() as Promise<Service[]>).catch(() => [] as Service[]),
-        (act.getAllTasks() as Promise<Task[]>).catch(() => [] as Task[]),
+
+      // Use client-specific queries — no admin-only calls
+      const [clientProfileRaw, myTasks] = await Promise.all([
+        (act.getMyClientProfile() as Promise<Client | Client[] | null>).catch(
+          () => null,
+        ),
+        (act.getMyTasksAsClient() as Promise<Task[]>).catch(() => [] as Task[]),
       ]);
 
-      // Find current client by principalId
-      const me = allClients.find((c) => c.principalId === principalId) ?? null;
+      // Motoko ?T returns [] or [value] — handle both
+      let me: Client | null = null;
+      if (Array.isArray(clientProfileRaw)) {
+        me = (clientProfileRaw[0] as Client) ?? null;
+      } else {
+        me = clientProfileRaw as Client | null;
+      }
       setClientData(me);
 
-      // Filter services for this client (active only)
-      const myServices = allServices.filter((s) => {
-        const status = getServiceStatus(s).toLowerCase();
-        return s.clientPrincipalId === principalId && status === "active";
-      });
-      setServices(myServices);
+      // Tasks already filtered by backend by clientId
+      const fetchedTasks = myTasks as Task[];
+      setTasks(fetchedTasks);
 
-      // Filter tasks for this client
-      const myTasks = me
-        ? allTasks.filter((t) => t.clientId === me.idUser)
-        : [];
-      setTasks(myTasks);
+      // Derive services from unique serviceIds in tasks, then fetch each via getServiceStatus
+      // Since there's no client-specific getServices endpoint, build service list from tasks
+      // by calling getMyServicesAsClient if available, otherwise use serviceId from tasks
+      let myServices: Service[] = [];
+      try {
+        // Try getMyServicesAsClient (may exist in newer backend)
+        const svcRaw = await (
+          act.getMyServicesAsClient() as Promise<Service[]>
+        ).catch(() => null);
+        if (svcRaw && Array.isArray(svcRaw)) {
+          myServices = svcRaw.filter((s) => {
+            const status = getServiceStatus(s).toLowerCase();
+            return status === "active";
+          });
+        }
+      } catch {
+        // No client-specific service endpoint available yet
+        myServices = [];
+      }
+      setServices(myServices);
     } catch (err: unknown) {
       const msg =
         err instanceof Error ? err.message : "Gagal memuat data. Coba lagi.";

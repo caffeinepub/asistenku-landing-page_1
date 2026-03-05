@@ -44,6 +44,7 @@ import { toast } from "sonner";
 import {
   type LevelPartner,
   type Role,
+  type ServiceStatus,
   TaskStatus,
   type TipeLayanan,
 } from "../backend";
@@ -1273,7 +1274,7 @@ function AktivaasiLayananForm({
     nama: u.nama,
   }));
 
-  const nextServiceId = `SA_${String(serviceCount + 1).padStart(5, "0")}`;
+  const nextServiceId = `SA-${String(serviceCount + 1).padStart(5, "0")}`;
 
   function addSharingField() {
     if (sharingFields.length < 6) {
@@ -2590,19 +2591,12 @@ export default function DashboardAdmin() {
               className="flex-1 bg-slate-900 text-white hover:bg-slate-700"
               disabled={isSavingService}
               onClick={async () => {
-                if (!editServiceModal) return;
+                if (!editServiceModal || !actor) return;
                 setIsSavingService(true);
                 try {
-                  const act = actor as unknown as Record<
-                    string,
-                    (...args: unknown[]) => Promise<void>
-                  >;
-                  await act.updateService(
+                  await actor.updateService(
                     editServiceModal.idService,
-                    { [editServiceStatus]: null } as unknown as Record<
-                      string,
-                      null
-                    >,
+                    { [editServiceStatus]: null } as unknown as ServiceStatus,
                     editServiceSharing,
                   );
                   toast.success("Layanan berhasil diperbarui.");

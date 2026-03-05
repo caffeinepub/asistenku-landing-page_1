@@ -73,12 +73,22 @@ interface UserProfile {
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
+// Handle both Motoko variant { key: null } and string enum values
+function extractKey(obj: unknown): string {
+  if (typeof obj === "string") return obj;
+  if (typeof obj === "object" && obj !== null) {
+    const keys = Object.keys(obj as Record<string, unknown>);
+    return keys[0] ?? "";
+  }
+  return "";
+}
+
 function getTaskStatus(task: Task): string {
-  return Object.keys(task.status)[0] ?? "";
+  return extractKey(task.status);
 }
 
 function getTipe(obj: Record<string, null>): string {
-  return Object.keys(obj)[0] ?? "";
+  return extractKey(obj);
 }
 
 function formatDate(ts: bigint): string {
@@ -254,8 +264,12 @@ export default function DashboardAsistenmu() {
         (...args: unknown[]) => Promise<unknown>
       >;
       const [t, svc, p] = await Promise.all([
-        (act.getTasksByAsistenmu() as Promise<Task[]>).catch(
-          () => [] as Task[],
+        // getAllTasksByAsistenmu returns ALL statuses for this asistenmu
+        (act.getAllTasksByAsistenmu() as Promise<Task[]>).catch(() =>
+          // fallback: getTasksByAsistenmu only returns permintaanbaru
+          (act.getTasksByAsistenmu() as Promise<Task[]>).catch(
+            () => [] as Task[],
+          ),
         ),
         (act.getMyServicesAsAsistenmu() as Promise<Service[]>).catch(
           () => [] as Service[],

@@ -75,8 +75,18 @@ interface WalletInfo {
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
+// Handle both Motoko variant { key: null } and string enum values
+function extractKey(obj: unknown): string {
+  if (typeof obj === "string") return obj;
+  if (typeof obj === "object" && obj !== null) {
+    const keys = Object.keys(obj as Record<string, unknown>);
+    return keys[0] ?? "";
+  }
+  return "";
+}
+
 function getTaskStatus(task: Task): string {
-  return Object.keys(task.status)[0] ?? "";
+  return extractKey(task.status);
 }
 
 function formatDate(ts: bigint): string {
@@ -122,7 +132,7 @@ function getLevelInfo(level: Record<string, null> | string): {
   label: string;
   className: string;
 } {
-  const key = typeof level === "string" ? level : (Object.keys(level)[0] ?? "");
+  const key = extractKey(level);
   const map: Record<string, { label: string; className: string }> = {
     junior: {
       label: "Junior",
@@ -473,7 +483,13 @@ export default function DashboardPartner() {
         (...args: unknown[]) => Promise<unknown>
       >;
       const [t, pArr, fpArr, w] = await Promise.all([
-        (act.getTasksByPartner() as Promise<Task[]>).catch(() => [] as Task[]),
+        // Use getMyTasksAsPartner (filters by partnerId = caller principalId)
+        (act.getMyTasksAsPartner() as Promise<Task[]>).catch(() =>
+          // fallback to getTasksByPartner for older backend compatibility
+          (act.getTasksByPartner() as Promise<Task[]>).catch(
+            () => [] as Task[],
+          ),
+        ),
         (act.getMyPartnerProfile() as Promise<PartnerProfile[]>).catch(
           () => [] as PartnerProfile[],
         ),
@@ -619,6 +635,7 @@ export default function DashboardPartner() {
   const levelInfo = profile
     ? getLevelInfo(profile.level as Record<string, null> | string)
     : null;
+  // Ensure level display uses extractKey to handle both variant and string formats
   const hasFinancialProfile = !!financialProfile;
 
   if (isChecking) {

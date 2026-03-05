@@ -1,11 +1,40 @@
 import Map "mo:core/Map";
 import Nat "mo:core/Nat";
 import Time "mo:core/Time";
-import List "mo:core/List";
+import Principal "mo:core/Principal";
 
 module {
-  public type ServiceStatus = { #active; #inactive };
-  public type TaskStatus = {
+  type Role = {
+    #admin;
+    #asistenmu;
+    #operasional;
+    #client;
+    #partner;
+    #public_;
+  };
+  type Status = {
+    #pending;
+    #active;
+    #reject;
+    #suspend;
+  };
+
+  type LevelPartner = {
+    #junior;
+    #senior;
+    #expert;
+  };
+
+  type TipeLayanan = {
+    #tenang;
+    #rapi;
+    #fokus;
+    #jaga;
+    #efisien;
+  };
+
+  type ServiceStatus = { #active; #inactive };
+  type TaskStatus = {
     #permintaanbaru;
     #onprogress;
     #reviewclient;
@@ -15,7 +44,134 @@ module {
     #selesai;
   };
 
-  type OldAdminLog = {
+  type WithdrawStatus = {
+    #pending;
+    #approved;
+    #rejected;
+  };
+
+  type FPRequestStatus = {
+    #pending;
+    #approved;
+    #rejected;
+  };
+
+  type SharingEntry = {
+    idUser : Text;
+    principalId : Text;
+    nama : Text;
+  };
+
+  type User = {
+    idUser : Text;
+    principalId : Text;
+    nama : Text;
+    email : Text;
+    whatsapp : Text;
+    role : Role;
+    status : Status;
+    createdAt : Int;
+  };
+
+  type Partner = {
+    idUser : Text;
+    principalId : Text;
+    nama : Text;
+    email : Text;
+    whatsapp : Text;
+    kota : Text;
+    level : LevelPartner;
+    verifiedSkill : [Text];
+    role : Role;
+    status : Status;
+    createdAt : Int;
+  };
+
+  type Client = {
+    idUser : Text;
+    principalId : Text;
+    nama : Text;
+    email : Text;
+    whatsapp : Text;
+    company : Text;
+    role : Role;
+    status : Status;
+    createdAt : Int;
+  };
+
+  type Service = {
+    idService : Text;
+    tipeLayanan : TipeLayanan;
+    clientPrincipalId : Text;
+    clientNama : Text;
+    asistenmuPrincipalId : Text;
+    asistenmuNama : Text;
+    unitLayanan : Nat;
+    hargaPerLayanan : Nat;
+    sharingLayanan : [SharingEntry];
+    status : ServiceStatus;
+    createdAt : Int;
+  };
+
+  type TopUp = {
+    idTopUp : Text;
+    idService : Text;
+    namaClient : Text;
+    unitTambahan : Nat;
+    createdAt : Int;
+  };
+
+  type Task = {
+    idTask : Text;
+    judulTask : Text;
+    detailTask : Text;
+    deadline : Int;
+    serviceId : Text;
+    clientId : Text;
+    clientNama : Text;
+    partnerId : Text;
+    partnerNama : Text;
+    asistenmuId : Text;
+    asistenmuNama : Text;
+    notesAsistenmu : Text;
+    jamEfektif : Nat;
+    unitLayanan : Nat;
+    linkGdriveInternal : Text;
+    linkGdriveClient : Text;
+    status : TaskStatus;
+    createdAt : Int;
+  };
+
+  type FinancialProfile = {
+    namaBankEwallet : Text;
+    nomorRekening : Text;
+    namaRekening : Text;
+    createdAt : Int;
+  };
+
+  type WithdrawRequest = {
+    idWithdraw : Text;
+    partnerId : Text;
+    partnerNama : Text;
+    namaBankEwallet : Text;
+    nomorRekening : Text;
+    namaRekening : Text;
+    nominal : Nat;
+    status : WithdrawStatus;
+    createdAt : Int;
+  };
+
+  type FinancialProfileRequest = {
+    idRequest : Text;
+    partnerId : Text;
+    partnerNama : Text;
+    oldProfile : ?FinancialProfile;
+    newProfile : FinancialProfile;
+    status : FPRequestStatus;
+    createdAt : Int;
+  };
+
+  type AdminLog = {
     idLog : Text;
     adminPrincipalId : Text;
     action : Text;
@@ -23,35 +179,12 @@ module {
     createdAt : Int;
   };
 
-  public type OldPartner = {
-    idUser : Text;
-    principalId : Text;
-    nama : Text;
-    email : Text;
-    whatsapp : Text;
-    kota : Text;
-    level : { #junior; #senior; #expert };
-    verifiedSkill : [Text];
-    role : { #admin; #asistenmu; #operasional; #client; #partner; #public_ };
-    status : { #pending; #active; #reject; #suspend };
-    createdAt : Int;
+  type WalletInfo = {
+    saldoTersedia : Nat;
+    saldoPengajuan : Nat;
   };
 
-  public type NewPartner = {
-    idUser : Text;
-    principalId : Text;
-    nama : Text;
-    email : Text;
-    whatsapp : Text;
-    kota : Text;
-    level : { #junior; #senior; #expert };
-    verifiedSkill : [Text];
-    role : { #admin; #asistenmu; #operasional; #client; #partner; #public_ };
-    status : { #pending; #active; #reject; #suspend };
-    createdAt : Int;
-  };
-
-  public type OldActor = {
+  type OldActor = {
     userCounter : Nat;
     partnerCounter : Nat;
     clientCounter : Nat;
@@ -62,79 +195,19 @@ module {
     fpRequestCounter : Nat;
     logCounter : Nat;
     adminClaimed : Bool;
-    users : Map.Map<Principal, { idUser : Text; principalId : Text; nama : Text; email : Text; whatsapp : Text; role : { #admin; #asistenmu; #operasional; #client; #partner; #public_ }; status : { #pending; #active; #reject; #suspend }; createdAt : Int }>;
-    partners : Map.Map<Principal, OldPartner>;
-    clients : Map.Map<Principal, { idUser : Text; principalId : Text; nama : Text; email : Text; whatsapp : Text; company : Text; role : { #admin; #asistenmu; #operasional; #client; #partner; #public_ }; status : { #pending; #active; #reject; #suspend }; createdAt : Int }>;
-    services : Map.Map<Text, {
-      idService : Text;
-      tipeLayanan : { #tenang; #rapi; #fokus; #jaga; #efisien };
-      clientPrincipalId : Text;
-      clientNama : Text;
-      asistenmuPrincipalId : Text;
-      asistenmuNama : Text;
-      unitLayanan : Nat;
-      hargaPerLayanan : Nat;
-      sharingLayanan : [{ idUser : Text; principalId : Text; nama : Text }];
-      status : ServiceStatus;
-      createdAt : Int;
-    }>;
-    topUps : Map.Map<Text, { idTopUp : Text; idService : Text; namaClient : Text; unitTambahan : Nat; createdAt : Int }>;
-    tasks : Map.Map<Text, {
-      idTask : Text;
-      judulTask : Text;
-      detailTask : Text;
-      deadline : Int;
-      serviceId : Text;
-      clientId : Text;
-      clientNama : Text;
-      partnerId : Text;
-      partnerNama : Text;
-      asistenmuId : Text;
-      asistenmuNama : Text;
-      notesAsistenmu : Text;
-      jamEfektif : Nat;
-      unitLayanan : Nat;
-      linkGdriveInternal : Text;
-      linkGdriveClient : Text;
-      status : TaskStatus;
-      createdAt : Int;
-    }>;
-    financialProfiles : Map.Map<Text, { namaBankEwallet : Text; nomorRekening : Text; namaRekening : Text; createdAt : Int }>;
-    withdrawRequests : Map.Map<Text, {
-      idWithdraw : Text;
-      partnerId : Text;
-      partnerNama : Text;
-      namaBankEwallet : Text;
-      nomorRekening : Text;
-      namaRekening : Text;
-      nominal : Nat;
-      status : {
-        #pending;
-        #approved;
-        #rejected;
-      };
-      createdAt : Int;
-    }>;
-    financialProfileRequests : Map.Map<
-      Text,
-      {
-        idRequest : Text;
-        partnerId : Text;
-        partnerNama : Text;
-        oldProfile : ?{ namaBankEwallet : Text; nomorRekening : Text; namaRekening : Text; createdAt : Int };
-        newProfile : { namaBankEwallet : Text; nomorRekening : Text; namaRekening : Text; createdAt : Int };
-        status : {
-          #pending;
-          #approved;
-          #rejected;
-        };
-        createdAt : Int;
-      }
-    >;
-    adminLogs : Map.Map<Text, { idLog : Text; adminPrincipalId : Text; action : Text; targetId : Text; createdAt : Int }>;
+    users : Map.Map<Principal, User>;
+    partners : Map.Map<Principal, Partner>;
+    clients : Map.Map<Principal, Client>;
+    services : Map.Map<Text, Service>;
+    topUps : Map.Map<Text, TopUp>;
+    tasks : Map.Map<Text, Task>;
+    financialProfiles : Map.Map<Text, FinancialProfile>;
+    withdrawRequests : Map.Map<Text, WithdrawRequest>;
+    financialProfileRequests : Map.Map<Text, FinancialProfileRequest>;
+    adminLogs : Map.Map<Text, AdminLog>;
   };
 
-  public type NewActor = {
+  type NewActor = {
     userCounter : Nat;
     partnerCounter : Nat;
     clientCounter : Nat;
@@ -145,46 +218,24 @@ module {
     fpRequestCounter : Nat;
     logCounter : Nat;
     adminClaimed : Bool;
-    users : Map.Map<Principal, { idUser : Text; principalId : Text; nama : Text; email : Text; whatsapp : Text; role : { #admin; #asistenmu; #operasional; #client; #partner; #public_ }; status : { #pending; #active; #reject; #suspend }; createdAt : Int }>;
-    partners : Map.Map<Principal, OldPartner>;
-    clients : Map.Map<Principal, { idUser : Text; principalId : Text; nama : Text; email : Text; whatsapp : Text; company : Text; role : { #admin; #asistenmu; #operasional; #client; #partner; #public_ }; status : { #pending; #active; #reject; #suspend }; createdAt : Int }>;
-    services : Map.Map<Text, { idService : Text; tipeLayanan : { #tenang; #rapi; #fokus; #jaga; #efisien }; clientPrincipalId : Text; clientNama : Text; asistenmuPrincipalId : Text; asistenmuNama : Text; unitLayanan : Nat; hargaPerLayanan : Nat; sharingLayanan : [{ idUser : Text; principalId : Text; nama : Text }]; status : ServiceStatus; createdAt : Int }>;
-    topUps : Map.Map<Text, { idTopUp : Text; idService : Text; namaClient : Text; unitTambahan : Nat; createdAt : Int }>;
-    tasks : Map.Map<Text, { idTask : Text; judulTask : Text; detailTask : Text; deadline : Int; serviceId : Text; clientId : Text; clientNama : Text; partnerId : Text; partnerNama : Text; asistenmuId : Text; asistenmuNama : Text; notesAsistenmu : Text; jamEfektif : Nat; unitLayanan : Nat; linkGdriveInternal : Text; linkGdriveClient : Text; status : TaskStatus; createdAt : Int }>;
-    financialProfiles : Map.Map<Text, { namaBankEwallet : Text; nomorRekening : Text; namaRekening : Text; createdAt : Int }>;
-    withdrawRequests : Map.Map<Text, {
-      idWithdraw : Text;
-      partnerId : Text;
-      partnerNama : Text;
-      namaBankEwallet : Text;
-      nomorRekening : Text;
-      namaRekening : Text;
-      nominal : Nat;
-      status : {
-        #pending;
-        #approved;
-        #rejected;
-      };
-      createdAt : Int;
-    }>;
-    financialProfileRequests : Map.Map<
-      Text,
-      {
-        idRequest : Text;
-        partnerId : Text;
-        partnerNama : Text;
-        oldProfile : ?{ namaBankEwallet : Text; nomorRekening : Text; namaRekening : Text; createdAt : Int };
-        newProfile : { namaBankEwallet : Text; nomorRekening : Text; namaRekening : Text; createdAt : Int };
-        status : {
-          #pending;
-          #approved;
-          #rejected;
-        };
-        createdAt : Int;
-      }
-    >;
-    adminLogs : Map.Map<Text, OldAdminLog>;
+    users : Map.Map<Principal, User>;
+    partners : Map.Map<Principal, Partner>;
+    clients : Map.Map<Principal, Client>;
+    services : Map.Map<Text, Service>;
+    topUps : Map.Map<Text, TopUp>;
+    tasks : Map.Map<Text, Task>;
+    financialProfiles : Map.Map<Text, FinancialProfile>;
+    withdrawRequests : Map.Map<Text, WithdrawRequest>;
+    financialProfileRequests : Map.Map<Text, FinancialProfileRequest>;
+    adminLogs : Map.Map<Text, AdminLog>;
+    archivedServices : Map.Map<Text, Service>;
   };
 
-  public func run(old : OldActor) : NewActor { old };
+  public func run(old : OldActor) : NewActor {
+    {
+      old with
+      archivedServices = Map.empty<Text, Service>();
+    };
+  };
 };
+
