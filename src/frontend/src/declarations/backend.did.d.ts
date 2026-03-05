@@ -228,6 +228,7 @@ export interface _SERVICE {
    */
   'getMyRole' : ActorMethod<[], [] | [Role]>,
   'getMyServicesAsAsistenmu' : ActorMethod<[], Array<Service>>,
+  'getMyServicesAsClient' : ActorMethod<[], Array<Service>>,
   /**
    * / NEW FUNCTION: Get tasks for the currently logged in client
    */
@@ -237,6 +238,7 @@ export interface _SERVICE {
    */
   'getMyTasksAsPartner' : ActorMethod<[], Array<Task>>,
   'getMyWallet' : ActorMethod<[], WalletInfo>,
+  'getMyWithdrawRequests' : ActorMethod<[], Array<WithdrawRequest>>,
   'getPartners' : ActorMethod<[], Array<Partner>>,
   'getServiceStatus' : ActorMethod<[string], [] | [ServiceStatus]>,
   'getServices' : ActorMethod<[], Array<Service>>,

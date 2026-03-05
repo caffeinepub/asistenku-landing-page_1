@@ -294,6 +294,7 @@ export interface backendInterface {
      */
     getMyRole(): Promise<Role | null>;
     getMyServicesAsAsistenmu(): Promise<Array<Service>>;
+    getMyServicesAsClient(): Promise<Array<Service>>;
     /**
      * / NEW FUNCTION: Get tasks for the currently logged in client
      */
@@ -303,6 +304,7 @@ export interface backendInterface {
      */
     getMyTasksAsPartner(): Promise<Array<Task>>;
     getMyWallet(): Promise<WalletInfo>;
+    getMyWithdrawRequests(): Promise<Array<WithdrawRequest>>;
     getPartners(): Promise<Array<Partner>>;
     getServiceStatus(idService: string): Promise<ServiceStatus | null>;
     getServices(): Promise<Array<Service>>;
@@ -753,6 +755,20 @@ export class Backend implements backendInterface {
             return from_candid_vec_n25(this._uploadFile, this._downloadFile, result);
         }
     }
+    async getMyServicesAsClient(): Promise<Array<Service>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getMyServicesAsClient();
+                return from_candid_vec_n25(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getMyServicesAsClient();
+            return from_candid_vec_n25(this._uploadFile, this._downloadFile, result);
+        }
+    }
     async getMyTasksAsClient(): Promise<Array<Task>> {
         if (this.processError) {
             try {
@@ -795,6 +811,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async getMyWithdrawRequests(): Promise<Array<WithdrawRequest>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getMyWithdrawRequests();
+                return from_candid_vec_n43(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getMyWithdrawRequests();
+            return from_candid_vec_n43(this._uploadFile, this._downloadFile, result);
+        }
+    }
     async getPartners(): Promise<Array<Partner>> {
         if (this.processError) {
             try {
@@ -813,14 +843,14 @@ export class Backend implements backendInterface {
         if (this.processError) {
             try {
                 const result = await this.actor.getServiceStatus(arg0);
-                return from_candid_opt_n43(this._uploadFile, this._downloadFile, result);
+                return from_candid_opt_n47(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getServiceStatus(arg0);
-            return from_candid_opt_n43(this._uploadFile, this._downloadFile, result);
+            return from_candid_opt_n47(this._uploadFile, this._downloadFile, result);
         }
     }
     async getServices(): Promise<Array<Service>> {
@@ -841,14 +871,14 @@ export class Backend implements backendInterface {
         if (this.processError) {
             try {
                 const result = await this.actor.getTaskStatus(arg0);
-                return from_candid_opt_n44(this._uploadFile, this._downloadFile, result);
+                return from_candid_opt_n48(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getTaskStatus(arg0);
-            return from_candid_opt_n44(this._uploadFile, this._downloadFile, result);
+            return from_candid_opt_n48(this._uploadFile, this._downloadFile, result);
         }
     }
     async getTasksByAsistenmu(): Promise<Array<Task>> {
@@ -897,14 +927,14 @@ export class Backend implements backendInterface {
         if (this.processError) {
             try {
                 const result = await this.actor.getUserStatus(arg0);
-                return from_candid_opt_n45(this._uploadFile, this._downloadFile, result);
+                return from_candid_opt_n49(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getUserStatus(arg0);
-            return from_candid_opt_n45(this._uploadFile, this._downloadFile, result);
+            return from_candid_opt_n49(this._uploadFile, this._downloadFile, result);
         }
     }
     async getUsers(): Promise<Array<User>> {
@@ -925,14 +955,14 @@ export class Backend implements backendInterface {
         if (this.processError) {
             try {
                 const result = await this.actor.getWithdrawRequests();
-                return from_candid_vec_n46(this._uploadFile, this._downloadFile, result);
+                return from_candid_vec_n43(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getWithdrawRequests();
-            return from_candid_vec_n46(this._uploadFile, this._downloadFile, result);
+            return from_candid_vec_n43(this._uploadFile, this._downloadFile, result);
         }
     }
     async getWithdrawStatus(arg0: string): Promise<WithdrawStatus | null> {
@@ -1311,10 +1341,10 @@ function from_candid_TipeLayanan_n30(_uploadFile: (file: ExternalBlob) => Promis
 function from_candid_User_n23(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _User): User {
     return from_candid_record_n24(_uploadFile, _downloadFile, value);
 }
-function from_candid_WithdrawRequest_n47(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _WithdrawRequest): WithdrawRequest {
-    return from_candid_record_n48(_uploadFile, _downloadFile, value);
+function from_candid_WithdrawRequest_n44(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _WithdrawRequest): WithdrawRequest {
+    return from_candid_record_n45(_uploadFile, _downloadFile, value);
 }
-function from_candid_WithdrawStatus_n49(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _WithdrawStatus): WithdrawStatus {
+function from_candid_WithdrawStatus_n46(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _WithdrawStatus): WithdrawStatus {
     return from_candid_variant_n34(_uploadFile, _downloadFile, value);
 }
 function from_candid_opt_n32(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_FPRequestStatus]): FPRequestStatus | null {
@@ -1335,17 +1365,17 @@ function from_candid_opt_n41(_uploadFile: (file: ExternalBlob) => Promise<Uint8A
 function from_candid_opt_n42(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_Role]): Role | null {
     return value.length === 0 ? null : from_candid_Role_n10(_uploadFile, _downloadFile, value[0]);
 }
-function from_candid_opt_n43(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_ServiceStatus]): ServiceStatus | null {
+function from_candid_opt_n47(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_ServiceStatus]): ServiceStatus | null {
     return value.length === 0 ? null : from_candid_ServiceStatus_n28(_uploadFile, _downloadFile, value[0]);
 }
-function from_candid_opt_n44(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_TaskStatus]): TaskStatus | null {
+function from_candid_opt_n48(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_TaskStatus]): TaskStatus | null {
     return value.length === 0 ? null : from_candid_TaskStatus_n20(_uploadFile, _downloadFile, value[0]);
 }
-function from_candid_opt_n45(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_Status]): Status | null {
+function from_candid_opt_n49(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_Status]): Status | null {
     return value.length === 0 ? null : from_candid_Status_n8(_uploadFile, _downloadFile, value[0]);
 }
 function from_candid_opt_n50(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_WithdrawStatus]): WithdrawStatus | null {
-    return value.length === 0 ? null : from_candid_WithdrawStatus_n49(_uploadFile, _downloadFile, value[0]);
+    return value.length === 0 ? null : from_candid_WithdrawStatus_n46(_uploadFile, _downloadFile, value[0]);
 }
 function from_candid_record_n14(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     status: _Status;
@@ -1542,7 +1572,7 @@ function from_candid_record_n38(_uploadFile: (file: ExternalBlob) => Promise<Uin
         idRequest: value.idRequest
     };
 }
-function from_candid_record_n48(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_record_n45(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     status: _WithdrawStatus;
     partnerNama: string;
     nominal: bigint;
@@ -1564,7 +1594,7 @@ function from_candid_record_n48(_uploadFile: (file: ExternalBlob) => Promise<Uin
     namaBankEwallet: string;
 } {
     return {
-        status: from_candid_WithdrawStatus_n49(_uploadFile, _downloadFile, value.status),
+        status: from_candid_WithdrawStatus_n46(_uploadFile, _downloadFile, value.status),
         partnerNama: value.partnerNama,
         nominal: value.nominal,
         idWithdraw: value.idWithdraw,
@@ -1704,8 +1734,8 @@ function from_candid_vec_n25(_uploadFile: (file: ExternalBlob) => Promise<Uint8A
 function from_candid_vec_n36(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_FinancialProfileRequest>): Array<FinancialProfileRequest> {
     return value.map((x)=>from_candid_FinancialProfileRequest_n37(_uploadFile, _downloadFile, x));
 }
-function from_candid_vec_n46(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_WithdrawRequest>): Array<WithdrawRequest> {
-    return value.map((x)=>from_candid_WithdrawRequest_n47(_uploadFile, _downloadFile, x));
+function from_candid_vec_n43(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_WithdrawRequest>): Array<WithdrawRequest> {
+    return value.map((x)=>from_candid_WithdrawRequest_n44(_uploadFile, _downloadFile, x));
 }
 function from_candid_vec_n5(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_Client>): Array<Client> {
     return value.map((x)=>from_candid_Client_n6(_uploadFile, _downloadFile, x));

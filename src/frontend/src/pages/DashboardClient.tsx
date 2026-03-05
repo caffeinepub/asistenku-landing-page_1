@@ -340,12 +340,15 @@ export default function DashboardClient() {
         (...args: unknown[]) => Promise<unknown>
       >;
 
-      // Use client-specific queries — no admin-only calls
-      const [clientProfileRaw, myTasks] = await Promise.all([
+      // Use client-specific queries — all in parallel, no admin-only calls
+      const [clientProfileRaw, myTasks, svcRaw] = await Promise.all([
         (act.getMyClientProfile() as Promise<Client | Client[] | null>).catch(
           () => null,
         ),
         (act.getMyTasksAsClient() as Promise<Task[]>).catch(() => [] as Task[]),
+        (act.getMyServicesAsClient() as Promise<Service[]>).catch(
+          () => [] as Service[],
+        ),
       ]);
 
       // Motoko ?T returns [] or [value] — handle both
@@ -358,28 +361,13 @@ export default function DashboardClient() {
       setClientData(me);
 
       // Tasks already filtered by backend by clientId
-      const fetchedTasks = myTasks as Task[];
-      setTasks(fetchedTasks);
+      setTasks(myTasks as Task[]);
 
-      // Derive services from unique serviceIds in tasks, then fetch each via getServiceStatus
-      // Since there's no client-specific getServices endpoint, build service list from tasks
-      // by calling getMyServicesAsClient if available, otherwise use serviceId from tasks
-      let myServices: Service[] = [];
-      try {
-        // Try getMyServicesAsClient (may exist in newer backend)
-        const svcRaw = await (
-          act.getMyServicesAsClient() as Promise<Service[]>
-        ).catch(() => null);
-        if (svcRaw && Array.isArray(svcRaw)) {
-          myServices = svcRaw.filter((s) => {
-            const status = getServiceStatus(s).toLowerCase();
-            return status === "active";
-          });
-        }
-      } catch {
-        // No client-specific service endpoint available yet
-        myServices = [];
-      }
+      // Services: filter for active only
+      const myServices = (svcRaw as Service[]).filter((s) => {
+        const status = getServiceStatus(s).toLowerCase();
+        return status === "active";
+      });
       setServices(myServices);
     } catch (err: unknown) {
       const msg =

@@ -1,6 +1,8 @@
 import Map "mo:core/Map";
 import Nat "mo:core/Nat";
-import Time "mo:core/Time";
+import Text "mo:core/Text";
+import List "mo:core/List";
+import Iter "mo:core/Iter";
 import Principal "mo:core/Principal";
 
 module {
@@ -12,6 +14,7 @@ module {
     #partner;
     #public_;
   };
+
   type Status = {
     #pending;
     #active;
@@ -33,7 +36,11 @@ module {
     #efisien;
   };
 
-  type ServiceStatus = { #active; #inactive };
+  type ServiceStatus = {
+    #active;
+    #inactive;
+  };
+
   type TaskStatus = {
     #permintaanbaru;
     #onprogress;
@@ -179,7 +186,7 @@ module {
     createdAt : Int;
   };
 
-  type WalletInfo = {
+  public type WalletInfo = {
     saldoTersedia : Nat;
     saldoPengajuan : Nat;
   };
@@ -205,37 +212,12 @@ module {
     withdrawRequests : Map.Map<Text, WithdrawRequest>;
     financialProfileRequests : Map.Map<Text, FinancialProfileRequest>;
     adminLogs : Map.Map<Text, AdminLog>;
-  };
-
-  type NewActor = {
-    userCounter : Nat;
-    partnerCounter : Nat;
-    clientCounter : Nat;
-    serviceCounter : Nat;
-    topUpCounter : Nat;
-    taskCounter : Nat;
-    withdrawCounter : Nat;
-    fpRequestCounter : Nat;
-    logCounter : Nat;
-    adminClaimed : Bool;
-    users : Map.Map<Principal, User>;
-    partners : Map.Map<Principal, Partner>;
-    clients : Map.Map<Principal, Client>;
-    services : Map.Map<Text, Service>;
-    topUps : Map.Map<Text, TopUp>;
-    tasks : Map.Map<Text, Task>;
-    financialProfiles : Map.Map<Text, FinancialProfile>;
-    withdrawRequests : Map.Map<Text, WithdrawRequest>;
-    financialProfileRequests : Map.Map<Text, FinancialProfileRequest>;
-    adminLogs : Map.Map<Text, AdminLog>;
     archivedServices : Map.Map<Text, Service>;
   };
 
+  type NewActor = OldActor;
+
   public func run(old : OldActor) : NewActor {
-    {
-      old with
-      archivedServices = Map.empty<Text, Service>();
-    };
+    old;
   };
 };
-

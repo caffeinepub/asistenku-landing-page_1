@@ -2,14 +2,15 @@ import Map "mo:core/Map";
 import Time "mo:core/Time";
 import Nat "mo:core/Nat";
 import Iter "mo:core/Iter";
+import Array "mo:core/Array";
+import List "mo:core/List";
 import Runtime "mo:core/Runtime";
 import Order "mo:core/Order";
 import Text "mo:core/Text";
-import List "mo:core/List";
-import Array "mo:core/Array";
-import Principal "mo:core/Principal";
 import Migration "migration";
+import Principal "mo:core/Principal";
 
+// Apply migration
 (with migration = Migration.run)
 actor {
   public type Role = {
@@ -587,11 +588,13 @@ actor {
     checkAdminOrOperasional(caller);
     let logs = adminLogs.values().toArray();
 
-    func compare(l1 : AdminLog, l2 : AdminLog) : Order.Order {
-      Nat.compare(l2.createdAt.toNat(), l1.createdAt.toNat());
+    func compareByCreatedAt(log1 : AdminLog, log2 : AdminLog) : Order.Order {
+      Nat.compare(log2.createdAt.toNat(), log1.createdAt.toNat());
     };
 
-    logs.sort();
+    logs.sort(
+      compareByCreatedAt
+    );
   };
 
   public query ({ caller }) func getMyWallet() : async WalletInfo {
@@ -1207,7 +1210,7 @@ actor {
     let numStr = num.toText();
     let zerosToPad = 4 - numStr.size();
     var result = "INT-";
-    for (i in Nat.range(0, zerosToPad)) {
+    for (_ in Nat.range(0, zerosToPad)) {
       result #= "0";
     };
     result # numStr;
@@ -1217,7 +1220,7 @@ actor {
     let numStr = num.toText();
     let zerosToPad = 4 - numStr.size();
     var result = "PA-";
-    for (i in Nat.range(0, zerosToPad)) {
+    for (_ in Nat.range(0, zerosToPad)) {
       result #= "0";
     };
     result # numStr;
@@ -1227,7 +1230,7 @@ actor {
     let numStr = num.toText();
     let zerosToPad = 4 - numStr.size();
     var result = "CA-";
-    for (i in Nat.range(0, zerosToPad)) {
+    for (_ in Nat.range(0, zerosToPad)) {
       result #= "0";
     };
     result # numStr;
@@ -1237,7 +1240,7 @@ actor {
     let numStr = num.toText();
     let zerosToPad = 5 - numStr.size();
     var result = "SA-";
-    for (i in Nat.range(0, zerosToPad)) {
+    for (_ in Nat.range(0, zerosToPad)) {
       result #= "0";
     };
     result # numStr;
@@ -1247,7 +1250,7 @@ actor {
     let numStr = num.toText();
     let zerosToPad = 5 - numStr.size();
     var result = "TU-";
-    for (i in Nat.range(0, zerosToPad)) {
+    for (_ in Nat.range(0, zerosToPad)) {
       result #= "0";
     };
     result # numStr;
@@ -1257,7 +1260,7 @@ actor {
     let numStr = num.toText();
     let zerosToPad = 5 - numStr.size();
     var result = "TSK-";
-    for (i in Nat.range(0, zerosToPad)) {
+    for (_ in Nat.range(0, zerosToPad)) {
       result #= "0";
     };
     result # numStr;
@@ -1267,7 +1270,7 @@ actor {
     let numStr = num.toText();
     let zerosToPad = 5 - numStr.size();
     var result = "WD-";
-    for (i in Nat.range(0, zerosToPad)) {
+    for (_ in Nat.range(0, zerosToPad)) {
       result #= "0";
     };
     result # numStr;
@@ -1277,7 +1280,7 @@ actor {
     let numStr = num.toText();
     let zerosToPad = 5 - numStr.size();
     var result = "FP-";
-    for (i in Nat.range(0, zerosToPad)) {
+    for (_ in Nat.range(0, zerosToPad)) {
       result #= "0";
     };
     result # numStr;
@@ -1287,10 +1290,65 @@ actor {
     let numStr = num.toText();
     let zerosToPad = 5 - numStr.size();
     var result = "LOG-";
-    for (i in Nat.range(0, zerosToPad)) {
+    for (_ in Nat.range(0, zerosToPad)) {
       result #= "0";
     };
     result # numStr;
   };
-};
 
+  // === NEW FUNCTIONS ===
+
+  public query ({ caller }) func getMyServicesAsClient() : async [Service] {
+    let callerText = caller.toText();
+    var resultList = List.empty<Service>();
+
+    // Add all services where caller is direct owner
+    for (service in services.values()) {
+      if (service.clientPrincipalId == callerText) {
+        resultList.add(service);
+      };
+    };
+
+    // Add services where caller is in sharingLayanan by principalId
+    for (service in services.values()) {
+      for (sharing in service.sharingLayanan.values()) {
+        if (sharing.principalId == callerText) {
+          resultList.add(service);
+        };
+      };
+    };
+
+    // Add services where caller's idUser (from clients map) is in sharingLayanan
+    switch (clients.get(caller)) {
+      case (?client) {
+        let callerIdUser = client.idUser;
+        for (service in services.values()) {
+          for (sharing in service.sharingLayanan.values()) {
+            if (sharing.idUser == callerIdUser) {
+              resultList.add(service);
+            };
+          };
+        };
+      };
+      case (null) {};
+    };
+
+    let result = resultList.toArray();
+
+    // Deduplicate by idService
+    let uniqueServicesMap = Map.empty<Text, Service>();
+    for (svc in result.values()) {
+      uniqueServicesMap.add(svc.idService, svc);
+    };
+    uniqueServicesMap.values().toArray();
+  };
+
+  public query ({ caller }) func getMyWithdrawRequests() : async [WithdrawRequest] {
+    let callerText = caller.toText();
+    withdrawRequests.values().toArray().filter(
+      func(req) {
+        req.partnerId == callerText;
+      }
+    );
+  };
+};

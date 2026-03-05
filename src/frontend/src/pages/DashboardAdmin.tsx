@@ -1669,6 +1669,8 @@ export default function DashboardAdmin() {
   const [editServiceSharing, setEditServiceSharing] = useState<SharingEntry[]>(
     [],
   );
+  const [editServiceNewSharing, setEditServiceNewSharing] =
+    useState<AutocompleteOption | null>(null);
   const [isSavingService, setIsSavingService] = useState(false);
 
   // ── Fetch all data ───────────────────────────────────────────────────────────
@@ -2423,6 +2425,7 @@ export default function DashboardAdmin() {
                                 setEditServiceModal(svc);
                                 setEditServiceStatus(statusStr || "active");
                                 setEditServiceSharing([...svc.sharingLayanan]);
+                                setEditServiceNewSharing(null);
                               }}
                             >
                               <Pencil size={12} className="mr-1" />
@@ -2515,7 +2518,10 @@ export default function DashboardAdmin() {
       <Dialog
         open={editServiceModal !== null}
         onOpenChange={(open) => {
-          if (!open) setEditServiceModal(null);
+          if (!open) {
+            setEditServiceModal(null);
+            setEditServiceNewSharing(null);
+          }
         }}
       >
         <DialogContent className="sm:max-w-md">
@@ -2540,6 +2546,7 @@ export default function DashboardAdmin() {
                 </SelectContent>
               </Select>
             </div>
+            {/* Sharing Layanan */}
             <div className="flex flex-col gap-2">
               <Label>
                 Sharing Layanan{" "}
@@ -2572,9 +2579,42 @@ export default function DashboardAdmin() {
                 </div>
               ))}
               {editServiceSharing.length < 6 && (
-                <p className="text-xs text-slate-400">
-                  Untuk menambah sharing, hapus dan buat ulang layanan.
-                </p>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1">
+                    <Autocomplete
+                      options={clients.map((c) => ({
+                        idUser: c.idUser,
+                        principalId: c.principalId,
+                        nama: c.nama,
+                      }))}
+                      value={editServiceNewSharing}
+                      onChange={setEditServiceNewSharing}
+                      placeholder="Cari client untuk ditambahkan..."
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={!editServiceNewSharing}
+                    onClick={() => {
+                      if (!editServiceNewSharing) return;
+                      setEditServiceSharing((prev) => [
+                        ...prev,
+                        {
+                          idUser: editServiceNewSharing.idUser,
+                          principalId: editServiceNewSharing.principalId,
+                          nama: editServiceNewSharing.nama,
+                        },
+                      ]);
+                      setEditServiceNewSharing(null);
+                    }}
+                    className="flex-shrink-0 text-xs"
+                  >
+                    <Plus size={13} className="mr-1" />
+                    Tambah
+                  </Button>
+                </div>
               )}
             </div>
           </div>

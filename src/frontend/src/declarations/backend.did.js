@@ -150,13 +150,6 @@ export const WalletInfo = IDL.Record({
   'saldoTersedia' : IDL.Nat,
   'saldoPengajuan' : IDL.Nat,
 });
-export const TopUp = IDL.Record({
-  'createdAt' : IDL.Int,
-  'unitTambahan' : IDL.Nat,
-  'idService' : IDL.Text,
-  'idTopUp' : IDL.Text,
-  'namaClient' : IDL.Text,
-});
 export const WithdrawStatus = IDL.Variant({
   'pending' : IDL.Null,
   'approved' : IDL.Null,
@@ -172,6 +165,13 @@ export const WithdrawRequest = IDL.Record({
   'nomorRekening' : IDL.Text,
   'namaRekening' : IDL.Text,
   'namaBankEwallet' : IDL.Text,
+});
+export const TopUp = IDL.Record({
+  'createdAt' : IDL.Int,
+  'unitTambahan' : IDL.Nat,
+  'idService' : IDL.Text,
+  'idTopUp' : IDL.Text,
+  'namaClient' : IDL.Text,
 });
 
 export const idlService = IDL.Service({
@@ -259,9 +259,11 @@ export const idlService = IDL.Service({
   'getMyProfile' : IDL.Func([], [IDL.Opt(User)], ['query']),
   'getMyRole' : IDL.Func([], [IDL.Opt(Role)], ['query']),
   'getMyServicesAsAsistenmu' : IDL.Func([], [IDL.Vec(Service)], ['query']),
+  'getMyServicesAsClient' : IDL.Func([], [IDL.Vec(Service)], ['query']),
   'getMyTasksAsClient' : IDL.Func([], [IDL.Vec(Task)], ['query']),
   'getMyTasksAsPartner' : IDL.Func([], [IDL.Vec(Task)], ['query']),
   'getMyWallet' : IDL.Func([], [WalletInfo], ['query']),
+  'getMyWithdrawRequests' : IDL.Func([], [IDL.Vec(WithdrawRequest)], ['query']),
   'getPartners' : IDL.Func([], [IDL.Vec(Partner)], ['query']),
   'getServiceStatus' : IDL.Func(
       [IDL.Text],
@@ -475,13 +477,6 @@ export const idlFactory = ({ IDL }) => {
     'saldoTersedia' : IDL.Nat,
     'saldoPengajuan' : IDL.Nat,
   });
-  const TopUp = IDL.Record({
-    'createdAt' : IDL.Int,
-    'unitTambahan' : IDL.Nat,
-    'idService' : IDL.Text,
-    'idTopUp' : IDL.Text,
-    'namaClient' : IDL.Text,
-  });
   const WithdrawStatus = IDL.Variant({
     'pending' : IDL.Null,
     'approved' : IDL.Null,
@@ -497,6 +492,13 @@ export const idlFactory = ({ IDL }) => {
     'nomorRekening' : IDL.Text,
     'namaRekening' : IDL.Text,
     'namaBankEwallet' : IDL.Text,
+  });
+  const TopUp = IDL.Record({
+    'createdAt' : IDL.Int,
+    'unitTambahan' : IDL.Nat,
+    'idService' : IDL.Text,
+    'idTopUp' : IDL.Text,
+    'namaClient' : IDL.Text,
   });
   
   return IDL.Service({
@@ -584,9 +586,15 @@ export const idlFactory = ({ IDL }) => {
     'getMyProfile' : IDL.Func([], [IDL.Opt(User)], ['query']),
     'getMyRole' : IDL.Func([], [IDL.Opt(Role)], ['query']),
     'getMyServicesAsAsistenmu' : IDL.Func([], [IDL.Vec(Service)], ['query']),
+    'getMyServicesAsClient' : IDL.Func([], [IDL.Vec(Service)], ['query']),
     'getMyTasksAsClient' : IDL.Func([], [IDL.Vec(Task)], ['query']),
     'getMyTasksAsPartner' : IDL.Func([], [IDL.Vec(Task)], ['query']),
     'getMyWallet' : IDL.Func([], [WalletInfo], ['query']),
+    'getMyWithdrawRequests' : IDL.Func(
+        [],
+        [IDL.Vec(WithdrawRequest)],
+        ['query'],
+      ),
     'getPartners' : IDL.Func([], [IDL.Vec(Partner)], ['query']),
     'getServiceStatus' : IDL.Func(
         [IDL.Text],

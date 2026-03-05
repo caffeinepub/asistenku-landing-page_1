@@ -212,6 +212,7 @@ export interface backendInterface {
      */
     getMyRole(): Promise<Role | null>;
     getMyServicesAsAsistenmu(): Promise<Array<Service>>;
+    getMyServicesAsClient(): Promise<Array<Service>>;
     /**
      * / NEW FUNCTION: Get tasks for the currently logged in client
      */
@@ -221,6 +222,7 @@ export interface backendInterface {
      */
     getMyTasksAsPartner(): Promise<Array<Task>>;
     getMyWallet(): Promise<WalletInfo>;
+    getMyWithdrawRequests(): Promise<Array<WithdrawRequest>>;
     getPartners(): Promise<Array<Partner>>;
     getServiceStatus(idService: string): Promise<ServiceStatus | null>;
     getServices(): Promise<Array<Service>>;

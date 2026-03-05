@@ -74,6 +74,18 @@ interface WalletInfo {
   saldoPengajuan: bigint;
 }
 
+interface WithdrawRequest {
+  idWithdraw: string;
+  partnerId: string;
+  partnerNama: string;
+  namaBankEwallet: string;
+  nomorRekening: string;
+  namaRekening: string;
+  nominal: bigint;
+  status: Record<string, null> | string;
+  createdAt: bigint;
+}
+
 // ── Helpers ────────────────────────────────────────────────────────────────────
 // Handle both Motoko variant { key: null } and string enum values
 function extractKey(obj: unknown): string {
@@ -474,6 +486,9 @@ export default function DashboardPartner() {
   const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
   const [withdrawNominal, setWithdrawNominal] = useState("");
 
+  // Withdraw history state
+  const [withdrawHistory, setWithdrawHistory] = useState<WithdrawRequest[]>([]);
+
   const fetchData = useCallback(async () => {
     if (!actor) return;
     setIsLoading(true);
@@ -482,7 +497,7 @@ export default function DashboardPartner() {
         string,
         (...args: unknown[]) => Promise<unknown>
       >;
-      const [t, pArr, fpArr, w] = await Promise.all([
+      const [t, pArr, fpArr, w, myWithdraws] = await Promise.all([
         // Use getMyTasksAsPartner (filters by partnerId = caller principalId)
         (act.getMyTasksAsPartner() as Promise<Task[]>).catch(() =>
           // fallback to getTasksByPartner for older backend compatibility
@@ -499,6 +514,9 @@ export default function DashboardPartner() {
         (act.getMyWallet() as Promise<WalletInfo>).catch(
           () => ({ saldoTersedia: 0n, saldoPengajuan: 0n }) as WalletInfo,
         ),
+        (act.getMyWithdrawRequests() as Promise<WithdrawRequest[]>).catch(
+          () => [] as WithdrawRequest[],
+        ),
       ]);
       // Motoko ?T is returned as [] or [value]
       const p = Array.isArray(pArr)
@@ -511,6 +529,7 @@ export default function DashboardPartner() {
       setProfile(p);
       setFinancialProfile(fp);
       setWalletInfo(w);
+      setWithdrawHistory(myWithdraws as WithdrawRequest[]);
 
       // Sync edit fields when profile loads
       if (p) {
@@ -597,6 +616,13 @@ export default function DashboardPartner() {
     }
     if (nominal < 350000) {
       toast.error("Nominal withdraw minimal Rp 350.000.");
+      return;
+    }
+    // Check against available balance
+    if (walletInfo && BigInt(nominal) > walletInfo.saldoTersedia) {
+      toast.error(
+        `Nominal melebihi saldo tersedia (${formatRupiah(walletInfo.saldoTersedia)}).`,
+      );
       return;
     }
     await runAction(
@@ -1102,6 +1128,71 @@ export default function DashboardPartner() {
               </div>
             </CollapsibleCard>
           </div>
+
+          {/* ── History Withdraw ── */}
+          <CollapsibleCard title="History Withdraw" icon={<Wallet size={16} />}>
+            {withdrawHistory.length === 0 ? (
+              <p className="text-sm text-slate-400 mt-4 text-center py-2">
+                Belum ada riwayat pengajuan withdraw.
+              </p>
+            ) : (
+              <div className="flex flex-col divide-y divide-slate-100 mt-4">
+                {withdrawHistory.map((wr) => {
+                  const statusKey = extractKey(wr.status);
+                  const statusMap: Record<
+                    string,
+                    { label: string; cls: string }
+                  > = {
+                    pending: {
+                      label: "Menunggu",
+                      cls: "bg-amber-50 text-amber-700 border-amber-200",
+                    },
+                    approved: {
+                      label: "Disetujui",
+                      cls: "bg-emerald-50 text-emerald-700 border-emerald-200",
+                    },
+                    rejected: {
+                      label: "Ditolak",
+                      cls: "bg-red-50 text-red-700 border-red-200",
+                    },
+                  };
+                  const badge = statusMap[statusKey] ?? {
+                    label: statusKey,
+                    cls: "bg-slate-50 text-slate-700 border-slate-200",
+                  };
+                  return (
+                    <div
+                      key={wr.idWithdraw}
+                      className="py-3 flex flex-col gap-1.5"
+                    >
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-mono text-slate-500">
+                            {wr.idWithdraw}
+                          </span>
+                          <span
+                            className={`text-xs px-2 py-0.5 rounded-full border font-medium ${badge.cls}`}
+                          >
+                            {badge.label}
+                          </span>
+                        </div>
+                        <span className="font-bold text-slate-900 text-sm">
+                          {formatRupiah(wr.nominal)}
+                        </span>
+                      </div>
+                      <div className="text-xs text-slate-500">
+                        {wr.namaBankEwallet} &middot;{" "}
+                        <span className="font-mono">{wr.nomorRekening}</span>
+                      </div>
+                      <p className="text-xs text-slate-400">
+                        {formatDate(wr.createdAt)}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CollapsibleCard>
 
           {/* ── Summary Cards (Task Counters) ── */}
           {isLoading ? (
