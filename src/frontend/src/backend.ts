@@ -182,6 +182,28 @@ export interface WalletInfo {
     saldoTersedia: bigint;
     saldoPengajuan: bigint;
 }
+export interface AdminSummary {
+    layananAktifTenang: bigint;
+    totalTaskRevisi: bigint;
+    gmvEfisien: bigint;
+    totalTaskSelesai: bigint;
+    gmvTenang: bigint;
+    gmvJaga: bigint;
+    gmvRapi: bigint;
+    gmvFokus: bigint;
+    layananAktifFokus: bigint;
+    totalSudahWithdraw: bigint;
+    gmvTotal: bigint;
+    totalLayananAktif: bigint;
+    totalSaldoPartner: bigint;
+    totalUnitOnHold: bigint;
+    margin: bigint;
+    layananAktifJaga: bigint;
+    layananAktifRapi: bigint;
+    totalUnitAktif: bigint;
+    layananAktifEfisien: bigint;
+    totalTaskOnProgress: bigint;
+}
 export interface SharingEntry {
     nama: string;
     idUser: string;
@@ -260,14 +282,17 @@ export interface backendInterface {
      * / Archive a service (admin/operasional only)
      */
     archiveService(idService: string): Promise<void>;
+    cancelTask(idTask: string): Promise<void>;
     claimAdmin(nama: string, email: string, whatsapp: string): Promise<void>;
     createTask(judulTask: string, detailTask: string, deadline: bigint, serviceId: string, clientId: string, clientNama: string, asistenmuId: string, asistenmuNama: string): Promise<string>;
     delegasiTask(idTask: string, partnerId: string, partnerNama: string, jamEfektif: bigint, unitLayanan: bigint, notesAsistenmu: string, linkGdriveInternal: string, linkGdriveClient: string): Promise<void>;
+    delegasiTaskAsAsistenmu(idTask: string, partnerId: string, partnerNama: string, jamEfektif: bigint, unitLayanan: bigint, notesAsistenmu: string, linkGdriveInternal: string, linkGdriveClient: string): Promise<void>;
     /**
      * / Admin Functions
      */
     forceClaimAdmin(nama: string, email: string, whatsapp: string): Promise<void>;
     getAdminLogs(): Promise<Array<AdminLog>>;
+    getAdminSummary(): Promise<AdminSummary>;
     getAllClients(): Promise<Array<Client>>;
     getAllPartners(): Promise<Array<Partner>>;
     getAllTasks(): Promise<Array<Task>>;
@@ -306,6 +331,7 @@ export interface backendInterface {
     getMyWallet(): Promise<WalletInfo>;
     getMyWithdrawRequests(): Promise<Array<WithdrawRequest>>;
     getPartners(): Promise<Array<Partner>>;
+    getPartnersAsAsistenmu(): Promise<Array<Partner>>;
     getServiceStatus(idService: string): Promise<ServiceStatus | null>;
     getServices(): Promise<Array<Service>>;
     getTaskStatus(idTask: string): Promise<TaskStatus | null>;
@@ -340,11 +366,16 @@ export interface backendInterface {
     suspendClient(principalId: Principal): Promise<void>;
     suspendPartner(principalId: Principal): Promise<void>;
     suspendUser(principalId: Principal): Promise<void>;
+    terimaTask(idTask: string): Promise<void>;
+    tolakTask(idTask: string): Promise<void>;
     topUpService(idService: string, unitTambahan: bigint): Promise<string>;
     updateMyPartnerProfile(nama: string, email: string, whatsapp: string, kota: string): Promise<void>;
     updatePartnerDetails(principalId: Principal, level: LevelPartner, verifiedSkill: Array<string>): Promise<void>;
     updateService(idService: string, newStatus: ServiceStatus, newSharing: Array<SharingEntry>): Promise<void>;
     updateTaskStatus(idTask: string, status: TaskStatus): Promise<void>;
+    updateTaskStatusAsAsistenmu(idTask: string, status: TaskStatus): Promise<void>;
+    updateTaskStatusAsClient(idTask: string, status: TaskStatus): Promise<void>;
+    updateTaskStatusAsPartner(idTask: string, status: TaskStatus): Promise<void>;
 }
 import type { Client as _Client, FPRequestStatus as _FPRequestStatus, FinancialProfile as _FinancialProfile, FinancialProfileRequest as _FinancialProfileRequest, LevelPartner as _LevelPartner, Partner as _Partner, Role as _Role, Service as _Service, ServiceStatus as _ServiceStatus, SharingEntry as _SharingEntry, Status as _Status, Task as _Task, TaskStatus as _TaskStatus, TipeLayanan as _TipeLayanan, User as _User, WithdrawRequest as _WithdrawRequest, WithdrawStatus as _WithdrawStatus } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
@@ -447,6 +478,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async cancelTask(arg0: string): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.cancelTask(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.cancelTask(arg0);
+            return result;
+        }
+    }
     async claimAdmin(arg0: string, arg1: string, arg2: string): Promise<void> {
         if (this.processError) {
             try {
@@ -489,6 +534,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async delegasiTaskAsAsistenmu(arg0: string, arg1: string, arg2: string, arg3: bigint, arg4: bigint, arg5: string, arg6: string, arg7: string): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.delegasiTaskAsAsistenmu(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.delegasiTaskAsAsistenmu(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
+            return result;
+        }
+    }
     async forceClaimAdmin(arg0: string, arg1: string, arg2: string): Promise<void> {
         if (this.processError) {
             try {
@@ -514,6 +573,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.getAdminLogs();
+            return result;
+        }
+    }
+    async getAdminSummary(): Promise<AdminSummary> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getAdminSummary();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getAdminSummary();
             return result;
         }
     }
@@ -836,6 +909,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.getPartners();
+            return from_candid_vec_n12(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getPartnersAsAsistenmu(): Promise<Array<Partner>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getPartnersAsAsistenmu();
+                return from_candid_vec_n12(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getPartnersAsAsistenmu();
             return from_candid_vec_n12(this._uploadFile, this._downloadFile, result);
         }
     }
@@ -1231,6 +1318,34 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async terimaTask(arg0: string): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.terimaTask(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.terimaTask(arg0);
+            return result;
+        }
+    }
+    async tolakTask(arg0: string): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.tolakTask(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.tolakTask(arg0);
+            return result;
+        }
+    }
     async topUpService(arg0: string, arg1: bigint): Promise<string> {
         if (this.processError) {
             try {
@@ -1298,6 +1413,48 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.updateTaskStatus(arg0, to_candid_TaskStatus_n55(this._uploadFile, this._downloadFile, arg1));
+            return result;
+        }
+    }
+    async updateTaskStatusAsAsistenmu(arg0: string, arg1: TaskStatus): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateTaskStatusAsAsistenmu(arg0, to_candid_TaskStatus_n55(this._uploadFile, this._downloadFile, arg1));
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateTaskStatusAsAsistenmu(arg0, to_candid_TaskStatus_n55(this._uploadFile, this._downloadFile, arg1));
+            return result;
+        }
+    }
+    async updateTaskStatusAsClient(arg0: string, arg1: TaskStatus): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateTaskStatusAsClient(arg0, to_candid_TaskStatus_n55(this._uploadFile, this._downloadFile, arg1));
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateTaskStatusAsClient(arg0, to_candid_TaskStatus_n55(this._uploadFile, this._downloadFile, arg1));
+            return result;
+        }
+    }
+    async updateTaskStatusAsPartner(arg0: string, arg1: TaskStatus): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateTaskStatusAsPartner(arg0, to_candid_TaskStatus_n55(this._uploadFile, this._downloadFile, arg1));
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateTaskStatusAsPartner(arg0, to_candid_TaskStatus_n55(this._uploadFile, this._downloadFile, arg1));
             return result;
         }
     }

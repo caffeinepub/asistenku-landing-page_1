@@ -22,10 +22,14 @@ import {
   ChevronDown,
   ChevronUp,
   ClipboardList,
+  ExternalLink,
+  FolderOpen,
   Loader2,
   LogOut,
   MessageSquare,
   Plus,
+  RefreshCw,
+  XCircle,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -130,12 +134,44 @@ function tipeBadgeClass(tipe: string): string {
 }
 
 function formatDate(ts: bigint): string {
-  const ms = Number(ts) / 1_000_000;
+  // Backend Time.now() returns nanoseconds (very large number > 1e15)
+  // Frontend-submitted deadlines are stored as milliseconds (smaller number)
+  // Detect by magnitude: if > 1e15 it's nanoseconds, otherwise milliseconds
+  const raw = Number(ts);
+  const ms = raw > 1e15 ? raw / 1_000_000 : raw;
   return new Date(ms).toLocaleDateString("id-ID", {
     day: "numeric",
     month: "short",
     year: "numeric",
   });
+}
+
+// Status masking for client view: ditolak → "Sedang Didelegasikan Asistenmu"
+function clientTaskStatusLabel(status: string): string {
+  if (status === "ditolak") return "Sedang Didelegasikan Asistenmu";
+  const map: Record<string, string> = {
+    permintaanbaru: "Permintaan Baru",
+    onprogress: "On Progress",
+    reviewclient: "Butuh Review Kamu",
+    qaasistenmu: "QA Asistenmu",
+    revisi: "Dalam Revisi",
+    selesai: "Selesai",
+  };
+  return map[status] ?? status;
+}
+
+function clientTaskStatusBadgeClass(status: string): string {
+  // ditolak is masked as onprogress (blue)
+  if (status === "ditolak") return "bg-blue-50 text-blue-700 border-blue-200";
+  const map: Record<string, string> = {
+    permintaanbaru: "bg-orange-50 text-orange-700 border-orange-200",
+    onprogress: "bg-blue-50 text-blue-700 border-blue-200",
+    reviewclient: "bg-amber-50 text-amber-700 border-amber-200",
+    qaasistenmu: "bg-purple-50 text-purple-700 border-purple-200",
+    revisi: "bg-red-50 text-red-700 border-red-200",
+    selesai: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  };
+  return map[status] ?? "bg-slate-50 text-slate-700 border-slate-200";
 }
 
 // ── Pagination ─────────────────────────────────────────────────────────────────
@@ -441,12 +477,13 @@ export default function DashboardClient() {
         (...args: unknown[]) => Promise<string>
       >;
       const deadlineMs = BigInt(new Date(newTaskDeadline).getTime());
+      // Use principalId as clientId to match backend filter in getMyTasksAsClient
       await act.createTask(
         newTaskJudul.trim(),
         newTaskDetail.trim(),
         deadlineMs,
         selectedService.idService,
-        clientData.idUser,
+        clientData.principalId || principalId,
         clientData.nama,
         selectedService.asistenmuPrincipalId,
         selectedService.asistenmuNama,
@@ -474,11 +511,15 @@ export default function DashboardClient() {
   const revisiTasks = tasks.filter((t) => getTaskStatus(t) === "revisi");
   const selesaiTasks = tasks.filter((t) => getTaskStatus(t) === "selesai");
 
+  // All tasks for "Task Dibuat" card (all statuses)
+  const allTasks = tasks;
+
   // ── Pagination ─────────────────────────────────────────────────────────────────
   const pagReview = usePagination(reviewTasks);
   const pagProgress = usePagination(onProgressTasks);
   const pagRevisi = usePagination(revisiTasks);
   const pagSelesai = usePagination(selesaiTasks);
+  const pagDibuat = usePagination(allTasks);
 
   // ── Unit On Hold per service ───────────────────────────────────────────────────
   function getOnHoldUnits(serviceId: string): bigint {
@@ -507,14 +548,28 @@ export default function DashboardClient() {
             alt="Asistenku"
             className="h-8 object-contain"
           />
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="flex items-center gap-2 border border-slate-200 text-slate-600 hover:text-slate-900 hover:border-slate-300 px-4 py-2 rounded-full text-sm font-medium transition-colors"
-          >
-            <LogOut size={15} />
-            Keluar
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => void fetchData()}
+              disabled={isLoading}
+              className="flex items-center gap-2 border border-slate-200 text-slate-600 hover:text-slate-900 hover:border-slate-300 px-3 py-2 rounded-full text-sm font-medium transition-colors disabled:opacity-50"
+              title="Refresh data"
+            >
+              <RefreshCw
+                size={15}
+                className={isLoading ? "animate-spin" : ""}
+              />
+            </button>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="flex items-center gap-2 border border-slate-200 text-slate-600 hover:text-slate-900 hover:border-slate-300 px-4 py-2 rounded-full text-sm font-medium transition-colors"
+            >
+              <LogOut size={15} />
+              Keluar
+            </button>
+          </div>
         </div>
       </header>
 
@@ -767,6 +822,18 @@ export default function DashboardClient() {
                               </span>
                             )}
                           </div>
+                          {task.linkGdriveClient && (
+                            <a
+                              href={task.linkGdriveClient}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-xs text-teal-600 hover:text-teal-800 w-fit"
+                            >
+                              <FolderOpen size={12} />
+                              GDrive Client
+                              <ExternalLink size={10} />
+                            </a>
+                          )}
 
                           {/* Revisi input */}
                           {showRevisiInput[task.idTask] && (
@@ -799,7 +866,7 @@ export default function DashboardClient() {
                                           string,
                                           (...args: unknown[]) => Promise<void>
                                         >;
-                                        await act.updateTaskStatus(
+                                        await act.updateTaskStatusAsClient(
                                           task.idTask,
                                           { revisi: null },
                                         );
@@ -1048,6 +1115,129 @@ export default function DashboardClient() {
                   </>
                 )}
               </TaskSubSection>
+
+              {/* 5. Task Dibuat — semua task milik client ini (all statuses) */}
+              <TaskSubSection
+                title="Task Dibuat"
+                count={allTasks.length}
+                accent="bg-slate-100 text-slate-700"
+              >
+                {allTasks.length === 0 ? (
+                  <p className="text-sm text-slate-400 py-4 text-center">
+                    Belum ada task yang dibuat.
+                  </p>
+                ) : (
+                  <>
+                    <div className="flex flex-col divide-y divide-slate-100">
+                      {pagDibuat.paged.map((task) => {
+                        const statusKey = getTaskStatus(task);
+                        return (
+                          <div
+                            key={task.idTask}
+                            className="py-4 flex flex-col gap-1.5"
+                          >
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-xs font-mono text-slate-400">
+                                {task.idTask}
+                              </span>
+                              <span
+                                className={`text-xs px-2 py-0.5 rounded-full border font-medium ${clientTaskStatusBadgeClass(statusKey)}`}
+                              >
+                                {clientTaskStatusLabel(statusKey)}
+                              </span>
+                            </div>
+                            <p className="font-medium text-slate-900 text-sm">
+                              {task.judulTask}
+                            </p>
+                            <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-slate-400">
+                              {task.partnerNama && (
+                                <span>
+                                  Partner:{" "}
+                                  <span className="text-slate-600">
+                                    {task.partnerNama}
+                                  </span>
+                                </span>
+                              )}
+                              {task.asistenmuNama && (
+                                <span>
+                                  Asistenmu:{" "}
+                                  <span className="text-slate-600">
+                                    {task.asistenmuNama}
+                                  </span>
+                                </span>
+                              )}
+                              <span>
+                                Dibuat:{" "}
+                                <span className="text-slate-600">
+                                  {formatDate(task.createdAt)}
+                                </span>
+                              </span>
+                              {task.deadline > 0n && (
+                                <span>
+                                  Deadline:{" "}
+                                  <span className="text-slate-600">
+                                    {formatDate(task.deadline)}
+                                  </span>
+                                </span>
+                              )}
+                              {task.unitLayanan > 0n && (
+                                <span>
+                                  Unit:{" "}
+                                  <span className="text-slate-600">
+                                    {String(task.unitLayanan)}
+                                  </span>
+                                </span>
+                              )}
+                            </div>
+                            {/* Cancel button — only if task belum didelegasikan ke partner */}
+                            {statusKey === "permintaanbaru" &&
+                              task.partnerId === "" && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={
+                                    actionLoading[`cancel-${task.idTask}`]
+                                  }
+                                  onClick={() =>
+                                    runAction(
+                                      `cancel-${task.idTask}`,
+                                      async () => {
+                                        const act = actor as unknown as Record<
+                                          string,
+                                          (...args: unknown[]) => Promise<void>
+                                        >;
+                                        await act.cancelTask(task.idTask);
+                                      },
+                                      `Task ${task.idTask} dibatalkan.`,
+                                    )
+                                  }
+                                  className="text-xs border-rose-200 text-rose-600 hover:bg-rose-50 rounded-full w-fit mt-1"
+                                >
+                                  {actionLoading[`cancel-${task.idTask}`] ? (
+                                    <Loader2
+                                      size={12}
+                                      className="animate-spin"
+                                    />
+                                  ) : (
+                                    <>
+                                      <XCircle size={12} className="mr-1" />
+                                      Batalkan Task
+                                    </>
+                                  )}
+                                </Button>
+                              )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <PaginationControls
+                      page={pagDibuat.page}
+                      totalPages={pagDibuat.totalPages}
+                      setPage={pagDibuat.setPage}
+                    />
+                  </>
+                )}
+              </TaskSubSection>
             </div>
           </div>
         </div>
@@ -1209,7 +1399,9 @@ export default function DashboardClient() {
                       string,
                       (...args: unknown[]) => Promise<void>
                     >;
-                    await act.updateTaskStatus(taskId, { selesai: null });
+                    await act.updateTaskStatusAsClient(taskId, {
+                      selesai: null,
+                    });
                   },
                   `Task ${taskId} berhasil diselesaikan.`,
                 );

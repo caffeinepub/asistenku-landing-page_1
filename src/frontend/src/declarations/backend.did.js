@@ -35,6 +35,28 @@ export const AdminLog = IDL.Record({
   'idLog' : IDL.Text,
   'targetId' : IDL.Text,
 });
+export const AdminSummary = IDL.Record({
+  'layananAktifTenang' : IDL.Nat,
+  'totalTaskRevisi' : IDL.Nat,
+  'gmvEfisien' : IDL.Nat,
+  'totalTaskSelesai' : IDL.Nat,
+  'gmvTenang' : IDL.Nat,
+  'gmvJaga' : IDL.Nat,
+  'gmvRapi' : IDL.Nat,
+  'gmvFokus' : IDL.Nat,
+  'layananAktifFokus' : IDL.Nat,
+  'totalSudahWithdraw' : IDL.Nat,
+  'gmvTotal' : IDL.Nat,
+  'totalLayananAktif' : IDL.Nat,
+  'totalSaldoPartner' : IDL.Nat,
+  'totalUnitOnHold' : IDL.Nat,
+  'margin' : IDL.Nat,
+  'layananAktifJaga' : IDL.Nat,
+  'layananAktifRapi' : IDL.Nat,
+  'totalUnitAktif' : IDL.Nat,
+  'layananAktifEfisien' : IDL.Nat,
+  'totalTaskOnProgress' : IDL.Nat,
+});
 export const Status = IDL.Variant({
   'reject' : IDL.Null,
   'active' : IDL.Null,
@@ -195,6 +217,7 @@ export const idlService = IDL.Service({
   'approvePartner' : IDL.Func([IDL.Principal], [], []),
   'approveWithdraw' : IDL.Func([IDL.Text], [], []),
   'archiveService' : IDL.Func([IDL.Text], [], []),
+  'cancelTask' : IDL.Func([IDL.Text], [], []),
   'claimAdmin' : IDL.Func([IDL.Text, IDL.Text, IDL.Text], [], []),
   'createTask' : IDL.Func(
       [
@@ -224,8 +247,23 @@ export const idlService = IDL.Service({
       [],
       [],
     ),
+  'delegasiTaskAsAsistenmu' : IDL.Func(
+      [
+        IDL.Text,
+        IDL.Text,
+        IDL.Text,
+        IDL.Nat,
+        IDL.Nat,
+        IDL.Text,
+        IDL.Text,
+        IDL.Text,
+      ],
+      [],
+      [],
+    ),
   'forceClaimAdmin' : IDL.Func([IDL.Text, IDL.Text, IDL.Text], [], []),
   'getAdminLogs' : IDL.Func([], [IDL.Vec(AdminLog)], ['query']),
+  'getAdminSummary' : IDL.Func([], [AdminSummary], ['query']),
   'getAllClients' : IDL.Func([], [IDL.Vec(Client)], ['query']),
   'getAllPartners' : IDL.Func([], [IDL.Vec(Partner)], ['query']),
   'getAllTasks' : IDL.Func([], [IDL.Vec(Task)], ['query']),
@@ -265,6 +303,7 @@ export const idlService = IDL.Service({
   'getMyWallet' : IDL.Func([], [WalletInfo], ['query']),
   'getMyWithdrawRequests' : IDL.Func([], [IDL.Vec(WithdrawRequest)], ['query']),
   'getPartners' : IDL.Func([], [IDL.Vec(Partner)], ['query']),
+  'getPartnersAsAsistenmu' : IDL.Func([], [IDL.Vec(Partner)], ['query']),
   'getServiceStatus' : IDL.Func(
       [IDL.Text],
       [IDL.Opt(ServiceStatus)],
@@ -313,6 +352,8 @@ export const idlService = IDL.Service({
   'suspendClient' : IDL.Func([IDL.Principal], [], []),
   'suspendPartner' : IDL.Func([IDL.Principal], [], []),
   'suspendUser' : IDL.Func([IDL.Principal], [], []),
+  'terimaTask' : IDL.Func([IDL.Text], [], []),
+  'tolakTask' : IDL.Func([IDL.Text], [], []),
   'topUpService' : IDL.Func([IDL.Text, IDL.Nat], [IDL.Text], []),
   'updateMyPartnerProfile' : IDL.Func(
       [IDL.Text, IDL.Text, IDL.Text, IDL.Text],
@@ -330,6 +371,9 @@ export const idlService = IDL.Service({
       [],
     ),
   'updateTaskStatus' : IDL.Func([IDL.Text, TaskStatus], [], []),
+  'updateTaskStatusAsAsistenmu' : IDL.Func([IDL.Text, TaskStatus], [], []),
+  'updateTaskStatusAsClient' : IDL.Func([IDL.Text, TaskStatus], [], []),
+  'updateTaskStatusAsPartner' : IDL.Func([IDL.Text, TaskStatus], [], []),
 });
 
 export const idlInitArgs = [];
@@ -361,6 +405,28 @@ export const idlFactory = ({ IDL }) => {
     'createdAt' : IDL.Int,
     'idLog' : IDL.Text,
     'targetId' : IDL.Text,
+  });
+  const AdminSummary = IDL.Record({
+    'layananAktifTenang' : IDL.Nat,
+    'totalTaskRevisi' : IDL.Nat,
+    'gmvEfisien' : IDL.Nat,
+    'totalTaskSelesai' : IDL.Nat,
+    'gmvTenang' : IDL.Nat,
+    'gmvJaga' : IDL.Nat,
+    'gmvRapi' : IDL.Nat,
+    'gmvFokus' : IDL.Nat,
+    'layananAktifFokus' : IDL.Nat,
+    'totalSudahWithdraw' : IDL.Nat,
+    'gmvTotal' : IDL.Nat,
+    'totalLayananAktif' : IDL.Nat,
+    'totalSaldoPartner' : IDL.Nat,
+    'totalUnitOnHold' : IDL.Nat,
+    'margin' : IDL.Nat,
+    'layananAktifJaga' : IDL.Nat,
+    'layananAktifRapi' : IDL.Nat,
+    'totalUnitAktif' : IDL.Nat,
+    'layananAktifEfisien' : IDL.Nat,
+    'totalTaskOnProgress' : IDL.Nat,
   });
   const Status = IDL.Variant({
     'reject' : IDL.Null,
@@ -522,6 +588,7 @@ export const idlFactory = ({ IDL }) => {
     'approvePartner' : IDL.Func([IDL.Principal], [], []),
     'approveWithdraw' : IDL.Func([IDL.Text], [], []),
     'archiveService' : IDL.Func([IDL.Text], [], []),
+    'cancelTask' : IDL.Func([IDL.Text], [], []),
     'claimAdmin' : IDL.Func([IDL.Text, IDL.Text, IDL.Text], [], []),
     'createTask' : IDL.Func(
         [
@@ -551,8 +618,23 @@ export const idlFactory = ({ IDL }) => {
         [],
         [],
       ),
+    'delegasiTaskAsAsistenmu' : IDL.Func(
+        [
+          IDL.Text,
+          IDL.Text,
+          IDL.Text,
+          IDL.Nat,
+          IDL.Nat,
+          IDL.Text,
+          IDL.Text,
+          IDL.Text,
+        ],
+        [],
+        [],
+      ),
     'forceClaimAdmin' : IDL.Func([IDL.Text, IDL.Text, IDL.Text], [], []),
     'getAdminLogs' : IDL.Func([], [IDL.Vec(AdminLog)], ['query']),
+    'getAdminSummary' : IDL.Func([], [AdminSummary], ['query']),
     'getAllClients' : IDL.Func([], [IDL.Vec(Client)], ['query']),
     'getAllPartners' : IDL.Func([], [IDL.Vec(Partner)], ['query']),
     'getAllTasks' : IDL.Func([], [IDL.Vec(Task)], ['query']),
@@ -596,6 +678,7 @@ export const idlFactory = ({ IDL }) => {
         ['query'],
       ),
     'getPartners' : IDL.Func([], [IDL.Vec(Partner)], ['query']),
+    'getPartnersAsAsistenmu' : IDL.Func([], [IDL.Vec(Partner)], ['query']),
     'getServiceStatus' : IDL.Func(
         [IDL.Text],
         [IDL.Opt(ServiceStatus)],
@@ -644,6 +727,8 @@ export const idlFactory = ({ IDL }) => {
     'suspendClient' : IDL.Func([IDL.Principal], [], []),
     'suspendPartner' : IDL.Func([IDL.Principal], [], []),
     'suspendUser' : IDL.Func([IDL.Principal], [], []),
+    'terimaTask' : IDL.Func([IDL.Text], [], []),
+    'tolakTask' : IDL.Func([IDL.Text], [], []),
     'topUpService' : IDL.Func([IDL.Text, IDL.Nat], [IDL.Text], []),
     'updateMyPartnerProfile' : IDL.Func(
         [IDL.Text, IDL.Text, IDL.Text, IDL.Text],
@@ -661,6 +746,9 @@ export const idlFactory = ({ IDL }) => {
         [],
       ),
     'updateTaskStatus' : IDL.Func([IDL.Text, TaskStatus], [], []),
+    'updateTaskStatusAsAsistenmu' : IDL.Func([IDL.Text, TaskStatus], [], []),
+    'updateTaskStatusAsClient' : IDL.Func([IDL.Text, TaskStatus], [], []),
+    'updateTaskStatusAsPartner' : IDL.Func([IDL.Text, TaskStatus], [], []),
   });
 };
 

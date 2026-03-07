@@ -21,27 +21,37 @@ import { Textarea } from "@/components/ui/textarea";
 import { Principal } from "@dfinity/principal";
 import { useNavigate } from "@tanstack/react-router";
 import {
+  ArrowDownCircle,
+  BarChart2,
+  CheckCircle2,
   ChevronDown,
   ChevronUp,
   ClipboardList,
+  Clock,
   ExternalLink,
   FolderOpen,
+  Layers,
   Loader2,
   LogOut,
+  Package,
   Pencil,
   Plus,
   RefreshCw,
+  RotateCcw,
   Send,
   ShieldCheck,
+  TrendingUp,
   UserCheck,
   UserX,
   Users,
+  Wallet,
   X,
   XCircle,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
+  type AdminSummary,
   type LevelPartner,
   type Role,
   type ServiceStatus,
@@ -266,7 +276,9 @@ function tipeLabel(tipe: string): string {
 }
 
 function formatDate(ts: bigint): string {
-  const ms = Number(ts) / 1_000_000;
+  const raw = Number(ts);
+  // createdAt from backend = nanoseconds (> 1e15), deadline from client = milliseconds
+  const ms = raw > 1e15 ? raw / 1_000_000 : raw;
   return new Date(ms).toLocaleDateString("id-ID", {
     day: "numeric",
     month: "short",
@@ -318,6 +330,10 @@ function taskStatusBadgeClass(status: string): string {
     selesai: "bg-emerald-50 text-emerald-700 border-emerald-200",
   };
   return map[status] ?? "bg-slate-50 text-slate-700 border-slate-200";
+}
+
+function formatRp(n: bigint): string {
+  return `Rp ${Number(n).toLocaleString("id-ID")}`;
 }
 
 // ── Pagination helper ──────────────────────────────────────────────────────────
@@ -1636,6 +1652,7 @@ export default function DashboardAdmin() {
     FinancialProfileRequestLocal[]
   >([]);
   const [adminLogs, setAdminLogs] = useState<AdminLogLocal[]>([]);
+  const [adminSummary, setAdminSummary] = useState<AdminSummary | null>(null);
 
   // ── Filter state: Manajemen Pengguna ─────────────────────────────────────────
   const [filterRole, setFilterRole] = useState("all");
@@ -1678,20 +1695,22 @@ export default function DashboardAdmin() {
     if (!actor) return;
     setIsLoadingData(true);
     try {
-      const [u, p, c, svc, am, t, _pl, wr, fpr, logs] = await Promise.all([
-        actor.getAllUsers().catch(() => [] as User[]),
-        actor.getAllPartners().catch(() => [] as Partner[]),
-        actor.getAllClients().catch(() => [] as Client[]),
-        actor.getServices().catch(() => [] as Service[]),
-        actor.getAsistenmu().catch(() => [] as User[]),
-        actor.getAllTasks().catch(() => [] as Task[]),
-        actor.getPartners().catch(() => [] as Partner[]),
-        actor.getWithdrawRequests().catch(() => [] as WithdrawRequestLocal[]),
-        actor
-          .getFinancialProfileRequests()
-          .catch(() => [] as FinancialProfileRequestLocal[]),
-        actor.getAdminLogs().catch(() => [] as AdminLogLocal[]),
-      ]);
+      const [u, p, c, svc, am, t, _pl, wr, fpr, logs, summary] =
+        await Promise.all([
+          actor.getAllUsers().catch(() => [] as User[]),
+          actor.getAllPartners().catch(() => [] as Partner[]),
+          actor.getAllClients().catch(() => [] as Client[]),
+          actor.getServices().catch(() => [] as Service[]),
+          actor.getAsistenmu().catch(() => [] as User[]),
+          actor.getAllTasks().catch(() => [] as Task[]),
+          actor.getPartners().catch(() => [] as Partner[]),
+          actor.getWithdrawRequests().catch(() => [] as WithdrawRequestLocal[]),
+          actor
+            .getFinancialProfileRequests()
+            .catch(() => [] as FinancialProfileRequestLocal[]),
+          actor.getAdminLogs().catch(() => [] as AdminLogLocal[]),
+          actor.getAdminSummary().catch(() => null),
+        ]);
       setUsers(u as User[]);
       setPartners(p as Partner[]);
       setClients(c as Client[]);
@@ -1701,6 +1720,7 @@ export default function DashboardAdmin() {
       setWithdrawRequests(wr as WithdrawRequestLocal[]);
       setFinancialProfileRequests(fpr as FinancialProfileRequestLocal[]);
       setAdminLogs(logs as AdminLogLocal[]);
+      setAdminSummary(summary as AdminSummary | null);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Gagal memuat data.";
       console.error("fetchAll error:", msg);
@@ -2011,6 +2031,263 @@ export default function DashboardAdmin() {
               </div>
             )}
           </div>
+
+          {/* ── Ringkasan Sistem (Collapsible) ── */}
+          <OuterCollapsible
+            title="Ringkasan Sistem"
+            count={12}
+            countAccent="bg-teal-50 text-teal-700"
+          >
+            {isLoadingData ? (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                {(
+                  [
+                    "s1",
+                    "s2",
+                    "s3",
+                    "s4",
+                    "s5",
+                    "s6",
+                    "s7",
+                    "s8",
+                    "s9",
+                    "s10",
+                    "s11",
+                    "s12",
+                  ] as const
+                ).map((k) => (
+                  <SummaryCardSkeleton key={k} />
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                {/* GMV Total */}
+                <div className="bg-white rounded-2xl shadow-soft border border-slate-100 p-5 flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
+                    <TrendingUp size={22} className="text-emerald-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500 leading-tight">
+                      GMV Total
+                    </p>
+                    <p className="font-display font-bold text-lg mt-0.5 text-slate-900">
+                      {adminSummary ? formatRp(adminSummary.gmvTotal) : "—"}
+                    </p>
+                  </div>
+                </div>
+
+                {/* GMV per Tipe */}
+                <div className="bg-white rounded-2xl shadow-soft border border-slate-100 p-5 flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+                    <BarChart2 size={22} className="text-blue-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-slate-500 leading-tight mb-1">
+                      GMV per Tipe
+                    </p>
+                    {adminSummary ? (
+                      <div className="flex flex-col gap-0.5">
+                        <p className="text-xs text-slate-700">
+                          <span className="font-semibold text-teal-600">
+                            TENANG
+                          </span>{" "}
+                          {formatRp(adminSummary.gmvTenang)}
+                        </p>
+                        <p className="text-xs text-slate-700">
+                          <span className="font-semibold text-blue-600">
+                            RAPI
+                          </span>{" "}
+                          {formatRp(adminSummary.gmvRapi)}
+                        </p>
+                        <p className="text-xs text-slate-700">
+                          <span className="font-semibold text-amber-600">
+                            FOKUS
+                          </span>{" "}
+                          {formatRp(adminSummary.gmvFokus)}
+                        </p>
+                        <p className="text-xs text-slate-700">
+                          <span className="font-semibold text-purple-600">
+                            JAGA
+                          </span>{" "}
+                          {formatRp(adminSummary.gmvJaga)}
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-lg font-bold text-slate-900">—</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Total Saldo Partner */}
+                <div className="bg-white rounded-2xl shadow-soft border border-slate-100 p-5 flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-teal-50 flex items-center justify-center flex-shrink-0">
+                    <Wallet size={22} className="text-teal-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500 leading-tight">
+                      Total Saldo Partner
+                    </p>
+                    <p className="font-display font-bold text-lg mt-0.5 text-slate-900">
+                      {adminSummary
+                        ? formatRp(adminSummary.totalSaldoPartner)
+                        : "—"}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Total Sudah Withdraw */}
+                <div className="bg-white rounded-2xl shadow-soft border border-slate-100 p-5 flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-orange-50 flex items-center justify-center flex-shrink-0">
+                    <ArrowDownCircle size={22} className="text-orange-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500 leading-tight">
+                      Total Sudah Withdraw
+                    </p>
+                    <p className="font-display font-bold text-lg mt-0.5 text-slate-900">
+                      {adminSummary
+                        ? formatRp(adminSummary.totalSudahWithdraw)
+                        : "—"}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Margin */}
+                <div className="bg-white rounded-2xl shadow-soft border border-slate-100 p-5 flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-purple-50 flex items-center justify-center flex-shrink-0">
+                    <TrendingUp size={22} className="text-purple-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500 leading-tight">
+                      Margin
+                    </p>
+                    <p className="font-display font-bold text-lg mt-0.5 text-slate-900">
+                      {adminSummary ? formatRp(adminSummary.margin) : "—"}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Layanan Aktif per Tipe */}
+                <div className="bg-white rounded-2xl shadow-soft border border-slate-100 p-5 flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-teal-50 flex items-center justify-center flex-shrink-0">
+                    <Layers size={22} className="text-teal-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-slate-500 leading-tight mb-0.5">
+                      Layanan Aktif
+                    </p>
+                    {adminSummary ? (
+                      <>
+                        <p className="font-display font-bold text-xl text-slate-900">
+                          {Number(adminSummary.totalLayananAktif)}
+                        </p>
+                        <div className="flex flex-col gap-0.5 mt-1">
+                          <p className="text-xs text-slate-600">
+                            TENANG: {Number(adminSummary.layananAktifTenang)} ·
+                            RAPI: {Number(adminSummary.layananAktifRapi)}
+                          </p>
+                          <p className="text-xs text-slate-600">
+                            FOKUS: {Number(adminSummary.layananAktifFokus)} ·
+                            JAGA: {Number(adminSummary.layananAktifJaga)}
+                          </p>
+                        </div>
+                      </>
+                    ) : (
+                      <p className="text-xl font-bold text-slate-900">—</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Total Unit Aktif */}
+                <div className="bg-white rounded-2xl shadow-soft border border-slate-100 p-5 flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+                    <Package size={22} className="text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500 leading-tight">
+                      Total Unit Aktif
+                    </p>
+                    <p className="font-display font-bold text-2xl mt-0.5 text-slate-900">
+                      {adminSummary ? Number(adminSummary.totalUnitAktif) : "—"}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Total Unit On Hold */}
+                <div className="bg-white rounded-2xl shadow-soft border border-slate-100 p-5 flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
+                    <Clock size={22} className="text-amber-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500 leading-tight">
+                      Total Unit On Hold
+                    </p>
+                    <p className="font-display font-bold text-2xl mt-0.5 text-slate-900">
+                      {adminSummary
+                        ? Number(adminSummary.totalUnitOnHold)
+                        : "—"}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Task On Progress */}
+                <div className="bg-white rounded-2xl shadow-soft border border-slate-100 p-5 flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+                    <ClipboardList size={22} className="text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500 leading-tight">
+                      Task On Progress
+                    </p>
+                    <p className="font-display font-bold text-2xl mt-0.5 text-slate-900">
+                      {adminSummary
+                        ? Number(adminSummary.totalTaskOnProgress)
+                        : "—"}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Task Revisi */}
+                <div className="bg-white rounded-2xl shadow-soft border border-slate-100 p-5 flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center flex-shrink-0">
+                    <RotateCcw size={22} className="text-red-500" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500 leading-tight">
+                      Task Revisi
+                    </p>
+                    <p className="font-display font-bold text-2xl mt-0.5 text-slate-900">
+                      {adminSummary
+                        ? Number(adminSummary.totalTaskRevisi)
+                        : "—"}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Task Selesai */}
+                <div className="bg-white rounded-2xl shadow-soft border border-slate-100 p-5 flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
+                    <CheckCircle2 size={22} className="text-emerald-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500 leading-tight">
+                      Task Selesai
+                    </p>
+                    <p className="font-display font-bold text-2xl mt-0.5 text-slate-900">
+                      {adminSummary
+                        ? Number(adminSummary.totalTaskSelesai)
+                        : "—"}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Filler / spacer card */}
+                <div className="bg-slate-50 rounded-2xl border border-slate-100 p-5 flex items-center justify-center">
+                  <p className="text-xs text-slate-300">—</p>
+                </div>
+              </div>
+            )}
+          </OuterCollapsible>
 
           {/* ── Manajemen Pengguna (Outer Collapsible) ── */}
           <OuterCollapsible
@@ -3225,32 +3502,60 @@ function ManajemenTaskSection({
                   className="py-3 flex items-start justify-between gap-3"
                 >
                   <TaskRowBase task={task} services={services} />
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={actionLoading[`status-${task.idTask}`]}
-                    onClick={() =>
-                      runAction(
-                        `status-${task.idTask}`,
-                        () =>
-                          act.updateTaskStatus(
-                            task.idTask,
-                            TaskStatus.qaasistenmu,
-                          ),
-                        `Task ${task.idTask} dipindah ke QA Asistenmu.`,
-                      )
-                    }
-                    className="flex-shrink-0 text-xs text-purple-600 border-purple-200 hover:bg-purple-50"
-                  >
-                    {actionLoading[`status-${task.idTask}`] ? (
-                      <Loader2 size={12} className="animate-spin" />
-                    ) : (
-                      <>
-                        <ClipboardList size={12} className="mr-1" />
-                        Minta QA
-                      </>
-                    )}
-                  </Button>
+                  <div className="flex flex-col gap-1 flex-shrink-0">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={actionLoading[`qa-${task.idTask}`]}
+                      onClick={() =>
+                        runAction(
+                          `qa-${task.idTask}`,
+                          () =>
+                            act.updateTaskStatus(
+                              task.idTask,
+                              TaskStatus.qaasistenmu,
+                            ),
+                          `Task ${task.idTask} dipindah ke QA Asistenmu.`,
+                        )
+                      }
+                      className="text-xs text-purple-600 border-purple-200 hover:bg-purple-50"
+                    >
+                      {actionLoading[`qa-${task.idTask}`] ? (
+                        <Loader2 size={12} className="animate-spin" />
+                      ) : (
+                        <>
+                          <ClipboardList size={12} className="mr-1" />
+                          Minta QA
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={actionLoading[`review-${task.idTask}`]}
+                      onClick={() =>
+                        runAction(
+                          `review-${task.idTask}`,
+                          () =>
+                            act.updateTaskStatus(
+                              task.idTask,
+                              TaskStatus.reviewclient,
+                            ),
+                          `Task ${task.idTask} dipindah ke Review Client.`,
+                        )
+                      }
+                      className="text-xs text-amber-600 border-amber-200 hover:bg-amber-50"
+                    >
+                      {actionLoading[`review-${task.idTask}`] ? (
+                        <Loader2 size={12} className="animate-spin" />
+                      ) : (
+                        <>
+                          <RefreshCw size={12} className="mr-1" />
+                          Minta Review Client
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>

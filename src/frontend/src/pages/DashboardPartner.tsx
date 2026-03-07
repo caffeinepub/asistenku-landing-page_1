@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
 import { useNavigate } from "@tanstack/react-router";
 import {
   BookOpen,
@@ -18,7 +19,9 @@ import {
   LogOut,
   Pencil,
   RefreshCw,
+  Send,
   Wallet,
+  X,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -102,7 +105,9 @@ function getTaskStatus(task: Task): string {
 }
 
 function formatDate(ts: bigint): string {
-  const ms = Number(ts) / 1_000_000;
+  const raw = Number(ts);
+  // createdAt from backend = nanoseconds (> 1e15), deadline from client = milliseconds
+  const ms = raw > 1e15 ? raw / 1_000_000 : raw;
   return new Date(ms).toLocaleDateString("id-ID", {
     day: "numeric",
     month: "short",
@@ -365,8 +370,8 @@ function SummaryCard({
   );
 }
 
-// ── Task Row ───────────────────────────────────────────────────────────────────
-function TaskRow({ task }: { task: Task }) {
+// ── Partner Task Row (partner-specific fields only) ────────────────────────────
+function PartnerTaskRow({ task }: { task: Task }) {
   const statusKey = getTaskStatus(task);
   return (
     <div className="py-3 flex flex-col gap-1.5">
@@ -380,38 +385,33 @@ function TaskRow({ task }: { task: Task }) {
       </div>
       <p className="font-medium text-slate-900 text-sm">{task.judulTask}</p>
       <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-slate-500">
-        <span>
-          Client:{" "}
-          <span className="text-slate-700">{task.clientNama || "—"}</span>
-        </span>
+        {task.partnerNama && (
+          <span>
+            Partner: <span className="text-slate-700">{task.partnerNama}</span>
+          </span>
+        )}
         {task.asistenmuNama && (
           <span>
             Asistenmu:{" "}
             <span className="text-slate-700">{task.asistenmuNama}</span>
           </span>
         )}
+        <span>
+          Dibuat:{" "}
+          <span className="text-slate-700">{formatDate(task.createdAt)}</span>
+        </span>
         {task.deadline > 0n && (
           <span>
             Deadline:{" "}
             <span className="text-slate-700">{formatDate(task.deadline)}</span>
           </span>
         )}
-        <span>
-          Dibuat:{" "}
-          <span className="text-slate-700">{formatDate(task.createdAt)}</span>
-        </span>
         {task.jamEfektif > 0n && (
           <span>
-            Jam Efektif:{" "}
+            Jam:{" "}
             <span className="text-slate-700">
               {String(task.jamEfektif)} jam
             </span>
-          </span>
-        )}
-        {task.unitLayanan > 0n && (
-          <span>
-            Unit:{" "}
-            <span className="text-slate-700">{String(task.unitLayanan)}</span>
           </span>
         )}
       </div>
@@ -433,18 +433,7 @@ function TaskRow({ task }: { task: Task }) {
             <ExternalLink size={10} />
           </a>
         )}
-        {task.linkGdriveClient && (
-          <a
-            href={task.linkGdriveClient}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-xs text-teal-600 hover:text-teal-800"
-          >
-            <FolderOpen size={12} />
-            GDrive Client
-            <ExternalLink size={10} />
-          </a>
-        )}
+        {/* NOTE: GDrive Client is intentionally NOT shown in partner view */}
       </div>
     </div>
   );
@@ -644,6 +633,7 @@ export default function DashboardPartner() {
     return tasks.filter((t) => getTaskStatus(t) === status);
   }
 
+  const permintaanBaruTasks = getTasksByStatus("permintaanbaru");
   const onProgressTasks = getTasksByStatus("onprogress");
   const reviewClientTasks = getTasksByStatus("reviewclient");
   const qaTasks = getTasksByStatus("qaasistenmu");
@@ -651,6 +641,7 @@ export default function DashboardPartner() {
   const selesaiTasks = getTasksByStatus("selesai");
   const ditolakTasks = getTasksByStatus("ditolak");
 
+  const pag0 = usePagination(permintaanBaruTasks);
   const pag1 = usePagination(onProgressTasks);
   const pag2 = usePagination(reviewClientTasks);
   const pag3 = usePagination(qaTasks);
@@ -682,14 +673,28 @@ export default function DashboardPartner() {
             alt="Asistenku"
             className="h-8 object-contain"
           />
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="flex items-center gap-2 border border-slate-200 text-slate-600 hover:text-slate-900 hover:border-slate-300 px-4 py-2 rounded-full text-sm font-medium transition-colors"
-          >
-            <LogOut size={15} />
-            Keluar
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => void fetchData()}
+              disabled={isLoading}
+              className="flex items-center gap-2 border border-slate-200 text-slate-600 hover:text-slate-900 hover:border-slate-300 px-3 py-2 rounded-full text-sm font-medium transition-colors disabled:opacity-50"
+              title="Refresh data"
+            >
+              <RefreshCw
+                size={15}
+                className={isLoading ? "animate-spin" : ""}
+              />
+            </button>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="flex items-center gap-2 border border-slate-200 text-slate-600 hover:text-slate-900 hover:border-slate-300 px-4 py-2 rounded-full text-sm font-medium transition-colors"
+            >
+              <LogOut size={15} />
+              Keluar
+            </button>
+          </div>
         </div>
       </header>
 
@@ -1196,8 +1201,8 @@ export default function DashboardPartner() {
 
           {/* ── Summary Cards (Task Counters) ── */}
           {isLoading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              {(["a", "b", "c", "d", "e", "f"] as const).map((k) => (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {(["a", "b", "c", "d", "e", "f", "g"] as const).map((k) => (
                 <div
                   key={k}
                   className="bg-white rounded-2xl shadow-soft border border-slate-100 p-4 flex items-center gap-3"
@@ -1211,7 +1216,13 @@ export default function DashboardPartner() {
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <SummaryCard
+                icon={<ClipboardList size={18} className="text-orange-700" />}
+                label="Permintaan Baru"
+                value={permintaanBaruTasks.length}
+                bg="bg-orange-50"
+              />
               <SummaryCard
                 icon={<ClipboardList size={18} className="text-blue-700" />}
                 label="On Progress"
@@ -1257,6 +1268,83 @@ export default function DashboardPartner() {
             icon={<ClipboardList size={20} />}
             defaultOpen
           >
+            {/* 0. Permintaan Baru — FIRST sub-card */}
+            <CollapsibleSection
+              title="Task Permintaan Baru"
+              count={permintaanBaruTasks.length}
+              accent="bg-orange-50 text-orange-700"
+              defaultOpen
+            >
+              {permintaanBaruTasks.length === 0 ? (
+                <p className="text-sm text-slate-400 py-4 text-center">
+                  Tidak ada permintaan task baru.
+                </p>
+              ) : (
+                <>
+                  <div className="flex flex-col divide-y divide-slate-100">
+                    {pag0.paged.map((task) => (
+                      <div
+                        key={task.idTask}
+                        className="py-3 flex flex-col gap-2"
+                      >
+                        <PartnerTaskRow task={task} />
+                        <div className="flex gap-2 flex-wrap">
+                          <Button
+                            size="sm"
+                            disabled={actionLoading[`terima-${task.idTask}`]}
+                            onClick={() =>
+                              runAction(
+                                `terima-${task.idTask}`,
+                                () => act.terimaTask(task.idTask),
+                                `Task ${task.idTask} diterima.`,
+                              )
+                            }
+                            className="text-xs bg-emerald-600 text-white hover:bg-emerald-700 rounded-full flex-shrink-0"
+                          >
+                            {actionLoading[`terima-${task.idTask}`] ? (
+                              <Loader2 size={12} className="animate-spin" />
+                            ) : (
+                              <>
+                                <CheckCircle size={12} className="mr-1" />
+                                Terima
+                              </>
+                            )}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={actionLoading[`tolak-${task.idTask}`]}
+                            onClick={() =>
+                              runAction(
+                                `tolak-${task.idTask}`,
+                                () => act.tolakTask(task.idTask),
+                                `Task ${task.idTask} ditolak.`,
+                              )
+                            }
+                            className="text-xs border-red-200 text-red-600 hover:bg-red-50 rounded-full flex-shrink-0"
+                          >
+                            {actionLoading[`tolak-${task.idTask}`] ? (
+                              <Loader2 size={12} className="animate-spin" />
+                            ) : (
+                              <>
+                                <X size={12} className="mr-1" />
+                                Tolak
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <PaginationControls
+                    page={pag0.page}
+                    totalPages={pag0.totalPages}
+                    setPage={pag0.setPage}
+                  />
+                </>
+              )}
+            </CollapsibleSection>
+
             {/* 1. On Progress */}
             <CollapsibleSection
               title="Task On Progress"
@@ -1274,9 +1362,9 @@ export default function DashboardPartner() {
                     {pag1.paged.map((task) => (
                       <div
                         key={task.idTask}
-                        className="py-3 flex items-start justify-between gap-3"
+                        className="py-3 flex flex-col gap-2"
                       >
-                        <TaskRow task={task} />
+                        <PartnerTaskRow task={task} />
                         <Button
                           size="sm"
                           variant="outline"
@@ -1285,13 +1373,13 @@ export default function DashboardPartner() {
                             runAction(
                               `qa-${task.idTask}`,
                               () =>
-                                act.updateTaskStatus(task.idTask, {
+                                act.updateTaskStatusAsPartner(task.idTask, {
                                   qaasistenmu: null,
                                 }),
                               `Task ${task.idTask} dipindah ke QA Asistenmu.`,
                             )
                           }
-                          className="flex-shrink-0 text-xs text-purple-600 border-purple-200 hover:bg-purple-50"
+                          className="flex-shrink-0 text-xs text-purple-600 border-purple-200 hover:bg-purple-50 rounded-full w-fit"
                         >
                           {actionLoading[`qa-${task.idTask}`] ? (
                             <Loader2 size={12} className="animate-spin" />
@@ -1329,7 +1417,7 @@ export default function DashboardPartner() {
                   <div className="flex flex-col divide-y divide-slate-100">
                     {pag2.paged.map((task) => (
                       <div key={task.idTask} className="py-3">
-                        <TaskRow task={task} />
+                        <PartnerTaskRow task={task} />
                       </div>
                     ))}
                   </div>
@@ -1357,7 +1445,7 @@ export default function DashboardPartner() {
                   <div className="flex flex-col divide-y divide-slate-100">
                     {pag3.paged.map((task) => (
                       <div key={task.idTask} className="py-3">
-                        <TaskRow task={task} />
+                        <PartnerTaskRow task={task} />
                       </div>
                     ))}
                   </div>
@@ -1370,7 +1458,7 @@ export default function DashboardPartner() {
               )}
             </CollapsibleSection>
 
-            {/* 4. Revisi */}
+            {/* 4. Revisi — with Minta QA Asistenmu button */}
             <CollapsibleSection
               title="Task Revisi"
               count={revisiTasks.length}
@@ -1384,8 +1472,36 @@ export default function DashboardPartner() {
                 <>
                   <div className="flex flex-col divide-y divide-slate-100">
                     {pag4.paged.map((task) => (
-                      <div key={task.idTask} className="py-3">
-                        <TaskRow task={task} />
+                      <div
+                        key={task.idTask}
+                        className="py-3 flex flex-col gap-2"
+                      >
+                        <PartnerTaskRow task={task} />
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={actionLoading[`qa-revisi-${task.idTask}`]}
+                          onClick={() =>
+                            runAction(
+                              `qa-revisi-${task.idTask}`,
+                              () =>
+                                act.updateTaskStatusAsPartner(task.idTask, {
+                                  qaasistenmu: null,
+                                }),
+                              `Task ${task.idTask} dipindah ke QA Asistenmu.`,
+                            )
+                          }
+                          className="flex-shrink-0 text-xs text-purple-600 border-purple-200 hover:bg-purple-50 rounded-full w-fit"
+                        >
+                          {actionLoading[`qa-revisi-${task.idTask}`] ? (
+                            <Loader2 size={12} className="animate-spin" />
+                          ) : (
+                            <>
+                              <RefreshCw size={12} className="mr-1" />
+                              Minta QA Asistenmu
+                            </>
+                          )}
+                        </Button>
                       </div>
                     ))}
                   </div>
@@ -1413,7 +1529,7 @@ export default function DashboardPartner() {
                   <div className="flex flex-col divide-y divide-slate-100">
                     {pag5.paged.map((task) => (
                       <div key={task.idTask} className="py-3">
-                        <TaskRow task={task} />
+                        <PartnerTaskRow task={task} />
                       </div>
                     ))}
                   </div>
@@ -1441,7 +1557,7 @@ export default function DashboardPartner() {
                   <div className="flex flex-col divide-y divide-slate-100">
                     {pag6.paged.map((task) => (
                       <div key={task.idTask} className="py-3">
-                        <TaskRow task={task} />
+                        <PartnerTaskRow task={task} />
                       </div>
                     ))}
                   </div>

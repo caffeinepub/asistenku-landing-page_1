@@ -1,42 +1,35 @@
-# Asistenku Platform
+# Asistenku
 
 ## Current State
-
-Full-stack ICP application with:
-- Motoko backend with stable vars: users, partners, clients, services, topUps, tasks, financialProfiles, withdrawRequests, financialProfileRequests, adminLogs
-- Landing page (App.tsx) with 7 sections, accordion service cards
-- Pages: /portal-internal, /dashboard-admin, /dashboard-asistenmu, /dashboard-operasional, /dashboard-client, /dashboard-partner, /client-login, /client-register, /portal-partner, /claim-admin-as, /tentang-partner-asistenku
-- Role guard on all dashboards
-- Backend functions: getUsers, getAllTasks, getTasksByPartner, getTasksByAsistenmu, getServices, getMyServicesAsAsistenmu, aktivasiLayanan, updateService, topUpService, createTask, delegasiTask, updateTaskStatus, claimAdmin, forceClaimAdmin, withdraw/financial profile functions
-- DashboardAdmin has: Summary cards, Manajemen Pengguna (collapsible with filter), Manajemen Service, Manajemen Task, Financial Management, History sections
-- DashboardClient has: greeting, profil, layanan, summary task, Task Manajemen sections. Data fetched via getAllClients/getServices/getAllTasks filtered by principalId.
-- DashboardPartner: greeting, profil, finansial, level/skill, wallet, task manajemen sections. getTasksByPartner from backend.
-- getAdminLogs() has bug: calls logs.sort() without comparator causing compile error
+- DashboardAdmin.tsx: memiliki section ringkasan tapi belum ada summary cards agregat (GMV, saldo partner, margin, unit aktif/on hold, task stats, dll). Section ringkasan sistem belum ada sebagai collapsible section.
+- DashboardAsistenmu.tsx: form delegasi partner sudah ada input search tapi hanya filter by nama/ID, belum bisa filter by verifiedSkill. Struktur sudah pakai `filteredPartners` dengan manual search input tapi belum autocomplete dropdown yang proper dengan skill search.
+- Backend main.mo: belum ada fungsi `getAdminSummary()`.
 
 ## Requested Changes (Diff)
 
 ### Add
-- Backend: `archiveService(idService: Text)` -- soft delete, moves service to archivedServices stable map with `archived: true`
-- Backend: `getArchivedServices()` -- returns archived services for admin/operasional
-- Backend: Fix `getAdminLogs()` -- sort by createdAt descending using proper Array.sort with compare function
-- DashboardAdmin: In Edit Service modal, add "Tambah Sharing" button to add sharing entries without creating new service
-- DashboardAdmin: "Hapus Layanan" button (soft delete) in service list, archives service
-- DashboardAdmin: New "Arsip Layanan" card below List Layanan, collapsible, pagination 5, showing archived services
-- DashboardClient: Fix service filter -- match by `clientPrincipalId === principalId` AND fallback by `clientNama` matching client name. Also check `idUser` from getMyProfile.
-- DashboardClient: Fix profile fetch -- use `getMyProfile()` directly (returns the logged-in client profile)
+- Backend: fungsi `getAdminSummary()` yang menghitung semua agregat dari stable var:
+  - GMV Total = sum(unitLayanan x hargaPerLayanan) dari semua service + sum(unitTambahan x hargaPerLayanan_service) dari semua topup
+  - GMV per tipe layanan (tenang, rapi, fokus, jaga, efisien)
+  - Total saldo partner = sum wallet semua partner aktif (dihitung dari tasks selesai per partner)
+  - Total sudah withdraw = sum nominal semua withdraw status #approved
+  - Margin = GMV Total - total konversi task selesai (jamEfektif x hourlyRate partner -- hourlyRate dihitung dari wallet/jam task selesai -- simplified: sum(jamEfektif) task selesai per partner x rata-rata rate, atau cukup total saldo yang dikreditkan ke partner = total saldo partner + total withdraw approved)
+  - Total layanan aktif, per tipe
+  - Total unit aktif (sum unitLayanan semua service aktif)
+  - Total unit on hold (sum unitLayanan task berstatus onprogress)
+  - Total task onprogress, revisi, selesai
+- DashboardAdmin.tsx: section "Ringkasan Sistem" baru sebagai OuterCollapsible, grid 4 kolom per baris, 12 card dengan icon Lucide, data dari `getAdminSummary()`
+- DashboardAsistenmu.tsx: search partner dalam form delegasi diperluas untuk juga filter by verifiedSkill
 
 ### Modify
-- DashboardClient: Instead of calling getAllClients (admin-only), use `getMyProfile()` to get client profile directly. Filter services by matching `clientPrincipalId` to the logged-in principal. Filter tasks by `clientId === clientData.idUser` or `clientId === principalId`.
-- DashboardAdmin: Edit Service modal now also supports adding new sharing entries inline.
-- Backend: Fix getAdminLogs sort comparator to avoid compile error.
+- DashboardAdmin.tsx: tambah pemanggilan `getAdminSummary()` saat fetchData dipanggil
+- DashboardAsistenmu.tsx: `filteredPartners` sudah filter by nama dan idUser, tambah filter by verifiedSkill.some()
 
 ### Remove
-- DashboardClient: Remove dependency on `getAllClients` and `getAllTasks` (admin-only calls). Use client-specific queries only.
+- Tidak ada yang dihapus
 
 ## Implementation Plan
-1. Fix backend: `getAdminLogs` sort bug, add `archiveService`, add `getArchivedServices`, add `getMyClientProfile` query for clients
-2. Regenerate backend.d.ts
-3. Fix DashboardClient: use `getMyClientProfile()` instead of getAllClients; use client-specific task fetch
-4. Fix DashboardAdmin Edit Service modal: add inline sharing management
-5. Add archiveService button + Arsip Layanan card in DashboardAdmin
-6. Validate and build
+1. Tambah fungsi `getAdminSummary()` di backend main.mo -- return type AdminSummary dengan semua field agregat
+2. Regenerate backend.d.ts binding
+3. DashboardAdmin.tsx: tambah state adminSummary, fetch saat load, render section Ringkasan Sistem collapsible dengan grid 4 kolom 12 card
+4. DashboardAsistenmu.tsx: update filteredPartners logic untuk include verifiedSkill filter

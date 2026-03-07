@@ -31,6 +31,8 @@ type ServiceCard = {
   short: string;
   price: string;
   body: string;
+  body2?: string;
+  sharing: string[];
   note: string;
 };
 
@@ -38,34 +40,56 @@ const services: ServiceCard[] = [
   {
     icon: "🧘",
     title: "TENANG",
-    short: "Untuk kebutuhan dasar yang tetap terkendali.",
-    price: "Rp 3.500.000 untuk alokasi 22 Unit Layanan",
-    body: "Paket ini cocok untuk kebutuhan operasional rutin yang perlu berjalan stabil tanpa Anda harus mengatur detail teknisnya. Struktur kerja disusun oleh Asistenmu dan dijalankan oleh Partner yang sesuai.",
-    note: "Untuk kebutuhan dengan skala yang lebih besar, struktur layanan dapat dikurasi bersama Concierge kami.",
+    short:
+      "Menjaga hidup tetap berjalan tanpa harus mengurus semuanya sendiri.",
+    price: "Mulai dari Rp 3.500.000 untuk alokasi 22 Unit Layanan",
+    body: "Paket ini dirancang untuk kebutuhan personal life dan personal work yang perlu berjalan rapi tanpa menyita perhatian Anda setiap hari.",
+    body2:
+      "Mulai dari pengaturan agenda, koordinasi aktivitas pribadi, hingga tugas-tugas digital yang mendukung keseharian Anda. Semua disusun oleh Asistenmu dan dijalankan oleh Partner yang sesuai.\n\nAnda tidak perlu mengelola orang. Anda hanya menerima hasil yang sudah terstruktur.",
+    sharing: ["hingga 2 anggota keluarga"],
+    note: "Jika kebutuhan Anda mulai melibatkan pekerjaan atau aktivitas bisnis, Concierge kami dapat membantu mengkurasi struktur layanan yang lebih tepat.",
   },
   {
     icon: "🗂️",
     title: "RAPI",
-    short: "Struktur kerja dan personal lebih tertata dan stabil.",
-    price: "Rp 5.500.000 untuk alokasi 35 Unit Layanan",
-    body: "Dirancang untuk bisnis yang mulai bertumbuh dan membutuhkan pengaturan prioritas serta kontrol revisi yang lebih rapi. Anda tidak mengelola orang — Anda menerima hasil yang sudah melalui struktur.",
-    note: "Untuk kebutuhan yang lebih kompleks, alokasi unit dapat disesuaikan melalui Concierge.",
+    short: "Ketika hidup pribadi dan pekerjaan mulai berjalan bersamaan.",
+    price: "Mulai dari Rp 5.500.000 untuk alokasi 20 Unit Layanan",
+    body: "Dirancang untuk individu yang mulai menyeimbangkan personal life dan aktivitas bisnis atau usaha. Paket ini membantu menjaga prioritas tetap jelas tanpa membuat Anda terjebak dalam koordinasi operasional harian.",
+    body2:
+      "Asistenmu menyusun struktur kerja, sementara Partner menjalankan eksekusi yang diperlukan.\n\nAnda tetap memegang kendali arah, tanpa harus mengatur detailnya.",
+    sharing: [
+      "hingga 2 anggota keluarga",
+      "hingga 1 partner bisnis / manajemen",
+    ],
+    note: "Untuk kebutuhan yang lebih kompleks atau lintas fungsi, struktur layanan dapat disesuaikan bersama Concierge kami.",
   },
   {
     icon: "🎯",
     title: "FOKUS",
-    short: "Eksekusi lebih dalam dengan prioritas jelas.",
-    price: "Rp 8.500.000 untuk alokasi 60 Unit Layanan",
-    body: "Cocok untuk fase ekspansi, campaign, atau operasional dengan tingkat koordinasi tinggi. Beberapa Partner dapat bekerja paralel dalam struktur yang dikendalikan Asistenmu.",
-    note: "Struktur layanan dapat dikurasi sesuai kebutuhan skala bisnis Anda.",
+    short: "Mengembangkan tim tanpa harus menambah karyawan baru.",
+    price: "Mulai dari Rp 8.500.000 untuk alokasi 40 Unit Layanan",
+    body: "Paket ini cocok untuk fase ketika bisnis mulai berkembang dan membutuhkan dukungan operasional yang lebih luas.",
+    body2:
+      "Beberapa Partner dapat bekerja secara paralel dalam struktur yang dikendalikan oleh Asistenmu, memungkinkan berbagai tugas dan proyek berjalan bersamaan tanpa membebani tim inti Anda.\n\nIni memberi ruang untuk menskalakan divisi dan aktivitas bisnis tanpa proses hiring tambahan.",
+    sharing: [
+      "hingga 2 anggota keluarga",
+      "hingga 2 partner bisnis / manajemen",
+    ],
+    note: "Struktur layanan dapat dikurasi bersama Concierge untuk mendukung pertumbuhan bisnis Anda secara lebih strategis.",
   },
   {
     icon: "🛡️",
     title: "JAGA",
-    short: "Kontrol menyeluruh untuk tanggung jawab besar.",
-    price: "Rp 12.000.000 untuk alokasi 80 Unit Layanan",
-    body: "Untuk pemilik bisnis atau eksekutif yang membutuhkan stabilitas eksekusi tanpa kehilangan kendali strategis. Delegasi berjalan sistematis dengan monitoring terstruktur.",
-    note: "Untuk kebutuhan skala besar dan lintas fungsi, struktur layanan disusun bersama Concierge.",
+    short: "Stabilitas operasional untuk tanggung jawab yang lebih besar.",
+    price: "Mulai dari Rp 12.000.000 untuk alokasi 60 Unit Layanan",
+    body: "Dirancang untuk pemilik bisnis atau eksekutif yang sudah memiliki struktur kerja stabil namun membutuhkan kontrol dan konsistensi operasional yang lebih kuat.",
+    body2:
+      "Delegasi berjalan sistematis melalui koordinasi Asistenmu, sementara Partner menjalankan berbagai fungsi yang dibutuhkan secara paralel.\n\nAnda tetap fokus pada keputusan strategis tanpa kehilangan visibilitas terhadap eksekusi.",
+    sharing: [
+      "hingga 2 anggota keluarga",
+      "hingga 3 partner bisnis / manajemen",
+    ],
+    note: "Untuk kebutuhan lintas divisi atau skala yang lebih besar, Concierge kami dapat membantu menyusun struktur layanan yang paling efektif.",
   },
 ];
 
@@ -243,7 +267,30 @@ function LandingPage() {
                         <p className="mt-3 text-sm text-slate-600 leading-relaxed">
                           {service.body}
                         </p>
-                        <p className="mt-3 text-sm text-slate-500 leading-relaxed">
+                        {service.body2 && (
+                          <div className="mt-3 text-sm text-slate-600 leading-relaxed whitespace-pre-line">
+                            {service.body2}
+                          </div>
+                        )}
+                        {service.sharing && service.sharing.length > 0 && (
+                          <div className="mt-4">
+                            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+                              Sharing akses:
+                            </p>
+                            <ul className="flex flex-col gap-1">
+                              {service.sharing.map((item) => (
+                                <li
+                                  key={item}
+                                  className="text-sm text-slate-600 flex items-start gap-2"
+                                >
+                                  <span className="mt-1 text-slate-400">•</span>
+                                  {item}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        <p className="mt-4 text-sm text-slate-500 leading-relaxed">
                           {service.note}
                         </p>
                         <a

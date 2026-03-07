@@ -262,7 +262,9 @@ function tipeLabel(tipe: string): string {
 }
 
 function formatDate(ts: bigint): string {
-  const ms = Number(ts) / 1_000_000;
+  const raw = Number(ts);
+  // createdAt from backend = nanoseconds (> 1e15), deadline from client = milliseconds
+  const ms = raw > 1e15 ? raw / 1_000_000 : raw;
   return new Date(ms).toLocaleDateString("id-ID", {
     day: "numeric",
     month: "short",
@@ -1896,14 +1898,28 @@ export default function DashboardOperasional() {
               Dashboard Operasional
             </span>
           </div>
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="flex items-center gap-2 border border-slate-200 text-slate-600 hover:text-slate-900 hover:border-slate-300 px-4 py-2 rounded-full text-sm font-medium transition-colors"
-          >
-            <LogOut size={15} />
-            Keluar
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => void fetchAll()}
+              disabled={isLoadingData}
+              className="flex items-center gap-2 border border-slate-200 text-slate-600 hover:text-slate-900 hover:border-slate-300 px-3 py-2 rounded-full text-sm font-medium transition-colors disabled:opacity-50"
+              title="Refresh data"
+            >
+              <RefreshCw
+                size={15}
+                className={isLoadingData ? "animate-spin" : ""}
+              />
+            </button>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="flex items-center gap-2 border border-slate-200 text-slate-600 hover:text-slate-900 hover:border-slate-300 px-4 py-2 rounded-full text-sm font-medium transition-colors"
+            >
+              <LogOut size={15} />
+              Keluar
+            </button>
+          </div>
         </div>
       </header>
 
@@ -3040,32 +3056,60 @@ function ManajemenTaskSection({
                   className="py-3 flex items-start justify-between gap-3"
                 >
                   <TaskRowBase task={task} services={services} />
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={actionLoading[`status-${task.idTask}`]}
-                    onClick={() =>
-                      runAction(
-                        `status-${task.idTask}`,
-                        () =>
-                          act.updateTaskStatus(
-                            task.idTask,
-                            TaskStatus.qaasistenmu,
-                          ),
-                        `Task ${task.idTask} dipindah ke QA Asistenmu.`,
-                      )
-                    }
-                    className="flex-shrink-0 text-xs text-purple-600 border-purple-200 hover:bg-purple-50"
-                  >
-                    {actionLoading[`status-${task.idTask}`] ? (
-                      <Loader2 size={12} className="animate-spin" />
-                    ) : (
-                      <>
-                        <ClipboardList size={12} className="mr-1" />
-                        Minta QA
-                      </>
-                    )}
-                  </Button>
+                  <div className="flex flex-col gap-1 flex-shrink-0">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={actionLoading[`qa-${task.idTask}`]}
+                      onClick={() =>
+                        runAction(
+                          `qa-${task.idTask}`,
+                          () =>
+                            act.updateTaskStatus(
+                              task.idTask,
+                              TaskStatus.qaasistenmu,
+                            ),
+                          `Task ${task.idTask} dipindah ke QA Asistenmu.`,
+                        )
+                      }
+                      className="text-xs text-purple-600 border-purple-200 hover:bg-purple-50"
+                    >
+                      {actionLoading[`qa-${task.idTask}`] ? (
+                        <Loader2 size={12} className="animate-spin" />
+                      ) : (
+                        <>
+                          <ClipboardList size={12} className="mr-1" />
+                          Minta QA
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={actionLoading[`review-${task.idTask}`]}
+                      onClick={() =>
+                        runAction(
+                          `review-${task.idTask}`,
+                          () =>
+                            act.updateTaskStatus(
+                              task.idTask,
+                              TaskStatus.reviewclient,
+                            ),
+                          `Task ${task.idTask} dipindah ke Review Client.`,
+                        )
+                      }
+                      className="text-xs text-amber-600 border-amber-200 hover:bg-amber-50"
+                    >
+                      {actionLoading[`review-${task.idTask}`] ? (
+                        <Loader2 size={12} className="animate-spin" />
+                      ) : (
+                        <>
+                          <RefreshCw size={12} className="mr-1" />
+                          Minta Review Client
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>

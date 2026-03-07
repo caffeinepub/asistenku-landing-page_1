@@ -7,11 +7,10 @@ import List "mo:core/List";
 import Runtime "mo:core/Runtime";
 import Order "mo:core/Order";
 import Text "mo:core/Text";
-import Migration "migration";
 import Principal "mo:core/Principal";
 
-// Apply migration
-(with migration = Migration.run)
+
+
 actor {
   public type Role = {
     #admin;
@@ -198,29 +197,52 @@ actor {
     saldoPengajuan : Nat;
   };
 
-  // Stable variables
-  stable var userCounter : Nat = 0;
-  stable var partnerCounter : Nat = 0;
-  stable var clientCounter : Nat = 0;
-  stable var serviceCounter : Nat = 0;
-  stable var topUpCounter : Nat = 0;
-  stable var taskCounter : Nat = 0;
-  stable var withdrawCounter : Nat = 0;
-  stable var fpRequestCounter : Nat = 0;
-  stable var logCounter : Nat = 0;
-  stable var adminClaimed : Bool = false;
+  public type AdminSummary = {
+    gmvTotal : Nat;
+    gmvTenang : Nat;
+    gmvRapi : Nat;
+    gmvFokus : Nat;
+    gmvJaga : Nat;
+    gmvEfisien : Nat;
+    totalSaldoPartner : Nat;
+    totalSudahWithdraw : Nat;
+    margin : Nat;
+    totalLayananAktif : Nat;
+    layananAktifTenang : Nat;
+    layananAktifRapi : Nat;
+    layananAktifFokus : Nat;
+    layananAktifJaga : Nat;
+    layananAktifEfisien : Nat;
+    totalUnitAktif : Nat;
+    totalUnitOnHold : Nat;
+    totalTaskOnProgress : Nat;
+    totalTaskRevisi : Nat;
+    totalTaskSelesai : Nat;
+  };
 
-  stable var stableUsers : [(Principal, User)] = [];
-  stable var stablePartners : [(Principal, Partner)] = [];
-  stable var stableClients : [(Principal, Client)] = [];
-  stable var stableServices : [(Text, Service)] = [];
-  stable var stableTopUps : [(Text, TopUp)] = [];
-  stable var stableTasks : [(Text, Task)] = [];
-  stable var stableFinancialProfiles : [(Text, FinancialProfile)] = [];
-  stable var stableWithdrawRequests : [(Text, WithdrawRequest)] = [];
-  stable var stableFinancialProfileRequests : [(Text, FinancialProfileRequest)] = [];
-  stable var stableAdminLogs : [(Text, AdminLog)] = [];
-  stable var stableArchivedServices : [(Text, Service)] = [];
+  // Stable variables
+  var userCounter : Nat = 0;
+  var partnerCounter : Nat = 0;
+  var clientCounter : Nat = 0;
+  var serviceCounter : Nat = 0;
+  var topUpCounter : Nat = 0;
+  var taskCounter : Nat = 0;
+  var withdrawCounter : Nat = 0;
+  var fpRequestCounter : Nat = 0;
+  var logCounter : Nat = 0;
+  var adminClaimed : Bool = false;
+
+  var stableUsers : [(Principal, User)] = [];
+  var stablePartners : [(Principal, Partner)] = [];
+  var stableClients : [(Principal, Client)] = [];
+  var stableServices : [(Text, Service)] = [];
+  var stableTopUps : [(Text, TopUp)] = [];
+  var stableTasks : [(Text, Task)] = [];
+  var stableFinancialProfiles : [(Text, FinancialProfile)] = [];
+  var stableWithdrawRequests : [(Text, WithdrawRequest)] = [];
+  var stableFinancialProfileRequests : [(Text, FinancialProfileRequest)] = [];
+  var stableAdminLogs : [(Text, AdminLog)] = [];
+  var stableArchivedServices : [(Text, Service)] = [];
 
   // Persistent Maps
   let users = Map.fromIter<Principal, User>(
@@ -1049,7 +1071,7 @@ actor {
           notesAsistenmu;
           linkGdriveInternal;
           linkGdriveClient;
-          status = #onprogress;
+          status = #permintaanbaru;
         };
         tasks.add(idTask, updatedTask);
         await addAdminLog(caller, "Task delegated", idTask);
@@ -1062,9 +1084,151 @@ actor {
     checkAdminOrOperasional(caller);
     switch (tasks.get(idTask)) {
       case (?task) {
-        let updatedTask = { task with status };
+        var updatedTask = { task with status };
+
+        if (status == #selesai and task.status != #selesai and task.unitLayanan > 0) {
+          switch (services.get(task.serviceId)) {
+            case (?service) {
+              let newUnits = if (service.unitLayanan >= task.unitLayanan) {
+                service.unitLayanan - task.unitLayanan;
+              } else { 0 };
+              let updatedService = {
+                service with unitLayanan = newUnits
+              };
+              services.add(task.serviceId, updatedService);
+            };
+            case (null) {};
+          };
+        };
+
         tasks.add(idTask, updatedTask);
         await addAdminLog(caller, "Updated task status", idTask);
+      };
+      case (null) { Runtime.trap("Task not found") };
+    };
+  };
+
+  // === (NEW) TASK PARTNER FUNCTIONS ===
+
+  public shared ({ caller }) func terimaTask(idTask : Text) : async () {
+    func checkPartnerOwnership(task : Task) {
+      if (task.partnerId != caller.toText()) {
+        Runtime.trap("Task does not belong to caller");
+      };
+    };
+
+    switch (tasks.get(idTask)) {
+      case (?task) {
+        if (task.status != #permintaanbaru) {
+          Runtime.trap("Task is not in permintaanbaru status");
+        };
+        // If checkPartnerOwnership fails, the trap message will propagate
+        checkPartnerOwnership(task);
+
+        let updatedTask = { task with status = #onprogress };
+        tasks.add(idTask, updatedTask);
+      };
+      case (null) { Runtime.trap("Task not found") };
+    };
+  };
+
+  public shared ({ caller }) func tolakTask(idTask : Text) : async () {
+    func checkPartnerOwnership(task : Task) {
+      if (task.partnerId != caller.toText()) {
+        Runtime.trap("Task does not belong to caller");
+      };
+    };
+
+    switch (tasks.get(idTask)) {
+      case (?task) {
+        checkPartnerOwnership(task);
+        let updatedTask = { task with status = #ditolak };
+        tasks.add(idTask, updatedTask);
+      };
+      case (null) { Runtime.trap("Task not found") };
+    };
+  };
+
+  public shared ({ caller }) func updateTaskStatusAsPartner(idTask : Text, status : TaskStatus) : async () {
+    func checkPartnerOwnership(task : Task) {
+      if (task.partnerId != caller.toText()) {
+        Runtime.trap("Task does not belong to caller");
+      };
+    };
+
+    switch (tasks.get(idTask)) {
+      case (?task) {
+        checkPartnerOwnership(task);
+        let updatedTask = { task with status };
+        tasks.add(idTask, updatedTask);
+      };
+      case (null) { Runtime.trap("Task not found") };
+    };
+  };
+
+  public shared ({ caller }) func updateTaskStatusAsAsistenmu(idTask : Text, status : TaskStatus) : async () {
+    func checkAsistenmuOwnership(task : Task) {
+      if (task.asistenmuId != caller.toText()) {
+        Runtime.trap("Task does not belong to caller as Asistenmu");
+      };
+    };
+
+    switch (tasks.get(idTask)) {
+      case (?task) {
+        checkAsistenmuOwnership(task);
+
+        let updatedTask = { task with status };
+
+        if (status == #selesai and task.status != #selesai and task.unitLayanan > 0) {
+          switch (services.get(task.serviceId)) {
+            case (?service) {
+              let newUnits = if (service.unitLayanan >= task.unitLayanan) {
+                service.unitLayanan - task.unitLayanan;
+              } else { 0 };
+              let updatedService = {
+                service with unitLayanan = newUnits
+              };
+              services.add(task.serviceId, updatedService);
+            };
+            case (null) {};
+          };
+        };
+
+        tasks.add(idTask, updatedTask);
+      };
+      case (null) { Runtime.trap("Task not found") };
+    };
+  };
+
+  public shared ({ caller }) func delegasiTaskAsAsistenmu(
+    idTask : Text,
+    partnerId : Text,
+    partnerNama : Text,
+    jamEfektif : Nat,
+    unitLayanan : Nat,
+    notesAsistenmu : Text,
+    linkGdriveInternal : Text,
+    linkGdriveClient : Text
+  ) : async () {
+    switch (tasks.get(idTask)) {
+      case (?task) {
+        if (task.asistenmuId != caller.toText()) {
+          Runtime.trap("Task does not belong to caller as Asistenmu");
+        };
+
+        let updatedTask = {
+          task with
+          partnerId;
+          partnerNama;
+          jamEfektif;
+          unitLayanan;
+          notesAsistenmu;
+          linkGdriveInternal;
+          linkGdriveClient;
+          status = #permintaanbaru;
+        };
+
+        tasks.add(idTask, updatedTask);
       };
       case (null) { Runtime.trap("Task not found") };
     };
@@ -1350,5 +1514,216 @@ actor {
         req.partnerId == callerText;
       }
     );
+  };
+
+  public query ({ caller }) func getPartnersAsAsistenmu() : async [Partner] {
+    let callerText = caller.toText();
+    switch (users.get(caller)) {
+      case (?user) {
+        if (user.role != #asistenmu or user.status != #active) {
+          Runtime.trap("Not authorized (must be active asistenmu)");
+        };
+      };
+      case (null) { Runtime.trap("Not authorized (must be active asistenmu)") };
+    };
+
+    partners.values().toArray().filter(
+      func(p) {
+        p.status == #active;
+      }
+    );
+  };
+
+  public shared ({ caller }) func updateTaskStatusAsClient(idTask : Text, status : TaskStatus) : async () {
+    switch (clients.get(caller)) {
+      case (null) { Runtime.trap("Not a valid client") };
+      case (?_) {
+        switch (tasks.get(idTask)) {
+          case (?task) {
+            if (task.clientId != caller.toText()) {
+              Runtime.trap("Task does not belong to caller");
+            };
+
+            switch (status) {
+              case (#revisi) {};
+              case (#selesai) {
+                if (task.status != #selesai and task.unitLayanan > 0) {
+                  switch (services.get(task.serviceId)) {
+                    case (?service) {
+                      let newUnits = if (service.unitLayanan >= task.unitLayanan) {
+                        service.unitLayanan - task.unitLayanan;
+                      } else { 0 };
+                      let updatedService = {
+                        service with unitLayanan = newUnits
+                      };
+                      services.add(task.serviceId, updatedService);
+                    };
+                    case (null) {};
+                  };
+                };
+              };
+              case (_) { Runtime.trap("Not allowed") };
+            };
+
+            let updatedTask = { task with status };
+            tasks.add(idTask, updatedTask);
+          };
+          case (null) { Runtime.trap("Task not found") };
+        };
+      };
+    };
+  };
+
+  public shared ({ caller }) func cancelTask(idTask : Text) : async () {
+    switch (clients.get(caller)) {
+      case (null) { Runtime.trap("Not a valid client") };
+      case (?_) {
+        switch (tasks.get(idTask)) {
+          case (null) { Runtime.trap("Task not found") };
+          case (?task) {
+            if (task.clientId != caller.toText()) {
+              Runtime.trap("Task does not belong to caller");
+            };
+            if (task.partnerId != "") {
+              Runtime.trap("Task already delegated to partner, cannot cancel");
+            };
+            tasks.remove(idTask);
+          };
+        };
+      };
+    };
+  };
+
+  public query ({ caller }) func getAdminSummary() : async AdminSummary {
+    checkAdminOrOperasional(caller);
+
+    // GMV from services: sum(unitLayanan * hargaPerLayanan) per tipe
+    var gmvTenang = 0; var gmvRapi = 0; var gmvFokus = 0; var gmvJaga = 0; var gmvEfisien = 0;
+    var layananAktifTenang = 0; var layananAktifRapi = 0; var layananAktifFokus = 0; var layananAktifJaga = 0; var layananAktifEfisien = 0;
+    var totalUnitAktif = 0;
+
+    for (svc in services.values()) {
+      let val = svc.unitLayanan * svc.hargaPerLayanan;
+      switch (svc.tipeLayanan) {
+        case (#tenang) { gmvTenang += val };
+        case (#rapi) { gmvRapi += val };
+        case (#fokus) { gmvFokus += val };
+        case (#jaga) { gmvJaga += val };
+        case (#efisien) { gmvEfisien += val };
+      };
+      if (svc.status == #active) {
+        totalUnitAktif += svc.unitLayanan;
+        switch (svc.tipeLayanan) {
+          case (#tenang) { layananAktifTenang += 1 };
+          case (#rapi) { layananAktifRapi += 1 };
+          case (#fokus) { layananAktifFokus += 1 };
+          case (#jaga) { layananAktifJaga += 1 };
+          case (#efisien) { layananAktifEfisien += 1 };
+        };
+      };
+    };
+
+    // Also add GMV from topups: need hargaPerLayanan from the service
+    for (tu in topUps.values()) {
+      switch (services.get(tu.idService)) {
+        case (?svc) {
+          let val = tu.unitTambahan * svc.hargaPerLayanan;
+          switch (svc.tipeLayanan) {
+            case (#tenang) { gmvTenang += val };
+            case (#rapi) { gmvRapi += val };
+            case (#fokus) { gmvFokus += val };
+            case (#jaga) { gmvJaga += val };
+            case (#efisien) { gmvEfisien += val };
+          };
+        };
+        case (null) {};
+      };
+    };
+
+    let gmvTotal = gmvTenang + gmvRapi + gmvFokus + gmvJaga + gmvEfisien;
+
+    // Total unit on hold: sum unitLayanan of tasks with onprogress status
+    var totalUnitOnHold = 0;
+    var totalTaskOnProgress = 0;
+    var totalTaskRevisi = 0;
+    var totalTaskSelesai = 0;
+    var totalKonversi = 0; // total jam*rate for selesai tasks
+
+    for (task in tasks.values()) {
+      switch (task.status) {
+        case (#onprogress) {
+          totalUnitOnHold += task.unitLayanan;
+          totalTaskOnProgress += 1;
+        };
+        case (#revisi) { totalTaskRevisi += 1 };
+        case (#selesai) {
+          totalTaskSelesai += 1;
+          // compute rate from partner level
+          switch (partners.get(Principal.fromText(task.partnerId))) {
+            case (?p) {
+              let rate = switch (p.level) {
+                case (#junior) { 35000 };
+                case (#senior) { 55000 };
+                case (#expert) { 75000 };
+              };
+              totalKonversi += task.jamEfektif * rate;
+            };
+            case (null) {};
+          };
+        };
+        case (_) {};
+      };
+    };
+
+    // Total saldo partner = sum of (earnings - approved withdrawals) for all active partners
+    var totalSaldoPartner = 0;
+    var totalSudahWithdraw = 0;
+
+    for (wr in withdrawRequests.values()) {
+      if (wr.status == #approved) {
+        totalSudahWithdraw += wr.nominal;
+      };
+    };
+
+    // Partner saldo = totalKonversi - totalSudahWithdraw - pending withdrawals
+    // Simplified: total saldo = sum of each partner's (earned - approved_withdraw)
+    // We already have totalKonversi as total earned by all partners
+    // and totalSudahWithdraw as total approved withdrawals
+    var pendingWithdraw = 0;
+    for (wr in withdrawRequests.values()) {
+      if (wr.status == #pending) {
+        pendingWithdraw += wr.nominal;
+      };
+    };
+    let rawSaldo : Int = totalKonversi - totalSudahWithdraw - pendingWithdraw;
+    totalSaldoPartner := if (rawSaldo > 0) { rawSaldo.toNat() } else { 0 };
+
+    let rawMargin : Int = gmvTotal - totalKonversi;
+    let margin = if (rawMargin > 0) { rawMargin.toNat() } else { 0 };
+
+    let totalLayananAktif = layananAktifTenang + layananAktifRapi + layananAktifFokus + layananAktifJaga + layananAktifEfisien;
+
+    {
+      gmvTotal;
+      gmvTenang;
+      gmvRapi;
+      gmvFokus;
+      gmvJaga;
+      gmvEfisien;
+      totalSaldoPartner;
+      totalSudahWithdraw;
+      margin;
+      totalLayananAktif;
+      layananAktifTenang;
+      layananAktifRapi;
+      layananAktifFokus;
+      layananAktifJaga;
+      layananAktifEfisien;
+      totalUnitAktif;
+      totalUnitOnHold;
+      totalTaskOnProgress;
+      totalTaskRevisi;
+      totalTaskSelesai;
+    };
   };
 };

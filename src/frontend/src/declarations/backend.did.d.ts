@@ -17,6 +17,28 @@ export interface AdminLog {
   'idLog' : string,
   'targetId' : string,
 }
+export interface AdminSummary {
+  'layananAktifTenang' : bigint,
+  'totalTaskRevisi' : bigint,
+  'gmvEfisien' : bigint,
+  'totalTaskSelesai' : bigint,
+  'gmvTenang' : bigint,
+  'gmvJaga' : bigint,
+  'gmvRapi' : bigint,
+  'gmvFokus' : bigint,
+  'layananAktifFokus' : bigint,
+  'totalSudahWithdraw' : bigint,
+  'gmvTotal' : bigint,
+  'totalLayananAktif' : bigint,
+  'totalSaldoPartner' : bigint,
+  'totalUnitOnHold' : bigint,
+  'margin' : bigint,
+  'layananAktifJaga' : bigint,
+  'layananAktifRapi' : bigint,
+  'totalUnitAktif' : bigint,
+  'layananAktifEfisien' : bigint,
+  'totalTaskOnProgress' : bigint,
+}
 export interface Client {
   'status' : Status,
   'nama' : string,
@@ -182,6 +204,7 @@ export interface _SERVICE {
    * / Archive a service (admin/operasional only)
    */
   'archiveService' : ActorMethod<[string], undefined>,
+  'cancelTask' : ActorMethod<[string], undefined>,
   'claimAdmin' : ActorMethod<[string, string, string], undefined>,
   'createTask' : ActorMethod<
     [string, string, bigint, string, string, string, string, string],
@@ -191,11 +214,16 @@ export interface _SERVICE {
     [string, string, string, bigint, bigint, string, string, string],
     undefined
   >,
+  'delegasiTaskAsAsistenmu' : ActorMethod<
+    [string, string, string, bigint, bigint, string, string, string],
+    undefined
+  >,
   /**
    * / Admin Functions
    */
   'forceClaimAdmin' : ActorMethod<[string, string, string], undefined>,
   'getAdminLogs' : ActorMethod<[], Array<AdminLog>>,
+  'getAdminSummary' : ActorMethod<[], AdminSummary>,
   'getAllClients' : ActorMethod<[], Array<Client>>,
   'getAllPartners' : ActorMethod<[], Array<Partner>>,
   'getAllTasks' : ActorMethod<[], Array<Task>>,
@@ -240,6 +268,7 @@ export interface _SERVICE {
   'getMyWallet' : ActorMethod<[], WalletInfo>,
   'getMyWithdrawRequests' : ActorMethod<[], Array<WithdrawRequest>>,
   'getPartners' : ActorMethod<[], Array<Partner>>,
+  'getPartnersAsAsistenmu' : ActorMethod<[], Array<Partner>>,
   'getServiceStatus' : ActorMethod<[string], [] | [ServiceStatus]>,
   'getServices' : ActorMethod<[], Array<Service>>,
   'getTaskStatus' : ActorMethod<[string], [] | [TaskStatus]>,
@@ -274,6 +303,8 @@ export interface _SERVICE {
   'suspendClient' : ActorMethod<[Principal], undefined>,
   'suspendPartner' : ActorMethod<[Principal], undefined>,
   'suspendUser' : ActorMethod<[Principal], undefined>,
+  'terimaTask' : ActorMethod<[string], undefined>,
+  'tolakTask' : ActorMethod<[string], undefined>,
   'topUpService' : ActorMethod<[string, bigint], string>,
   'updateMyPartnerProfile' : ActorMethod<
     [string, string, string, string],
@@ -288,6 +319,9 @@ export interface _SERVICE {
     undefined
   >,
   'updateTaskStatus' : ActorMethod<[string, TaskStatus], undefined>,
+  'updateTaskStatusAsAsistenmu' : ActorMethod<[string, TaskStatus], undefined>,
+  'updateTaskStatusAsClient' : ActorMethod<[string, TaskStatus], undefined>,
+  'updateTaskStatusAsPartner' : ActorMethod<[string, TaskStatus], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

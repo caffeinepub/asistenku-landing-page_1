@@ -1,6 +1,9 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
 import { useNavigate } from "@tanstack/react-router";
 import {
   ChevronDown,
@@ -11,7 +14,11 @@ import {
   Layers,
   Loader2,
   LogOut,
+  RefreshCw,
+  RotateCcw,
+  Send,
   Star,
+  UserCheck,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -72,6 +79,15 @@ interface UserProfile {
   createdAt: bigint;
 }
 
+interface PartnerItem {
+  idUser: string;
+  principalId: string;
+  nama: string;
+  verifiedSkill: string[];
+  level: Record<string, null> | string;
+  status: Record<string, null> | string;
+}
+
 // ── Helpers ────────────────────────────────────────────────────────────────────
 // Handle both Motoko variant { key: null } and string enum values
 function extractKey(obj: unknown): string {
@@ -92,7 +108,9 @@ function getTipe(obj: Record<string, null>): string {
 }
 
 function formatDate(ts: bigint): string {
-  const ms = Number(ts) / 1_000_000;
+  const raw = Number(ts);
+  // createdAt from backend = nanoseconds (> 1e15), deadline from client = milliseconds
+  const ms = raw > 1e15 ? raw / 1_000_000 : raw;
   return new Date(ms).toLocaleDateString("id-ID", {
     day: "numeric",
     month: "short",
@@ -254,6 +272,21 @@ export default function DashboardAsistenmu() {
   const [services, setServices] = useState<Service[]>([]);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState<Record<string, boolean>>(
+    {},
+  );
+  const [partners, setPartners] = useState<PartnerItem[]>([]);
+
+  // Delegasi form state (shared between Permintaan Baru and Ditolak)
+  const [delegasiOpenFor, setDelegasiOpenFor] = useState<string | null>(null);
+  const [delegasiParterSearch, setDelegasiPartnerSearch] = useState("");
+  const [delegasiPartnerId, setDelegasiPartnerId] = useState("");
+  const [delegasiPartnerNama, setDelegasiPartnerNama] = useState("");
+  const [delegasiJam, setDelegasiJam] = useState("");
+  const [delegasiUnit, setDelegasiUnit] = useState("");
+  const [delegasiNotes, setDelegasiNotes] = useState("");
+  const [delegasiGdriveInternal, setDelegasiGdriveInternal] = useState("");
+  const [delegasiGdriveClient, setDelegasiGdriveClient] = useState("");
 
   const fetchData = useCallback(async () => {
     if (!actor) return;
@@ -263,7 +296,7 @@ export default function DashboardAsistenmu() {
         string,
         (...args: unknown[]) => Promise<unknown>
       >;
-      const [t, svc, p] = await Promise.all([
+      const [t, svc, p, partnerList] = await Promise.all([
         // getAllTasksByAsistenmu returns ALL statuses for this asistenmu
         (act.getAllTasksByAsistenmu() as Promise<Task[]>).catch(() =>
           // fallback: getTasksByAsistenmu only returns permintaanbaru
@@ -275,10 +308,20 @@ export default function DashboardAsistenmu() {
           () => [] as Service[],
         ),
         (act.getMyProfile() as Promise<UserProfile | null>).catch(() => null),
+        (act.getPartnersAsAsistenmu() as Promise<PartnerItem[]>).catch(() =>
+          (act.getPartners() as Promise<PartnerItem[]>).catch(
+            () => [] as PartnerItem[],
+          ),
+        ),
       ]);
       setTasks(t);
       setServices(svc);
       setProfile(p);
+      // Filter active partners only
+      const activePartners = (partnerList as PartnerItem[]).filter(
+        (pt) => extractKey(pt.status) === "active",
+      );
+      setPartners(activePartners);
     } catch {
       toast.error("Gagal memuat data.");
     } finally {
@@ -296,6 +339,113 @@ export default function DashboardAsistenmu() {
     clear();
     void navigate({ to: "/portal-internal" });
   }
+
+  function setLoadingKey(key: string, v: boolean) {
+    setActionLoading((prev) => ({ ...prev, [key]: v }));
+  }
+
+  async function runAction(
+    key: string,
+    fn: () => Promise<void>,
+    successMsg: string,
+  ) {
+    setLoadingKey(key, true);
+    try {
+      await fn();
+      toast.success(successMsg);
+      await fetchData();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Terjadi kesalahan.";
+      toast.error(msg);
+    } finally {
+      setLoadingKey(key, false);
+    }
+  }
+
+  const act = actor as unknown as Record<
+    string,
+    (...args: unknown[]) => Promise<void>
+  >;
+
+  function openDelegasiForm(task: Task) {
+    setDelegasiOpenFor(task.idTask);
+    setDelegasiPartnerSearch("");
+    setDelegasiPartnerId(task.partnerId || "");
+    setDelegasiPartnerNama(task.partnerNama || "");
+    setDelegasiJam(task.jamEfektif > 0n ? String(task.jamEfektif) : "");
+    setDelegasiUnit(task.unitLayanan > 0n ? String(task.unitLayanan) : "");
+    setDelegasiNotes(task.notesAsistenmu || "");
+    setDelegasiGdriveInternal(task.linkGdriveInternal || "");
+    setDelegasiGdriveClient(task.linkGdriveClient || "");
+  }
+
+  function closeDelegasiForm() {
+    setDelegasiOpenFor(null);
+    setDelegasiPartnerSearch("");
+    setDelegasiPartnerId("");
+    setDelegasiPartnerNama("");
+    setDelegasiJam("");
+    setDelegasiUnit("");
+    setDelegasiNotes("");
+    setDelegasiGdriveInternal("");
+    setDelegasiGdriveClient("");
+  }
+
+  async function handleDelegasi(idTask: string) {
+    if (!delegasiPartnerId || !delegasiPartnerNama) {
+      toast.error("Pilih partner terlebih dahulu.");
+      return;
+    }
+    const jam = BigInt(Number.parseInt(delegasiJam) || 0);
+    const unit = BigInt(Number.parseInt(delegasiUnit) || 0);
+    await runAction(
+      `delegasi-${idTask}`,
+      () =>
+        act.delegasiTaskAsAsistenmu(
+          idTask,
+          delegasiPartnerId,
+          delegasiPartnerNama,
+          jam,
+          unit,
+          delegasiNotes,
+          delegasiGdriveInternal,
+          delegasiGdriveClient,
+        ),
+      `Task ${idTask} berhasil didelegasikan ke ${delegasiPartnerNama}.`,
+    );
+    closeDelegasiForm();
+  }
+
+  // Compute on-progress hours per partner (from tasks list)
+  function getPartnerOnProgressHours(partnerPrincipalId: string): number {
+    return tasks
+      .filter(
+        (t) =>
+          t.partnerId === partnerPrincipalId &&
+          getTaskStatus(t) === "onprogress",
+      )
+      .reduce((acc, t) => acc + Number(t.jamEfektif), 0);
+  }
+
+  // Count on-progress tasks per partner
+  function getPartnerOnProgressCount(partnerPrincipalId: string): number {
+    return tasks.filter(
+      (t) =>
+        t.partnerId === partnerPrincipalId && getTaskStatus(t) === "onprogress",
+    ).length;
+  }
+
+  // Filtered partner search results
+  const filteredPartners = delegasiParterSearch
+    ? partners.filter(
+        (p) =>
+          p.nama.toLowerCase().includes(delegasiParterSearch.toLowerCase()) ||
+          p.idUser.toLowerCase().includes(delegasiParterSearch.toLowerCase()) ||
+          p.verifiedSkill.some((s) =>
+            s.toLowerCase().includes(delegasiParterSearch.toLowerCase()),
+          ),
+      )
+    : partners.slice(0, 5);
 
   // Task counts by status
   const taskPermintaanBaru = tasks.filter(
@@ -340,14 +490,28 @@ export default function DashboardAsistenmu() {
               Dashboard Asistenmu
             </span>
           </div>
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="flex items-center gap-2 border border-slate-200 text-slate-600 hover:text-slate-900 hover:border-slate-300 px-4 py-2 rounded-full text-sm font-medium transition-colors"
-          >
-            <LogOut size={15} />
-            Keluar
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => void fetchData()}
+              disabled={isLoading}
+              className="flex items-center gap-2 border border-slate-200 text-slate-600 hover:text-slate-900 hover:border-slate-300 px-3 py-2 rounded-full text-sm font-medium transition-colors disabled:opacity-50"
+              title="Refresh data"
+            >
+              <RefreshCw
+                size={15}
+                className={isLoading ? "animate-spin" : ""}
+              />
+            </button>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="flex items-center gap-2 border border-slate-200 text-slate-600 hover:text-slate-900 hover:border-slate-300 px-4 py-2 rounded-full text-sm font-medium transition-colors"
+            >
+              <LogOut size={15} />
+              Keluar
+            </button>
+          </div>
         </div>
       </header>
 
@@ -541,10 +705,7 @@ export default function DashboardAsistenmu() {
               <>
                 <div className="flex flex-col divide-y divide-slate-100 mt-2">
                   {pagTasks.paged.map((task) => (
-                    <div
-                      key={task.idTask}
-                      className="py-3 flex flex-col gap-1.5"
-                    >
+                    <div key={task.idTask} className="py-3 flex flex-col gap-2">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-xs font-mono text-slate-500">
                           {task.idTask}
@@ -618,6 +779,170 @@ export default function DashboardAsistenmu() {
                           </a>
                         )}
                       </div>
+
+                      {/* Delegasi Button */}
+                      {delegasiOpenFor !== task.idTask ? (
+                        <Button
+                          size="sm"
+                          onClick={() => openDelegasiForm(task)}
+                          className="text-xs bg-slate-900 text-white hover:bg-slate-700 rounded-full w-fit"
+                        >
+                          <UserCheck size={12} className="mr-1" />
+                          Delegasikan
+                        </Button>
+                      ) : (
+                        <div className="mt-2 bg-slate-50 rounded-xl p-4 border border-slate-200 flex flex-col gap-3">
+                          <p className="text-xs font-semibold text-slate-700">
+                            Form Delegasi Partner
+                          </p>
+                          {/* Partner search */}
+                          <div className="flex flex-col gap-1">
+                            <Label className="text-xs">Cari Partner</Label>
+                            <Input
+                              value={delegasiParterSearch}
+                              onChange={(e) =>
+                                setDelegasiPartnerSearch(e.target.value)
+                              }
+                              placeholder="Cari partner (ID / Nama / Skill)..."
+                              className="h-8 text-sm"
+                            />
+                            {filteredPartners.length > 0 && (
+                              <div className="bg-white rounded-lg border border-slate-200 max-h-40 overflow-y-auto">
+                                {filteredPartners.map((pt) => {
+                                  const opHours = getPartnerOnProgressHours(
+                                    pt.principalId,
+                                  );
+                                  const opCount = getPartnerOnProgressCount(
+                                    pt.principalId,
+                                  );
+                                  return (
+                                    <button
+                                      key={pt.principalId}
+                                      type="button"
+                                      className="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 flex flex-col gap-0.5"
+                                      onClick={() => {
+                                        setDelegasiPartnerId(pt.principalId);
+                                        setDelegasiPartnerNama(pt.nama);
+                                        setDelegasiPartnerSearch(pt.nama);
+                                      }}
+                                    >
+                                      <span className="font-medium text-slate-800">
+                                        {pt.nama}
+                                      </span>
+                                      <span className="text-slate-400 font-mono">
+                                        {pt.idUser}
+                                      </span>
+                                      {pt.verifiedSkill &&
+                                        pt.verifiedSkill.length > 0 && (
+                                          <span className="text-teal-600 text-xs">
+                                            {pt.verifiedSkill.join(", ")}
+                                          </span>
+                                        )}
+                                      {opCount > 0 && (
+                                        <span className="text-blue-600">
+                                          On Progress: {opCount} task ·{" "}
+                                          {opHours} jam
+                                        </span>
+                                      )}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+                            {delegasiPartnerId && (
+                              <p className="text-xs text-emerald-600">
+                                ✓ Partner dipilih: {delegasiPartnerNama}
+                              </p>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="flex flex-col gap-1">
+                              <Label className="text-xs">Jam Efektif</Label>
+                              <Input
+                                type="number"
+                                value={delegasiJam}
+                                onChange={(e) => setDelegasiJam(e.target.value)}
+                                placeholder="0"
+                                className="h-8 text-sm"
+                              />
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              <Label className="text-xs">Unit Layanan</Label>
+                              <Input
+                                type="number"
+                                value={delegasiUnit}
+                                onChange={(e) =>
+                                  setDelegasiUnit(e.target.value)
+                                }
+                                placeholder="0"
+                                className="h-8 text-sm"
+                              />
+                            </div>
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <Label className="text-xs">Notes Asistenmu</Label>
+                            <Textarea
+                              value={delegasiNotes}
+                              onChange={(e) => setDelegasiNotes(e.target.value)}
+                              placeholder="Catatan untuk partner..."
+                              className="text-sm min-h-[64px] resize-none"
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <Label className="text-xs">
+                              Link GDrive Internal
+                            </Label>
+                            <Input
+                              value={delegasiGdriveInternal}
+                              onChange={(e) =>
+                                setDelegasiGdriveInternal(e.target.value)
+                              }
+                              placeholder="https://drive.google.com/..."
+                              className="h-8 text-sm"
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <Label className="text-xs">
+                              Link GDrive Client
+                            </Label>
+                            <Input
+                              value={delegasiGdriveClient}
+                              onChange={(e) =>
+                                setDelegasiGdriveClient(e.target.value)
+                              }
+                              placeholder="https://drive.google.com/..."
+                              className="h-8 text-sm"
+                            />
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              disabled={
+                                actionLoading[`delegasi-${task.idTask}`]
+                              }
+                              onClick={() => handleDelegasi(task.idTask)}
+                              className="flex-1 text-xs bg-slate-900 text-white hover:bg-slate-700 rounded-full"
+                            >
+                              {actionLoading[`delegasi-${task.idTask}`] ? (
+                                <Loader2 size={12} className="animate-spin" />
+                              ) : (
+                                <>
+                                  <Send size={12} className="mr-1" />
+                                  Delegasikan
+                                </>
+                              )}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="flex-1 text-xs rounded-full"
+                              onClick={closeDelegasiForm}
+                            >
+                              Batal
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -644,10 +969,7 @@ export default function DashboardAsistenmu() {
               <>
                 <div className="flex flex-col divide-y divide-slate-100 mt-2">
                   {pagOnProgress.paged.map((task) => (
-                    <div
-                      key={task.idTask}
-                      className="py-3 flex flex-col gap-1.5"
-                    >
+                    <div key={task.idTask} className="py-3 flex flex-col gap-2">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-xs font-mono text-slate-500">
                           {task.idTask}
@@ -686,6 +1008,31 @@ export default function DashboardAsistenmu() {
                           </span>
                         )}
                       </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={actionLoading[`review-${task.idTask}`]}
+                        onClick={() =>
+                          runAction(
+                            `review-${task.idTask}`,
+                            () =>
+                              act.updateTaskStatusAsAsistenmu(task.idTask, {
+                                reviewclient: null,
+                              }),
+                            `Task ${task.idTask} dikirim ke Review Client.`,
+                          )
+                        }
+                        className="text-xs text-amber-600 border-amber-200 hover:bg-amber-50 rounded-full w-fit"
+                      >
+                        {actionLoading[`review-${task.idTask}`] ? (
+                          <Loader2 size={12} className="animate-spin" />
+                        ) : (
+                          <>
+                            <RefreshCw size={12} className="mr-1" />
+                            Meminta Review Client
+                          </>
+                        )}
+                      </Button>
                     </div>
                   ))}
                 </div>
@@ -737,6 +1084,14 @@ export default function DashboardAsistenmu() {
                             {task.clientNama || "—"}
                           </span>
                         </span>
+                        {task.partnerNama && (
+                          <span>
+                            Partner:{" "}
+                            <span className="text-slate-700">
+                              {task.partnerNama}
+                            </span>
+                          </span>
+                        )}
                         {task.deadline > 0n && (
                           <span>
                             Deadline:{" "}
@@ -745,6 +1100,54 @@ export default function DashboardAsistenmu() {
                             </span>
                           </span>
                         )}
+                      </div>
+                      <div className="flex gap-2 flex-wrap">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={actionLoading[`revisi-rc-${task.idTask}`]}
+                          onClick={() =>
+                            runAction(
+                              `revisi-rc-${task.idTask}`,
+                              () =>
+                                act.updateTaskStatusAsAsistenmu(task.idTask, {
+                                  revisi: null,
+                                }),
+                              `Task ${task.idTask} dipindah ke Revisi.`,
+                            )
+                          }
+                          className="text-xs text-red-600 border-red-200 hover:bg-red-50 rounded-full w-fit"
+                        >
+                          {actionLoading[`revisi-rc-${task.idTask}`] ? (
+                            <Loader2 size={12} className="animate-spin" />
+                          ) : (
+                            <>
+                              <RefreshCw size={12} className="mr-1" />
+                              Minta Revisi
+                            </>
+                          )}
+                        </Button>
+                        <Button
+                          size="sm"
+                          disabled={actionLoading[`selesai-rc-${task.idTask}`]}
+                          onClick={() =>
+                            runAction(
+                              `selesai-rc-${task.idTask}`,
+                              () =>
+                                act.updateTaskStatusAsAsistenmu(task.idTask, {
+                                  selesai: null,
+                                }),
+                              `Task ${task.idTask} diselesaikan.`,
+                            )
+                          }
+                          className="text-xs bg-emerald-600 text-white hover:bg-emerald-700 rounded-full w-fit"
+                        >
+                          {actionLoading[`selesai-rc-${task.idTask}`] ? (
+                            <Loader2 size={12} className="animate-spin" />
+                          ) : (
+                            "Selesaikan"
+                          )}
+                        </Button>
                       </div>
                     </div>
                   ))}
@@ -772,10 +1175,7 @@ export default function DashboardAsistenmu() {
               <>
                 <div className="flex flex-col divide-y divide-slate-100 mt-2">
                   {pagQA.paged.map((task) => (
-                    <div
-                      key={task.idTask}
-                      className="py-3 flex flex-col gap-1.5"
-                    >
+                    <div key={task.idTask} className="py-3 flex flex-col gap-2">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-xs font-mono text-slate-500">
                           {task.idTask}
@@ -798,6 +1198,31 @@ export default function DashboardAsistenmu() {
                           </span>
                         </span>
                       </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={actionLoading[`review-qa-${task.idTask}`]}
+                        onClick={() =>
+                          runAction(
+                            `review-qa-${task.idTask}`,
+                            () =>
+                              act.updateTaskStatusAsAsistenmu(task.idTask, {
+                                reviewclient: null,
+                              }),
+                            `Task ${task.idTask} dikirim ke Review Client.`,
+                          )
+                        }
+                        className="text-xs text-amber-600 border-amber-200 hover:bg-amber-50 rounded-full w-fit"
+                      >
+                        {actionLoading[`review-qa-${task.idTask}`] ? (
+                          <Loader2 size={12} className="animate-spin" />
+                        ) : (
+                          <>
+                            <RefreshCw size={12} className="mr-1" />
+                            Meminta Review Client
+                          </>
+                        )}
+                      </Button>
                     </div>
                   ))}
                 </div>
@@ -824,10 +1249,7 @@ export default function DashboardAsistenmu() {
               <>
                 <div className="flex flex-col divide-y divide-slate-100 mt-2">
                   {pagRevisi.paged.map((task) => (
-                    <div
-                      key={task.idTask}
-                      className="py-3 flex flex-col gap-1.5"
-                    >
+                    <div key={task.idTask} className="py-3 flex flex-col gap-2">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-xs font-mono text-slate-500">
                           {task.idTask}
@@ -849,12 +1271,45 @@ export default function DashboardAsistenmu() {
                             {task.clientNama || "—"}
                           </span>
                         </span>
+                        {task.partnerNama && (
+                          <span>
+                            Partner:{" "}
+                            <span className="text-slate-700">
+                              {task.partnerNama}
+                            </span>
+                          </span>
+                        )}
                       </div>
                       {task.notesAsistenmu && (
                         <p className="text-xs text-slate-500 italic bg-slate-50 rounded-lg px-3 py-2 border border-slate-100">
                           {task.notesAsistenmu}
                         </p>
                       )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={actionLoading[`kirim-revisi-${task.idTask}`]}
+                        onClick={() =>
+                          runAction(
+                            `kirim-revisi-${task.idTask}`,
+                            () =>
+                              act.updateTaskStatusAsAsistenmu(task.idTask, {
+                                onprogress: null,
+                              }),
+                            `Task ${task.idTask} dikirim kembali ke partner untuk revisi.`,
+                          )
+                        }
+                        className="text-xs text-blue-600 border-blue-200 hover:bg-blue-50 rounded-full w-fit"
+                      >
+                        {actionLoading[`kirim-revisi-${task.idTask}`] ? (
+                          <Loader2 size={12} className="animate-spin" />
+                        ) : (
+                          <>
+                            <Send size={12} className="mr-1" />
+                            Kirim Revisi ke Partner
+                          </>
+                        )}
+                      </Button>
                     </div>
                   ))}
                 </div>
@@ -881,16 +1336,207 @@ export default function DashboardAsistenmu() {
               <>
                 <div className="flex flex-col divide-y divide-slate-100 mt-2">
                   {pagDitolak.paged.map((task) => (
-                    <div
-                      key={task.idTask}
-                      className="py-3 flex flex-col gap-1.5"
-                    >
-                      <span className="text-xs font-mono text-slate-500">
-                        {task.idTask}
-                      </span>
+                    <div key={task.idTask} className="py-3 flex flex-col gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs font-mono text-slate-500">
+                          {task.idTask}
+                        </span>
+                        <Badge
+                          variant="outline"
+                          className="text-xs bg-rose-50 text-rose-700 border-rose-200"
+                        >
+                          Ditolak Partner
+                        </Badge>
+                      </div>
                       <p className="font-medium text-slate-900 text-sm">
                         {task.judulTask}
                       </p>
+                      <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-slate-500">
+                        <span>
+                          Client:{" "}
+                          <span className="text-slate-700">
+                            {task.clientNama || "—"}
+                          </span>
+                        </span>
+                        {task.partnerNama && (
+                          <span>
+                            Partner Sebelumnya:{" "}
+                            <span className="text-slate-700">
+                              {task.partnerNama}
+                            </span>
+                          </span>
+                        )}
+                        {task.deadline > 0n && (
+                          <span>
+                            Deadline:{" "}
+                            <span className="text-slate-700">
+                              {formatDate(task.deadline)}
+                            </span>
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Delegasi Ulang Button */}
+                      {delegasiOpenFor !== task.idTask ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openDelegasiForm(task)}
+                          className="text-xs text-rose-600 border-rose-200 hover:bg-rose-50 rounded-full w-fit"
+                        >
+                          <RotateCcw size={12} className="mr-1" />
+                          Delegasi Ulang
+                        </Button>
+                      ) : (
+                        <div className="mt-2 bg-slate-50 rounded-xl p-4 border border-slate-200 flex flex-col gap-3">
+                          <p className="text-xs font-semibold text-slate-700">
+                            Form Delegasi Ulang Partner
+                          </p>
+                          {/* Partner search — can be changed */}
+                          <div className="flex flex-col gap-1">
+                            <Label className="text-xs">
+                              Pilih Partner Baru
+                            </Label>
+                            <Input
+                              value={delegasiParterSearch}
+                              onChange={(e) =>
+                                setDelegasiPartnerSearch(e.target.value)
+                              }
+                              placeholder="Nama atau ID partner..."
+                              className="h-8 text-sm"
+                            />
+                            {filteredPartners.length > 0 && (
+                              <div className="bg-white rounded-lg border border-slate-200 max-h-40 overflow-y-auto">
+                                {filteredPartners.map((pt) => {
+                                  const opHours = getPartnerOnProgressHours(
+                                    pt.principalId,
+                                  );
+                                  const opCount = getPartnerOnProgressCount(
+                                    pt.principalId,
+                                  );
+                                  return (
+                                    <button
+                                      key={pt.principalId}
+                                      type="button"
+                                      className="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 flex flex-col gap-0.5"
+                                      onClick={() => {
+                                        setDelegasiPartnerId(pt.principalId);
+                                        setDelegasiPartnerNama(pt.nama);
+                                        setDelegasiPartnerSearch(pt.nama);
+                                      }}
+                                    >
+                                      <span className="font-medium text-slate-800">
+                                        {pt.nama}
+                                      </span>
+                                      <span className="text-slate-400 font-mono">
+                                        {pt.idUser}
+                                      </span>
+                                      {opCount > 0 && (
+                                        <span className="text-blue-600">
+                                          On Progress: {opCount} task ·{" "}
+                                          {opHours} jam
+                                        </span>
+                                      )}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+                            {delegasiPartnerId && (
+                              <p className="text-xs text-emerald-600">
+                                ✓ Partner dipilih: {delegasiPartnerNama}
+                              </p>
+                            )}
+                          </div>
+                          {/* Other fields pre-filled, readonly hint */}
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="flex flex-col gap-1">
+                              <Label className="text-xs">Jam Efektif</Label>
+                              <Input
+                                type="number"
+                                value={delegasiJam}
+                                onChange={(e) => setDelegasiJam(e.target.value)}
+                                placeholder="0"
+                                className="h-8 text-sm"
+                              />
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              <Label className="text-xs">Unit Layanan</Label>
+                              <Input
+                                type="number"
+                                value={delegasiUnit}
+                                onChange={(e) =>
+                                  setDelegasiUnit(e.target.value)
+                                }
+                                placeholder="0"
+                                className="h-8 text-sm"
+                              />
+                            </div>
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <Label className="text-xs">Notes Asistenmu</Label>
+                            <Textarea
+                              value={delegasiNotes}
+                              onChange={(e) => setDelegasiNotes(e.target.value)}
+                              placeholder="Catatan untuk partner..."
+                              className="text-sm min-h-[64px] resize-none"
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <Label className="text-xs">
+                              Link GDrive Internal
+                            </Label>
+                            <Input
+                              value={delegasiGdriveInternal}
+                              onChange={(e) =>
+                                setDelegasiGdriveInternal(e.target.value)
+                              }
+                              placeholder="https://drive.google.com/..."
+                              className="h-8 text-sm"
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <Label className="text-xs">
+                              Link GDrive Client
+                            </Label>
+                            <Input
+                              value={delegasiGdriveClient}
+                              onChange={(e) =>
+                                setDelegasiGdriveClient(e.target.value)
+                              }
+                              placeholder="https://drive.google.com/..."
+                              className="h-8 text-sm"
+                            />
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              disabled={
+                                actionLoading[`delegasi-${task.idTask}`]
+                              }
+                              onClick={() => handleDelegasi(task.idTask)}
+                              className="flex-1 text-xs bg-slate-900 text-white hover:bg-slate-700 rounded-full"
+                            >
+                              {actionLoading[`delegasi-${task.idTask}`] ? (
+                                <Loader2 size={12} className="animate-spin" />
+                              ) : (
+                                <>
+                                  <Send size={12} className="mr-1" />
+                                  Delegasikan Ulang
+                                </>
+                              )}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="flex-1 text-xs rounded-full"
+                              onClick={closeDelegasiForm}
+                            >
+                              Batal
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
