@@ -16,6 +16,7 @@ import ClientRegister from "./pages/ClientRegister";
 import DashboardAdmin from "./pages/DashboardAdmin";
 import DashboardAsistenmu from "./pages/DashboardAsistenmu";
 import DashboardClient from "./pages/DashboardClient";
+import DashboardInvestor from "./pages/DashboardInvestor";
 import DashboardOperasional from "./pages/DashboardOperasional";
 import DashboardPartner from "./pages/DashboardPartner";
 import InternalPortal from "./pages/InternalPortal";
@@ -416,6 +417,12 @@ const tentangPartnerAsistemuRoute = createRoute({
   component: TentangPartnerAsistenku,
 });
 
+const dashboardInvestorRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/dashboard-investor",
+  component: DashboardInvestor,
+});
+
 const notFoundRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "$",
@@ -435,6 +442,7 @@ const routeTree = rootRoute.addChildren([
   dashboardPartnerRoute,
   claimAdminAsRoute,
   tentangPartnerAsistemuRoute,
+  dashboardInvestorRoute,
   notFoundRoute,
 ]);
 

@@ -238,6 +238,7 @@ function roleBadgeLabel(role: string): string {
     admin: "Admin",
     asistenmu: "Asistenmu",
     operasional: "Operasional",
+    investor: "Investor",
     client: "Client",
     partner: "Partner",
     public_: "Publik",
@@ -1194,6 +1195,7 @@ function UserFilterBar({
           <SelectItem value="operasional">Operasional</SelectItem>
           <SelectItem value="client">Client</SelectItem>
           <SelectItem value="partner">Partner</SelectItem>
+          <SelectItem value="investor">Investor</SelectItem>
         </SelectContent>
       </Select>
     </div>
@@ -3054,6 +3056,7 @@ function PendingRow({
             <SelectContent>
               <SelectItem value="operasional">Operasional</SelectItem>
               <SelectItem value="asistenmu">Asistenmu</SelectItem>
+              <SelectItem value="investor">Investor</SelectItem>
             </SelectContent>
           </Select>
           <div className="flex gap-2">

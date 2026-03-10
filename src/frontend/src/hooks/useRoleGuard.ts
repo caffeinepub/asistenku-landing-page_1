@@ -9,6 +9,7 @@ type RoleKey =
   | "asistenmu"
   | "client"
   | "partner"
+  | "investor"
   | null;
 
 function roleToDashboardPath(role: RoleKey): string {
@@ -23,6 +24,8 @@ function roleToDashboardPath(role: RoleKey): string {
       return "/dashboard-client";
     case "partner":
       return "/dashboard-partner";
+    case "investor":
+      return "/dashboard-investor";
     default:
       return "/";
   }
