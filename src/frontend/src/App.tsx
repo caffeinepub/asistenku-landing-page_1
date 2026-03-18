@@ -32,7 +32,6 @@ type ServiceCard = {
   short: string;
   price: string;
   body: string;
-  body2?: string;
   sharing: string[];
   note: string;
 };
@@ -43,10 +42,8 @@ const services: ServiceCard[] = [
     title: "TENANG",
     short:
       "Menjaga hidup tetap berjalan tanpa harus mengurus semuanya sendiri.",
-    price: "Mulai dari Rp 3.500.000 untuk alokasi 22 Unit Layanan",
-    body: "Paket ini dirancang untuk kebutuhan personal life dan personal work yang perlu berjalan rapi tanpa menyita perhatian Anda setiap hari.",
-    body2:
-      "Mulai dari pengaturan agenda, koordinasi aktivitas pribadi, hingga tugas-tugas digital yang mendukung keseharian Anda. Semua disusun oleh Asistenmu dan dijalankan oleh Partner yang sesuai.\n\nAnda tidak perlu mengelola orang. Anda hanya menerima hasil yang sudah terstruktur.",
+    price: "Mulai dari Rp. 3.500.000 untuk alokasi 22 unit layanan",
+    body: "Paket ini dirancang untuk kebutuhan personal life dan personal work yang perlu berjalan rapi tanpa menyita perhatian Anda setiap hari.\n\nMulai dari pengaturan agenda, koordinasi aktivitas pribadi, hingga tugas-tugas digital yang mendukung keseharian Anda. Semua disusun oleh Asistenmu dan dijalankan oleh Partner yang sesuai.\n\nAnda tidak perlu mengelola orang. Anda hanya menerima hasil yang sudah terstruktur.",
     sharing: ["hingga 2 anggota keluarga"],
     note: "Jika kebutuhan Anda mulai melibatkan pekerjaan atau aktivitas bisnis, Concierge kami dapat membantu mengkurasi struktur layanan yang lebih tepat.",
   },
@@ -54,10 +51,8 @@ const services: ServiceCard[] = [
     icon: "🗂️",
     title: "RAPI",
     short: "Ketika hidup pribadi dan pekerjaan mulai berjalan bersamaan.",
-    price: "Mulai dari Rp 5.500.000 untuk alokasi 20 Unit Layanan",
-    body: "Dirancang untuk individu yang mulai menyeimbangkan personal life dan aktivitas bisnis atau usaha. Paket ini membantu menjaga prioritas tetap jelas tanpa membuat Anda terjebak dalam koordinasi operasional harian.",
-    body2:
-      "Asistenmu menyusun struktur kerja, sementara Partner menjalankan eksekusi yang diperlukan.\n\nAnda tetap memegang kendali arah, tanpa harus mengatur detailnya.",
+    price: "Mulai dari Rp. 5.500.000 untuk alokasi 20 Unit Layanan",
+    body: "Dirancang untuk individu yang mulai menyeimbangkan personal life dan aktivitas bisnis atau usaha. Paket ini membantu menjaga prioritas tetap jelas tanpa membuat Anda terjebak dalam koordinasi operasional harian.\n\nAsistenmu menyusun struktur kerja, sementara Partner menjalankan eksekusi yang diperlukan.\n\nAnda tetap memegang kendali arah, tanpa harus mengatur detailnya.",
     sharing: [
       "hingga 2 anggota keluarga",
       "hingga 1 partner bisnis / manajemen",
@@ -68,10 +63,8 @@ const services: ServiceCard[] = [
     icon: "🎯",
     title: "FOKUS",
     short: "Mengembangkan tim tanpa harus menambah karyawan baru.",
-    price: "Mulai dari Rp 8.500.000 untuk alokasi 40 Unit Layanan",
-    body: "Paket ini cocok untuk fase ketika bisnis mulai berkembang dan membutuhkan dukungan operasional yang lebih luas.",
-    body2:
-      "Beberapa Partner dapat bekerja secara paralel dalam struktur yang dikendalikan oleh Asistenmu, memungkinkan berbagai tugas dan proyek berjalan bersamaan tanpa membebani tim inti Anda.\n\nIni memberi ruang untuk menskalakan divisi dan aktivitas bisnis tanpa proses hiring tambahan.",
+    price: "Mulai dari Rp. 8.500.000 untuk alokasi 40 Unit Layanan",
+    body: "Paket ini cocok untuk fase ketika bisnis mulai berkembang dan membutuhkan dukungan operasional yang lebih luas.\n\nBeberapa Partner dapat bekerja secara paralel dalam struktur yang dikendalikan oleh Asistenmu, memungkinkan berbagai tugas dan proyek berjalan bersamaan tanpa membebani tim inti Anda.\n\nIni memberi ruang untuk menskalakan divisi dan aktivitas bisnis tanpa proses hiring tambahan.",
     sharing: [
       "hingga 2 anggota keluarga",
       "hingga 2 partner bisnis / manajemen",
@@ -82,10 +75,8 @@ const services: ServiceCard[] = [
     icon: "🛡️",
     title: "JAGA",
     short: "Stabilitas operasional untuk tanggung jawab yang lebih besar.",
-    price: "Mulai dari Rp 12.000.000 untuk alokasi 60 Unit Layanan",
-    body: "Dirancang untuk pemilik bisnis atau eksekutif yang sudah memiliki struktur kerja stabil namun membutuhkan kontrol dan konsistensi operasional yang lebih kuat.",
-    body2:
-      "Delegasi berjalan sistematis melalui koordinasi Asistenmu, sementara Partner menjalankan berbagai fungsi yang dibutuhkan secara paralel.\n\nAnda tetap fokus pada keputusan strategis tanpa kehilangan visibilitas terhadap eksekusi.",
+    price: "Mulai dari Rp. 12.000.000 untuk alokasi 60 Unit Layanan",
+    body: "Dirancang untuk pemilik bisnis atau eksekutif yang sudah memiliki struktur kerja stabil namun membutuhkan kontrol dan konsistensi operasional yang lebih kuat.\n\nDelegasi berjalan sistematis melalui koordinasi Asistenmu, sementara Partner menjalankan berbagai fungsi yang dibutuhkan secara paralel.\n\nAnda tetap fokus pada keputusan strategis tanpa kehilangan visibilitas terhadap eksekusi.",
     sharing: [
       "hingga 2 anggota keluarga",
       "hingga 3 partner bisnis / manajemen",
@@ -95,10 +86,11 @@ const services: ServiceCard[] = [
 ];
 
 const steps = [
-  "Sampaikan kebutuhan Anda.",
-  "Asistenmu menyusunnya menjadi brief yang jelas dan terstruktur.",
-  "Partner yang tepat dipilih dan dikelola.",
-  "Hasil diperiksa sebelum sampai ke Anda.",
+  "Buat task baru di Dashboard anda",
+  "Asistenmu akan menyusun permintaan anda menjadi brief yang jelas dan terstruktur dan membuat estimasi unit layanan terpakai.",
+  "Asistenmu akan mendelegasikan ke partner yang tepat dan sesuai dengan bidangnya.",
+  "Semua hasil kerja partner melalui QA Asistenmu sebelum di review oleh anda.",
+  "Selesaikan task oleh anda dan unit layanan akan terpotong otomatis.",
 ];
 
 function LandingPage() {
@@ -127,18 +119,21 @@ function LandingPage() {
                 <span className="text-teal-brand">Hidup tetap tenang.</span>
               </h1>
               <p className="text-lg text-slate-600 leading-relaxed">
-                Asistenku adalah sistem pendampingan dalam pengaturan delegasi
-                tugas.
+                Asistenku adalah sistem pendampingan dalam urusan pribadi dan
+                juga urusan bisnis kamu.
               </p>
               <p className="text-base text-slate-500 leading-relaxed">
-                Kami menjaga setiap layanan agar tetap berjalan dengan kualitas
-                terbaik.
+                Layanan Asistenku diperuntukkan untuk Founder startup, Pemilik
+                Usaha UMKM, Bisnis menengah yang mulai scalling, Enterpreneur,
+                Influencer, Exekutif perusahaan, Content creator dan semua yang
+                membutuhkan pendampingan di operasional.
               </p>
               <div className="flex flex-wrap gap-3 pt-2">
                 <button
                   type="button"
                   onClick={scrollToLayanan}
                   className="btn-teal px-7 py-3 rounded-full font-semibold text-sm shadow-soft"
+                  data-ocid="hero.primary_button"
                 >
                   Pilih Layanan
                 </button>
@@ -147,6 +142,7 @@ function LandingPage() {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="border border-slate-300 text-slate-700 px-7 py-3 rounded-full font-semibold text-sm hover:border-slate-400 hover:bg-slate-50 transition-all"
+                  data-ocid="hero.secondary_button"
                 >
                   Ngobrol dulu →
                 </a>
@@ -165,60 +161,159 @@ function LandingPage() {
         </section>
 
         {/* ── SECTION 2: Bagaimana Kami Mendampingi ── */}
-        <section className="bg-slate-50 py-16 lg:py-20">
-          <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 className="font-display text-3xl sm:text-4xl font-bold text-slate-900 mb-10">
-              Bagaimana Kami Mendampingi
-            </h2>
-            <ol className="flex flex-col gap-5 text-left max-w-xl mx-auto">
-              {steps.map((step, i) => (
-                <li key={step} className="flex items-start gap-4">
-                  <span className="step-circle flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">
-                    {i + 1}
-                  </span>
-                  <span className="text-slate-700 text-base leading-relaxed pt-1">
-                    {step}
-                  </span>
-                </li>
-              ))}
-            </ol>
-            <p className="mt-10 text-slate-500 italic text-base leading-relaxed">
-              Anda tidak lagi mengelola orang dan proses. Anda hanya mengelola
-              keputusan.
-            </p>
+        <section
+          style={{ backgroundColor: "#0d9488" }}
+          className="py-16 lg:py-20"
+        >
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid lg:grid-cols-2 gap-12 items-center">
+              {/* Left: text + steps */}
+              <div>
+                <h2 className="font-display text-3xl sm:text-4xl font-bold text-white mb-10">
+                  Bagaimana Kami Mendampingi
+                </h2>
+                <ol className="flex flex-col gap-5">
+                  {steps.map((step, i) => (
+                    <li key={step} className="flex items-start gap-4">
+                      <span
+                        className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
+                        style={{ backgroundColor: "white", color: "#0d9488" }}
+                      >
+                        {i + 1}
+                      </span>
+                      <span className="text-white text-base leading-relaxed pt-1">
+                        {step}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+              {/* Right: image */}
+              <div className="flex justify-center lg:justify-end">
+                <img
+                  src="/assets/uploads/dashboard-client-baru-1.png"
+                  alt="Dashboard Client Asistenku"
+                  className="rounded-2xl shadow-card w-full max-w-md lg:max-w-none object-contain"
+                />
+              </div>
+            </div>
           </div>
         </section>
 
-        {/* ── SECTION 3: Tepat Tanpa Kehilangan Waktu ── */}
-        <section className="py-16 lg:py-20">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="bg-white rounded-2xl shadow-soft border border-slate-100 p-10 lg:p-14">
-              <h2 className="font-display text-3xl sm:text-4xl font-bold text-slate-900 mb-5">
-                Tepat Tanpa Kehilangan Waktu
+        {/* ── SECTION 3: Nilai Layananmu ── */}
+        <section className="py-16 lg:py-20 bg-white">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <h2 className="font-display text-3xl sm:text-4xl font-bold text-slate-900 mb-4">
+                Nilai Layananmu, transparan &amp; terukur
               </h2>
-              <p className="text-lg text-slate-600 leading-relaxed max-w-2xl">
-                Kami menjaga ketepatan. Dalam kebutuhan mendesak, struktur kami
-                memungkinkan pekerjaan dijalankan secara paralel tanpa
-                kehilangan kontrol
+              <p className="text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed">
+                Setiap paket berisi sejumlah unit layanan aktif, Asistenmu
+                membantu memastikan setiap unit dipakai tepat sasaran, sesuai
+                standar - tidak lebih tidak kurang.
+              </p>
+            </div>
+
+            {/* 4 steps */}
+            <div className="grid sm:grid-cols-2 gap-5 mb-10">
+              {/* Step 1 */}
+              <div className="bg-teal-50 border border-teal-200 rounded-2xl p-6">
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="text-2xl">📦</span>
+                  <span className="text-sm font-bold text-teal-700 uppercase tracking-wide">
+                    Langkah 1
+                  </span>
+                </div>
+                <h3 className="font-bold text-slate-900 text-lg mb-2">
+                  Pilih Paket, Dapat Unit Layanan
+                </h3>
+                <p className="text-slate-600 text-sm leading-relaxed">
+                  Kamu membayar paket untuk membeli unit layanan aktif yang siap
+                  dipakai kapan pun kamu butuhkan.
+                </p>
+              </div>
+              {/* Step 2 */}
+              <div className="bg-teal-50 border border-teal-200 rounded-2xl p-6">
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="text-2xl">💬</span>
+                  <span className="text-sm font-bold text-teal-700 uppercase tracking-wide">
+                    Langkah 2
+                  </span>
+                </div>
+                <h3 className="font-bold text-slate-900 text-lg mb-2">
+                  Sampaikan Kebutuhanmu
+                </h3>
+                <p className="text-slate-600 text-sm leading-relaxed">
+                  Cukup buat task, pilih deadlinenya dan Asistenmu akan menyusun
+                  brief, memilih partner untuk eksekusi pekerjaan, dan membuat
+                  estimasi unit yang dibutuhkan sesuai dengan standar pasar.
+                </p>
+              </div>
+              {/* Step 3 */}
+              <div className="bg-teal-50 border border-teal-200 rounded-2xl p-6">
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="text-2xl">✅</span>
+                  <span className="text-sm font-bold text-teal-700 uppercase tracking-wide">
+                    Langkah 3
+                  </span>
+                </div>
+                <h3 className="font-bold text-slate-900 text-lg mb-2">
+                  Unit dihitung, Kamu setujui
+                </h3>
+                <p className="text-slate-600 text-sm leading-relaxed">
+                  Sebelum dikerjakan Asistenmu akan mengkonfirmasi Unit layanan
+                  yang akan terpakai, Unit masih On Hold sampai pekerjaan benar
+                  - benar selesai. Tidak ada angka yang muncul tiba - tiba tanpa
+                  persetujuanmu.
+                </p>
+              </div>
+              {/* Step 4 */}
+              <div className="bg-teal-50 border border-teal-200 rounded-2xl p-6">
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="text-2xl">🎯</span>
+                  <span className="text-sm font-bold text-teal-700 uppercase tracking-wide">
+                    Langkah 4
+                  </span>
+                </div>
+                <h3 className="font-bold text-slate-900 text-lg mb-2">
+                  Hasil Masuk, Unit terpotong
+                </h3>
+                <p className="text-slate-600 text-sm leading-relaxed">
+                  Setelah hasil di review kamu dan kamu puas dengan hasilnya
+                  unit baru terpotong dari layanan kamu. Dashboard-mu terupdate
+                  otomatis secara real-time.
+                </p>
+              </div>
+            </div>
+
+            {/* Image - smaller, centered */}
+            <div className="flex justify-center mb-8">
+              <img
+                src="/assets/uploads/unit-konversi-1.png"
+                alt="Konversi Unit Layanan"
+                className="rounded-2xl shadow-soft max-w-md w-full object-cover"
+              />
+            </div>
+
+            {/* Quote box */}
+            <div
+              className="rounded-2xl p-8 text-center"
+              style={{ backgroundColor: "rgba(13,148,136,0.75)" }}
+            >
+              <p className="text-white font-bold text-xl mb-3">
+                &ldquo;Kamu tidak perlu menghitung unit yang terpakai, Asistenmu
+                yang menjaga&rdquo;
+              </p>
+              <p className="text-white/90 text-base leading-relaxed">
+                Setiap unit ditetapkan secara adil berdasarkan kompleksitas task
+                - bukan waktu jam kerja. Asistenmu memastikan kamu selalu
+                mendapatkan nilai terbaik dari setiap unit.
               </p>
             </div>
           </div>
         </section>
 
-        {/* ── SECTION 4: Conversion Statement ── */}
-        <section className="bg-dark-navy py-16 lg:py-20 text-white">
-          <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <p className="font-display text-2xl sm:text-3xl font-bold leading-snug mb-4">
-              Konversi unit layanan tidak ditentukan secara sembarangan.
-            </p>
-            <p className="text-slate-300 text-lg leading-relaxed">
-              Anda tidak perlu menghitung, menegosiasikan, atau memikirkan angka
-              di level eksekusi.
-            </p>
-          </div>
-        </section>
-
-        {/* ── SECTION 5: SERVICE CARDS ── */}
+        {/* ── SECTION 4: SERVICE CARDS ── */}
         <section id="layanan" className="py-16 lg:py-20 bg-slate-50">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <h2 className="font-display text-3xl sm:text-4xl font-bold text-slate-900 text-center mb-10">
@@ -230,49 +325,45 @@ function LandingPage() {
                 return (
                   <div
                     key={service.title}
-                    className="bg-white rounded-2xl shadow-soft border border-slate-100 overflow-hidden transition-all"
+                    className="bg-white rounded-2xl shadow-soft border border-slate-100 overflow-hidden"
+                    data-ocid={`layanan.item.${idx + 1}`}
                   >
-                    {/* Card header — clickable accordion trigger */}
-                    <button
-                      type="button"
-                      className="w-full text-left px-6 py-5 flex items-center justify-between gap-3 hover:bg-slate-50 transition-colors"
-                      onClick={() => toggleCard(idx)}
-                      aria-expanded={isOpen}
-                    >
-                      <div className="flex items-center gap-3">
+                    <div className="px-6 py-5">
+                      <div className="flex items-start gap-3 mb-3">
                         <span className="text-2xl">{service.icon}</span>
                         <div>
                           <p className="font-display font-bold text-slate-900 text-lg">
                             {service.title}
                           </p>
-                          <p className="text-sm text-slate-500 mt-0.5">
+                          <p className="text-sm text-slate-600 mt-1 leading-relaxed">
                             {service.short}
                           </p>
                         </div>
                       </div>
-                      <span className="flex-shrink-0 text-slate-400">
+                      <p className="text-sm font-semibold text-teal-700 mb-3">
+                        {service.price}
+                      </p>
+                      <button
+                        type="button"
+                        className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 transition-colors"
+                        onClick={() => toggleCard(idx)}
+                        aria-expanded={isOpen}
+                        data-ocid={`layanan.toggle.${idx + 1}`}
+                      >
+                        Lihat detail
                         {isOpen ? (
-                          <ChevronUp size={20} />
+                          <ChevronUp size={16} />
                         ) : (
-                          <ChevronDown size={20} />
+                          <ChevronDown size={16} />
                         )}
-                      </span>
-                    </button>
+                      </button>
+                    </div>
 
-                    {/* Accordion content */}
                     {isOpen && (
                       <div className="px-6 pb-6 border-t border-slate-100">
-                        <p className="mt-4 text-sm font-bold text-teal-price">
-                          {service.price}
-                        </p>
-                        <p className="mt-3 text-sm text-slate-600 leading-relaxed">
+                        <div className="mt-4 text-sm text-slate-600 leading-relaxed whitespace-pre-line">
                           {service.body}
-                        </p>
-                        {service.body2 && (
-                          <div className="mt-3 text-sm text-slate-600 leading-relaxed whitespace-pre-line">
-                            {service.body2}
-                          </div>
-                        )}
+                        </div>
                         {service.sharing && service.sharing.length > 0 && (
                           <div className="mt-4">
                             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
@@ -299,6 +390,7 @@ function LandingPage() {
                           target="_blank"
                           rel="noopener noreferrer"
                           className="btn-teal mt-5 inline-flex items-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-full"
+                          data-ocid={`layanan.button.${idx + 1}`}
                         >
                           Hubungi Concierge Kami →
                         </a>
@@ -311,6 +403,16 @@ function LandingPage() {
           </div>
         </section>
 
+        {/* ── SECTION 5: Penutup ── */}
+        <section className="py-12 lg:py-16 bg-slate-50">
+          <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <p className="text-lg text-slate-600 leading-relaxed font-medium">
+              Kami menjaga setiap layanan agar tetap berjalan dengan kualitas
+              terbaik.
+            </p>
+          </div>
+        </section>
+
         {/* ── SECTION 6: Join Team ── */}
         <section className="py-16 lg:py-20 bg-white">
           <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -320,19 +422,10 @@ function LandingPage() {
             <Link
               to="/tentang-partner-asistenku"
               className="inline-block border border-slate-300 text-slate-700 px-8 py-3 rounded-full font-semibold text-sm hover:border-slate-400 hover:bg-slate-50 transition-all"
+              data-ocid="join.link"
             >
               Pelajari
             </Link>
-          </div>
-        </section>
-
-        {/* ── SECTION 7: Penutup ── */}
-        <section className="py-12 lg:py-16 bg-slate-50">
-          <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <p className="text-lg text-slate-600 leading-relaxed font-medium">
-              Kami menjaga setiap layanan agar tetap berjalan dengan kualitas
-              terbaik.
-            </p>
           </div>
         </section>
       </main>
