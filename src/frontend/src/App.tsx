@@ -93,6 +93,29 @@ const steps = [
   "Selesaikan task oleh anda dan unit layanan akan terpotong otomatis.",
 ];
 
+const targetUsers = [
+  {
+    label: "Founder startup / Executive",
+    desc: "Fokus tumbuhkan bisnis, bukan urus operasional harian.",
+    icon: "🚀",
+  },
+  {
+    label: "Pemilik UMKM",
+    desc: "Jalankan bisnis lebih rapi tanpa menambah karyawan.",
+    icon: "🏪",
+  },
+  {
+    label: "Content Creator",
+    desc: "Kelola jadwal & kordinasi tanpa chaos.",
+    icon: "🎬",
+  },
+  {
+    label: "Individu Sibuk",
+    desc: "Hidup pribadi tetap berjalan meski jadwal padat seperti mempunyai banyak personal Assistant.",
+    icon: "⏰",
+  },
+];
+
 function LandingPage() {
   const [openCard, setOpenCard] = useState<number | null>(null);
 
@@ -123,10 +146,8 @@ function LandingPage() {
                 juga urusan bisnis kamu.
               </p>
               <p className="text-base text-slate-500 leading-relaxed">
-                Layanan Asistenku diperuntukkan untuk Founder startup, Pemilik
-                Usaha UMKM, Bisnis menengah yang mulai scalling, Enterpreneur,
-                Influencer, Exekutif perusahaan, Content creator dan semua yang
-                membutuhkan pendampingan di operasional.
+                Karena waktu terbaikmu seharusnya tidak habis untuk hal - hal
+                yang bisa di delegasikan.
               </p>
               <div className="flex flex-wrap gap-3 pt-2">
                 <button
@@ -156,6 +177,31 @@ function LandingPage() {
                 alt="Asistenku"
                 className="rounded-2xl shadow-card w-full max-w-md lg:max-w-none object-cover"
               />
+            </div>
+          </div>
+        </section>
+
+        {/* ── SECTION 1b: Asistenku untuk siapa? ── */}
+        <section className="py-12 lg:py-16 bg-slate-50">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 className="font-display text-2xl sm:text-3xl font-bold text-slate-900 text-center mb-8">
+              Asistenku untuk siapa?
+            </h2>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {targetUsers.map((user) => (
+                <div
+                  key={user.label}
+                  className="bg-white rounded-2xl border border-slate-100 shadow-soft p-5 flex flex-col gap-3"
+                >
+                  <span className="text-2xl">{user.icon}</span>
+                  <p className="font-bold text-slate-900 text-sm">
+                    {user.label}
+                  </p>
+                  <p className="text-sm text-slate-600 leading-relaxed">
+                    {user.desc}
+                  </p>
+                </div>
+              ))}
             </div>
           </div>
         </section>
@@ -216,7 +262,6 @@ function LandingPage() {
 
             {/* 4 steps */}
             <div className="grid sm:grid-cols-2 gap-5 mb-10">
-              {/* Step 1 */}
               <div className="bg-teal-50 border border-teal-200 rounded-2xl p-6">
                 <div className="flex items-center gap-3 mb-3">
                   <span className="text-2xl">📦</span>
@@ -232,7 +277,6 @@ function LandingPage() {
                   dipakai kapan pun kamu butuhkan.
                 </p>
               </div>
-              {/* Step 2 */}
               <div className="bg-teal-50 border border-teal-200 rounded-2xl p-6">
                 <div className="flex items-center gap-3 mb-3">
                   <span className="text-2xl">💬</span>
@@ -249,7 +293,6 @@ function LandingPage() {
                   estimasi unit yang dibutuhkan sesuai dengan standar pasar.
                 </p>
               </div>
-              {/* Step 3 */}
               <div className="bg-teal-50 border border-teal-200 rounded-2xl p-6">
                 <div className="flex items-center gap-3 mb-3">
                   <span className="text-2xl">✅</span>
@@ -267,7 +310,6 @@ function LandingPage() {
                   persetujuanmu.
                 </p>
               </div>
-              {/* Step 4 */}
               <div className="bg-teal-50 border border-teal-200 rounded-2xl p-6">
                 <div className="flex items-center gap-3 mb-3">
                   <span className="text-2xl">🎯</span>
@@ -403,6 +445,83 @@ function LandingPage() {
           </div>
         </section>
 
+        {/* ── SECTION 4b: 3-column info boxes ── */}
+        <section className="py-16 lg:py-20 bg-white">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid lg:grid-cols-3 gap-6">
+              {/* Founder Story */}
+              <div
+                className="rounded-2xl p-7 flex flex-col gap-4"
+                style={{
+                  boxShadow: "0 4px 24px 0 rgba(13,148,136,0.15)",
+                  border: "1px solid rgba(13,148,136,0.2)",
+                }}
+              >
+                <h3 className="font-display font-bold text-slate-900 text-xl">
+                  Founder Story
+                </h3>
+                <p className="text-slate-600 text-sm leading-relaxed">
+                  Asistenku dibuat karena founder Asistenku melihat pain
+                  persaingan harga yang tidak wajar di marketplace freelancer
+                  dan juga adanya kesulitan dalam pemilihan dan verifikasi skill
+                  freelancer sehingga sering timbul masalah antara freelancer
+                  dan juga client. Maka dari itu founder Asistenku membentuk
+                  sebuah sistem yang adil dan memudahkan bagi semua pihak agar
+                  tidak ada perang harga dan juga kepastian bagi client dan juga
+                  semua partner yang tergabung di Asistenku.
+                </p>
+              </div>
+
+              {/* Counter stats */}
+              <div
+                className="rounded-2xl p-7 flex flex-col justify-center gap-6"
+                style={{
+                  boxShadow: "0 4px 24px 0 rgba(13,148,136,0.15)",
+                  border: "1px solid rgba(13,148,136,0.2)",
+                }}
+              >
+                <div className="flex flex-col gap-1">
+                  <p className="text-4xl font-bold text-teal-600">
+                    75 Partner ++
+                  </p>
+                  <p className="text-sm text-slate-600">
+                    Partner yang bergabung di Asistenku
+                  </p>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <p className="text-4xl font-bold text-teal-600">50 +</p>
+                  <p className="text-sm text-slate-600">
+                    Jenis Pekerjaan yang bisa dikerjakan partner
+                  </p>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <p className="text-4xl font-bold text-teal-600">
+                    &lt; 10 Menit
+                  </p>
+                  <p className="text-sm text-slate-600">
+                    Waktu rata - rata respon brief task
+                  </p>
+                </div>
+              </div>
+
+              {/* CTA quote */}
+              <div
+                className="rounded-2xl p-7 flex flex-col justify-center"
+                style={{
+                  boxShadow: "0 4px 24px 0 rgba(13,148,136,0.15)",
+                  border: "1px solid rgba(13,148,136,0.2)",
+                }}
+              >
+                <p className="text-slate-700 text-base leading-relaxed italic">
+                  &ldquo;Asistenku saat ini membuka akses terbatas untuk klien
+                  perdana. Mulai dengan konsultasi gratis - tidak ada komitmen
+                  sebelum kamu yakin.&rdquo;
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* ── SECTION 5: Penutup ── */}
         <section className="py-12 lg:py-16 bg-slate-50">
           <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -410,22 +529,6 @@ function LandingPage() {
               Kami menjaga setiap layanan agar tetap berjalan dengan kualitas
               terbaik.
             </p>
-          </div>
-        </section>
-
-        {/* ── SECTION 6: Join Team ── */}
-        <section className="py-16 lg:py-20 bg-white">
-          <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 className="font-display text-3xl sm:text-4xl font-bold text-slate-900 mb-6">
-              Ingin jadi bagian dari Tim Asistenku?
-            </h2>
-            <Link
-              to="/tentang-partner-asistenku"
-              className="inline-block border border-slate-300 text-slate-700 px-8 py-3 rounded-full font-semibold text-sm hover:border-slate-400 hover:bg-slate-50 transition-all"
-              data-ocid="join.link"
-            >
-              Pelajari
-            </Link>
           </div>
         </section>
       </main>
