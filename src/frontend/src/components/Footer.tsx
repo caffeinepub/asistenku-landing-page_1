@@ -6,7 +6,7 @@ export default function Footer() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col sm:flex-row items-start justify-between gap-8">
           {/* Left: Logo */}
-          <div className="flex items-center gap-3 self-center sm:self-start">
+          <div className="flex items-center gap-3 self-center sm:self-start -ml-2">
             <img
               src="/assets/uploads/asistenku-icon-2.png"
               alt="Asistenku Icon"
@@ -17,22 +17,22 @@ export default function Footer() {
             </span>
           </div>
 
-          {/* Center-left: Copyright + Partner CTA */}
-          <div className="flex flex-col gap-3">
-            <p className="text-sm text-slate-400">
-              Asistenku &copy; 2026 PT. Asistenku Digital Indonesia
-            </p>
-            <div className="flex flex-col gap-2">
+          {/* Center: Partner CTA above copyright */}
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between gap-4">
               <p className="text-sm text-slate-300 font-medium">
                 Ingin jadi Partner dari Asistenku?
               </p>
               <Link
                 to="/tentang-partner-asistenku"
-                className="inline-block border border-slate-600 text-slate-300 px-5 py-2 rounded-full text-sm font-semibold hover:border-slate-400 hover:bg-slate-800 transition-all w-fit"
+                className="inline-block border border-slate-600 text-slate-300 px-4 py-1.5 rounded-full text-sm font-semibold hover:border-slate-400 hover:bg-slate-800 transition-all whitespace-nowrap"
               >
                 Pelajari
               </Link>
             </div>
+            <p className="text-sm text-slate-400">
+              Asistenku &copy; 2026 PT. Asistenku Digital Indonesia
+            </p>
           </div>
 
           {/* Right: Portal links */}

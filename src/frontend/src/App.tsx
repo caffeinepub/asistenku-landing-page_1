@@ -1,6 +1,5 @@
 import { Toaster } from "@/components/ui/sonner";
 import {
-  Link,
   RouterProvider,
   createRootRoute,
   createRoute,
@@ -116,6 +115,13 @@ const targetUsers = [
   },
 ];
 
+const painPoints = [
+  "Kerjaan kecil tapi makan waktu banyak",
+  "Mau rekrut tapi ribet & mahal",
+  "Task numpuk tapi gak ada yang handle",
+  "Waktu habis buat hal operasional",
+];
+
 function LandingPage() {
   const [openCard, setOpenCard] = useState<number | null>(null);
 
@@ -138,16 +144,15 @@ function LandingPage() {
             {/* Left */}
             <div className="flex flex-col gap-6">
               <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-bold text-slate-900 leading-tight">
-                Kerja tetap berjalan.{" "}
-                <span className="text-teal-brand">Hidup tetap tenang.</span>
+                Kerjaan operasional numpuk?{" "}
+                <span className="text-teal-brand">Gak perlu rekrut tim.</span>
               </h1>
-              <p className="text-lg text-slate-600 leading-relaxed">
-                Asistenku adalah sistem pendampingan dalam urusan pribadi dan
-                juga urusan bisnis kamu.
+              <p className="text-lg text-slate-700 leading-relaxed font-semibold">
+                Delegasikan ke Asistenku.
               </p>
               <p className="text-base text-slate-500 leading-relaxed">
-                Karena waktu terbaikmu seharusnya tidak habis untuk hal - hal
-                yang bisa di delegasikan.
+                Kami bantu handle admin, riset, dan operasional harian—biar kamu
+                fokus ke hal yang lebih penting.
               </p>
               <div className="flex flex-wrap gap-3 pt-2">
                 <button
@@ -170,13 +175,49 @@ function LandingPage() {
               </div>
             </div>
 
-            {/* Right: Hero image */}
+            {/* Right: Hero image with floating badge */}
             <div className="flex justify-center lg:justify-end">
-              <img
-                src="/assets/uploads/heroimagenew-3.png"
-                alt="Asistenku"
-                className="rounded-2xl shadow-card w-full max-w-md lg:max-w-none object-cover"
-              />
+              <div className="relative w-full max-w-md lg:max-w-none">
+                {/* Floating badge */}
+                <div
+                  className="absolute top-4 left-4 z-10 px-4 py-2 rounded-full text-white text-sm font-semibold shadow-lg"
+                  style={{ backgroundColor: "#0d9488" }}
+                >
+                  ✉️ Kirim tugas. Kami yang kerjakan.
+                </div>
+                <img
+                  src="/assets/uploads/hero-new-1.png"
+                  alt="Asistenku"
+                  className="rounded-2xl shadow-card w-full object-cover"
+                />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── SECTION 1a: Bukan software ── */}
+        <section className="py-10 border-y border-slate-100">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <p className="text-xl font-bold text-slate-900 mb-2">
+              Bukan software. Bukan freelance random.
+            </p>
+            <p className="text-base text-teal-700 font-semibold mb-6">
+              Ini layanan asisten bisnis berbasis sistem.
+            </p>
+            <div className="flex flex-wrap justify-center gap-4">
+              {[
+                "Kirim tugas kapan aja",
+                "Kami assign ke partner yang siap kerja",
+                "Progress bisa dipantau",
+                "Hasil dikirim sesuai kebutuhan",
+              ].map((item) => (
+                <span
+                  key={item}
+                  className="flex items-center gap-2 text-slate-700 text-sm font-medium"
+                >
+                  <span className="text-teal-500 font-bold">✔</span> {item}
+                </span>
+              ))}
             </div>
           </div>
         </section>
@@ -206,7 +247,42 @@ function LandingPage() {
           </div>
         </section>
 
-        {/* ── SECTION 2: Bagaimana Kami Mendampingi ── */}
+        {/* ── SECTION 1c: Pain points ── */}
+        <section className="py-12 lg:py-16 bg-white">
+          <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div
+              className="rounded-2xl p-8"
+              style={{
+                boxShadow: "0 4px 24px 0 rgba(13,148,136,0.12)",
+                border: "1px solid rgba(13,148,136,0.2)",
+              }}
+            >
+              <h2 className="font-display text-2xl font-bold text-slate-900 mb-6">
+                Kalau kamu ngerasain ini…
+              </h2>
+              <div className="flex flex-col gap-4 mb-6">
+                {painPoints.map((point) => (
+                  <div key={point} className="flex items-start gap-3">
+                    <span className="mt-0.5 w-5 h-5 rounded-full bg-teal-100 flex items-center justify-center flex-shrink-0">
+                      <span className="text-teal-600 text-xs font-bold">×</span>
+                    </span>
+                    <p className="text-slate-700 text-base">{point}</p>
+                  </div>
+                ))}
+              </div>
+              <div
+                className="rounded-xl px-5 py-4"
+                style={{ backgroundColor: "rgba(13,148,136,0.08)" }}
+              >
+                <p className="text-teal-800 font-semibold text-base">
+                  👉 Artinya kamu butuh delegasi, bukan nambah kerjaan
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── SECTION 2: Bagaimana Cara Kerja Asistenku ── */}
         <section
           style={{ backgroundColor: "#0d9488" }}
           className="py-16 lg:py-20"
@@ -216,7 +292,7 @@ function LandingPage() {
               {/* Left: text + steps */}
               <div>
                 <h2 className="font-display text-3xl sm:text-4xl font-bold text-white mb-10">
-                  Bagaimana Kami Mendampingi
+                  Bagaimana Cara Kerja Asistenku
                 </h2>
                 <ol className="flex flex-col gap-5">
                   {steps.map((step, i) => (
@@ -246,17 +322,16 @@ function LandingPage() {
           </div>
         </section>
 
-        {/* ── SECTION 3: Nilai Layananmu ── */}
+        {/* ── SECTION 3: Bayar Sesuai Pekerjaan ── */}
         <section className="py-16 lg:py-20 bg-white">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
               <h2 className="font-display text-3xl sm:text-4xl font-bold text-slate-900 mb-4">
-                Nilai Layananmu, transparan &amp; terukur
+                Bayar Sesuai Pekerjaan, Bukan Gaji
               </h2>
               <p className="text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed">
-                Setiap paket berisi sejumlah unit layanan aktif, Asistenmu
-                membantu memastikan setiap unit dipakai tepat sasaran, sesuai
-                standar - tidak lebih tidak kurang.
+                Setiap tugas dihitung berdasarkan unit kerja, jadi kamu hanya
+                bayar sesuai yang dikerjakan
               </p>
             </div>
 
@@ -445,7 +520,7 @@ function LandingPage() {
           </div>
         </section>
 
-        {/* ── SECTION 4b: 3-column info boxes ── */}
+        {/* ── SECTION 4b: Founder Story + Stats horizontal ── */}
         <section className="py-16 lg:py-20 bg-white">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid lg:grid-cols-3 gap-6">
@@ -472,35 +547,51 @@ function LandingPage() {
                 </p>
               </div>
 
-              {/* Counter stats */}
+              {/* Counter stats - HORIZONTAL layout */}
               <div
-                className="rounded-2xl p-7 flex flex-col justify-center gap-6"
+                className="rounded-2xl p-7 flex items-center"
                 style={{
                   boxShadow: "0 4px 24px 0 rgba(13,148,136,0.15)",
                   border: "1px solid rgba(13,148,136,0.2)",
                 }}
               >
-                <div className="flex flex-col gap-1">
-                  <p className="text-4xl font-bold text-teal-600">
-                    75 Partner ++
-                  </p>
-                  <p className="text-sm text-slate-600">
-                    Partner yang bergabung di Asistenku
-                  </p>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <p className="text-4xl font-bold text-teal-600">50 +</p>
-                  <p className="text-sm text-slate-600">
-                    Jenis Pekerjaan yang bisa dikerjakan partner
-                  </p>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <p className="text-4xl font-bold text-teal-600">
-                    &lt; 10 Menit
-                  </p>
-                  <p className="text-sm text-slate-600">
-                    Waktu rata - rata respon brief task
-                  </p>
+                <div className="grid grid-cols-3 w-full divide-x divide-teal-100">
+                  {/* Stat 1 */}
+                  <div className="flex flex-col items-center gap-2 px-3 text-center">
+                    <div className="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center">
+                      <span className="text-lg">🤝</span>
+                    </div>
+                    <p className="text-3xl font-extrabold text-teal-600 leading-none">
+                      75+
+                    </p>
+                    <p className="text-xs text-slate-500 leading-snug">
+                      Partner bergabung
+                    </p>
+                  </div>
+                  {/* Stat 2 */}
+                  <div className="flex flex-col items-center gap-2 px-3 text-center">
+                    <div className="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center">
+                      <span className="text-lg">💼</span>
+                    </div>
+                    <p className="text-3xl font-extrabold text-teal-600 leading-none">
+                      50+
+                    </p>
+                    <p className="text-xs text-slate-500 leading-snug">
+                      Jenis pekerjaan
+                    </p>
+                  </div>
+                  {/* Stat 3 */}
+                  <div className="flex flex-col items-center gap-2 px-3 text-center">
+                    <div className="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center">
+                      <span className="text-lg">⚡</span>
+                    </div>
+                    <p className="text-3xl font-extrabold text-teal-600 leading-none">
+                      &lt;10 Mnt
+                    </p>
+                    <p className="text-xs text-slate-500 leading-snug">
+                      Rata-rata respon brief
+                    </p>
+                  </div>
                 </div>
               </div>
 
