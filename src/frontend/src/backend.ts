@@ -238,7 +238,8 @@ export enum Role {
     operasional = "operasional",
     public_ = "public",
     asistenmu = "asistenmu",
-    partner = "partner"
+    partner = "partner",
+    investor = "investor"
 }
 export enum ServiceStatus {
     active = "active",
@@ -1807,8 +1808,10 @@ function from_candid_variant_n11(_uploadFile: (file: ExternalBlob) => Promise<Ui
     asistenmu: null;
 } | {
     partner: null;
+} | {
+    investor: null;
 }): Role {
-    return "client" in value ? Role.client : "admin" in value ? Role.admin : "operasional" in value ? Role.operasional : "public" in value ? Role.public : "asistenmu" in value ? Role.asistenmu : "partner" in value ? Role.partner : value;
+    return "client" in value ? Role.client : "admin" in value ? Role.admin : "operasional" in value ? Role.operasional : "public" in value ? Role.public_ : "asistenmu" in value ? Role.asistenmu : "partner" in value ? Role.partner : "investor" in value ? Role.investor : (value as unknown as Role);
 }
 function from_candid_variant_n16(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     junior: null;
@@ -1947,6 +1950,8 @@ function to_candid_variant_n4(_uploadFile: (file: ExternalBlob) => Promise<Uint8
     asistenmu: null;
 } | {
     partner: null;
+} | {
+    investor: null;
 } {
     return value == Role.client ? {
         client: null
@@ -1954,13 +1959,15 @@ function to_candid_variant_n4(_uploadFile: (file: ExternalBlob) => Promise<Uint8
         admin: null
     } : value == Role.operasional ? {
         operasional: null
-    } : value == Role.public ? {
-        public_: null
+    } : value == Role.public_ ? {
+        public: null
     } : value == Role.asistenmu ? {
         asistenmu: null
     } : value == Role.partner ? {
         partner: null
-    } : value;
+    } : value == Role.investor ? {
+        investor: null
+    } : (value as unknown as { investor: null });
 }
 function to_candid_variant_n52(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: LevelPartner): {
     junior: null;

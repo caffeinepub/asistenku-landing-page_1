@@ -89,7 +89,8 @@ export type Role = { 'client' : null } |
   { 'operasional' : null } |
   { 'public' : null } |
   { 'asistenmu' : null } |
-  { 'partner' : null };
+  { 'partner' : null } |
+  { 'investor' : null };
 export interface Service {
   'unitLayanan' : bigint,
   'status' : ServiceStatus,

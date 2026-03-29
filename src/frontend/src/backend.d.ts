@@ -156,7 +156,8 @@ export enum Role {
     operasional = "operasional",
     public_ = "public",
     asistenmu = "asistenmu",
-    partner = "partner"
+    partner = "partner",
+    investor = "investor"
 }
 export enum ServiceStatus {
     active = "active",

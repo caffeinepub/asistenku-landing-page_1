@@ -27,6 +27,7 @@ export const Role = IDL.Variant({
   'public' : IDL.Null,
   'asistenmu' : IDL.Null,
   'partner' : IDL.Null,
+  'investor' : IDL.Null,
 });
 export const AdminLog = IDL.Record({
   'action' : IDL.Text,
