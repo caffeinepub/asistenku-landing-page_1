@@ -3,8 +3,6 @@ import {
   BarChart2,
   Briefcase,
   CheckCircle2,
-  ChevronDown,
-  ChevronUp,
   Clock,
   DollarSign,
   Layers,
@@ -25,7 +23,6 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import type { Partner, Service, Task, User } from "../backend";
 import { Button } from "../components/ui/button";
 import { useActor } from "../hooks/useActor";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
@@ -68,31 +65,7 @@ function formatRp(n: number): string {
   return `Rp ${n}`;
 }
 
-function getStatus(obj: Record<string, null> | string): string {
-  if (typeof obj === "string") return obj;
-  const k = Object.keys(obj as Record<string, unknown>);
-  return k[0] ?? "";
-}
-
-function getTaskStatus(obj: Record<string, null> | string): string {
-  if (typeof obj === "string") return obj;
-  const k = Object.keys(obj as Record<string, unknown>);
-  return k[0] ?? "";
-}
-
-function getTipe(obj: Record<string, null> | string): string {
-  if (typeof obj === "string") return obj;
-  const k = Object.keys(obj as Record<string, unknown>);
-  return k[0] ?? "";
-}
-
-function getServiceStatus(obj: Record<string, null> | string): string {
-  if (typeof obj === "string") return obj;
-  const k = Object.keys(obj as Record<string, unknown>);
-  return k[0] ?? "";
-}
-
-// Build chart data from createdAt timestamps
+// Build chart data from timestamps (empty array yields flat chart)
 function buildChartData(
   timestamps: number[],
   period: FilterPeriod,
@@ -100,7 +73,6 @@ function buildChartData(
   const now = Date.now();
 
   if (period === "mingguan") {
-    // Last 7 days
     const days: Record<string, number> = {};
     for (let i = 6; i >= 0; i--) {
       const d = new Date(now - i * 86400000);
@@ -111,8 +83,7 @@ function buildChartData(
       days[lbl] = 0;
     }
     for (const ts of timestamps) {
-      const d = new Date(ts);
-      const lbl = d.toLocaleDateString("id-ID", {
+      const lbl = new Date(ts).toLocaleDateString("id-ID", {
         day: "2-digit",
         month: "short",
       });
@@ -122,7 +93,6 @@ function buildChartData(
   }
 
   if (period === "bulanan") {
-    // Last 12 months
     const months: Record<string, number> = {};
     for (let i = 11; i >= 0; i--) {
       const d = new Date(now);
@@ -135,8 +105,7 @@ function buildChartData(
       months[lbl] = 0;
     }
     for (const ts of timestamps) {
-      const d = new Date(ts);
-      const lbl = d.toLocaleDateString("id-ID", {
+      const lbl = new Date(ts).toLocaleDateString("id-ID", {
         month: "short",
         year: "2-digit",
       });
@@ -145,86 +114,12 @@ function buildChartData(
     return Object.entries(months).map(([label, value]) => ({ label, value }));
   }
 
-  // Tahunan - last 5 years
   const years: Record<string, number> = {};
   const currentYear = new Date(now).getFullYear();
-  for (let i = 4; i >= 0; i--) {
-    years[String(currentYear - i)] = 0;
-  }
+  for (let i = 4; i >= 0; i--) years[String(currentYear - i)] = 0;
   for (const ts of timestamps) {
     const yr = String(new Date(ts).getFullYear());
     if (yr in years) years[yr]++;
-  }
-  return Object.entries(years).map(([label, value]) => ({ label, value }));
-}
-
-// Build GMV chart (sum of hargaPerLayanan per period)
-function buildGmvChartData(
-  services: Service[],
-  period: FilterPeriod,
-): ChartPoint[] {
-  const now = Date.now();
-
-  const toMs = (ts: bigint) => {
-    const n = Number(ts);
-    return n > 1e15 ? Math.floor(n / 1_000_000) : n;
-  };
-
-  if (period === "mingguan") {
-    const days: Record<string, number> = {};
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(now - i * 86400000);
-      const lbl = d.toLocaleDateString("id-ID", {
-        day: "2-digit",
-        month: "short",
-      });
-      days[lbl] = 0;
-    }
-    for (const s of services) {
-      const ts = toMs(s.createdAt);
-      const lbl = new Date(ts).toLocaleDateString("id-ID", {
-        day: "2-digit",
-        month: "short",
-      });
-      if (lbl in days)
-        days[lbl] += Number(s.unitLayanan) * Number(s.hargaPerLayanan);
-    }
-    return Object.entries(days).map(([label, value]) => ({ label, value }));
-  }
-
-  if (period === "bulanan") {
-    const months: Record<string, number> = {};
-    for (let i = 11; i >= 0; i--) {
-      const d = new Date(now);
-      d.setDate(1);
-      d.setMonth(d.getMonth() - i);
-      const lbl = d.toLocaleDateString("id-ID", {
-        month: "short",
-        year: "2-digit",
-      });
-      months[lbl] = 0;
-    }
-    for (const s of services) {
-      const ts = toMs(s.createdAt);
-      const lbl = new Date(ts).toLocaleDateString("id-ID", {
-        month: "short",
-        year: "2-digit",
-      });
-      if (lbl in months)
-        months[lbl] += Number(s.unitLayanan) * Number(s.hargaPerLayanan);
-    }
-    return Object.entries(months).map(([label, value]) => ({ label, value }));
-  }
-
-  const years: Record<string, number> = {};
-  const currentYear = new Date(now).getFullYear();
-  for (let i = 4; i >= 0; i--) {
-    years[String(currentYear - i)] = 0;
-  }
-  for (const s of services) {
-    const yr = String(new Date(toMs(s.createdAt)).getFullYear());
-    if (yr in years)
-      years[yr] += Number(s.unitLayanan) * Number(s.hargaPerLayanan);
   }
   return Object.entries(years).map(([label, value]) => ({ label, value }));
 }
@@ -233,15 +128,12 @@ function buildGmvChartData(
 function MiniLineChart({
   data,
   color = "#10b981",
-}: {
-  data: ChartPoint[];
-  color?: string;
-}) {
+}: { data: ChartPoint[]; color?: string }) {
   return (
     <ResponsiveContainer width="100%" height={60}>
       <LineChart
         data={data}
-        margin={{ top: 4, right: 4, left: -32, bottom: 0 }}
+        margin={{ top: 4, right: 4, left: -28, bottom: 0 }}
       >
         <CartesianGrid
           strokeDasharray="3 3"
@@ -286,10 +178,7 @@ function MiniLineChart({
 function PeriodFilter({
   value,
   onChange,
-}: {
-  value: FilterPeriod;
-  onChange: (v: FilterPeriod) => void;
-}) {
+}: { value: FilterPeriod; onChange: (v: FilterPeriod) => void }) {
   const opts: { key: FilterPeriod; label: string }[] = [
     { key: "mingguan", label: "Mingguan" },
     { key: "bulanan", label: "Bulanan" },
@@ -371,11 +260,7 @@ export default function DashboardInvestor() {
   const navigate = useNavigate();
   const { actor } = useActor();
 
-  const [allUsers, setAllUsers] = useState<User[]>([]);
-  const [allClients, setAllClients] = useState<User[]>([]);
-  const [allPartners, setAllPartners] = useState<Partner[]>([]);
-  const [allTasks, setAllTasks] = useState<Task[]>([]);
-  const [allServices, setAllServices] = useState<Service[]>([]);
+  const [summary, setSummary] = useState<SummaryData | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Per-card period filter
@@ -396,27 +281,72 @@ export default function DashboardInvestor() {
     setPeriods((prev) => ({ ...prev, [key]: v }));
   }
 
-  const toMs = useCallback((ts: bigint) => {
-    const n = Number(ts);
-    return n > 1e15 ? Math.floor(n / 1_000_000) : n;
-  }, []);
-
   const loadData = useCallback(async () => {
     if (!actor) return;
     setLoading(true);
     try {
-      const [users, clients, partners, tasks, services] = await Promise.all([
-        actor.getAllUsers().catch(() => [] as User[]),
-        actor.getAllClients().catch(() => [] as User[]),
-        actor.getAllPartners().catch(() => [] as Partner[]),
-        actor.getAllTasks().catch(() => [] as Task[]),
-        actor.getServices().catch(() => [] as Service[]),
-      ]);
-      setAllUsers(users);
-      setAllClients(clients);
-      setAllPartners(partners);
-      setAllTasks(tasks);
-      setAllServices(services);
+      const data = (await (actor as any).getInvestorSummary()) as {
+        totalUser: bigint;
+        totalClient: bigint;
+        totalPartner: bigint;
+        taskOnProgress: bigint;
+        taskSelesai: bigint;
+        gmvTotal: bigint;
+        gmvTenang: bigint;
+        gmvRapi: bigint;
+        gmvFokus: bigint;
+        gmvJaga: bigint;
+        gmvEfisien: bigint;
+        margin: bigint;
+        layananAktifTotal: bigint;
+        layananAktifTenang: bigint;
+        layananAktifRapi: bigint;
+        layananAktifFokus: bigint;
+        layananAktifJaga: bigint;
+        layananAktifEfisien: bigint;
+      };
+      setSummary({
+        totalUser: Number(data.totalUser),
+        totalClient: Number(data.totalClient),
+        totalPartner: Number(data.totalPartner),
+        taskOnprogress: Number(data.taskOnProgress),
+        taskSelesai: Number(data.taskSelesai),
+        gmvTotal: Number(data.gmvTotal),
+        gmvTenang: Number(data.gmvTenang),
+        gmvRapi: Number(data.gmvRapi),
+        gmvFokus: Number(data.gmvFokus),
+        gmvJaga: Number(data.gmvJaga),
+        gmvEfisien: Number(data.gmvEfisien),
+        margin: Number(data.margin),
+        layananAktifTotal: Number(data.layananAktifTotal),
+        layananAktifTenang: Number(data.layananAktifTenang),
+        layananAktifRapi: Number(data.layananAktifRapi),
+        layananAktifFokus: Number(data.layananAktifFokus),
+        layananAktifJaga: Number(data.layananAktifJaga),
+        layananAktifEfisien: Number(data.layananAktifEfisien),
+      });
+    } catch {
+      // fallback to zeros on error
+      setSummary({
+        totalUser: 0,
+        totalClient: 0,
+        totalPartner: 0,
+        taskOnprogress: 0,
+        taskSelesai: 0,
+        gmvTotal: 0,
+        gmvTenang: 0,
+        gmvRapi: 0,
+        gmvFokus: 0,
+        gmvJaga: 0,
+        gmvEfisien: 0,
+        margin: 0,
+        layananAktifTotal: 0,
+        layananAktifTenang: 0,
+        layananAktifRapi: 0,
+        layananAktifFokus: 0,
+        layananAktifJaga: 0,
+        layananAktifEfisien: 0,
+      });
     } finally {
       setLoading(false);
     }
@@ -431,149 +361,8 @@ export default function DashboardInvestor() {
     void navigate({ to: "/portal-internal" });
   }
 
-  // ─── Computed Summary ─────────────────────────────────────────────────────
-  const summary: SummaryData = {
-    totalUser: allUsers.length,
-    totalClient: allClients.length,
-    totalPartner: allPartners.filter(
-      (p) =>
-        getStatus(p.status as unknown as Record<string, null>) === "active",
-    ).length,
-    taskOnprogress: allTasks.filter(
-      (t) =>
-        getTaskStatus(t.status as unknown as Record<string, null>) ===
-        "onprogress",
-    ).length,
-    taskSelesai: allTasks.filter(
-      (t) =>
-        getTaskStatus(t.status as unknown as Record<string, null>) ===
-        "selesai",
-    ).length,
-    gmvTotal: allServices.reduce(
-      (acc, s) => acc + Number(s.unitLayanan) * Number(s.hargaPerLayanan),
-      0,
-    ),
-    gmvTenang: allServices
-      .filter(
-        (s) =>
-          getTipe(s.tipeLayanan as unknown as Record<string, null>) ===
-          "tenang",
-      )
-      .reduce(
-        (acc, s) => acc + Number(s.unitLayanan) * Number(s.hargaPerLayanan),
-        0,
-      ),
-    gmvRapi: allServices
-      .filter(
-        (s) =>
-          getTipe(s.tipeLayanan as unknown as Record<string, null>) === "rapi",
-      )
-      .reduce(
-        (acc, s) => acc + Number(s.unitLayanan) * Number(s.hargaPerLayanan),
-        0,
-      ),
-    gmvFokus: allServices
-      .filter(
-        (s) =>
-          getTipe(s.tipeLayanan as unknown as Record<string, null>) === "fokus",
-      )
-      .reduce(
-        (acc, s) => acc + Number(s.unitLayanan) * Number(s.hargaPerLayanan),
-        0,
-      ),
-    gmvJaga: allServices
-      .filter(
-        (s) =>
-          getTipe(s.tipeLayanan as unknown as Record<string, null>) === "jaga",
-      )
-      .reduce(
-        (acc, s) => acc + Number(s.unitLayanan) * Number(s.hargaPerLayanan),
-        0,
-      ),
-    gmvEfisien: allServices
-      .filter(
-        (s) =>
-          getTipe(s.tipeLayanan as unknown as Record<string, null>) ===
-          "efisien",
-      )
-      .reduce(
-        (acc, s) => acc + Number(s.unitLayanan) * Number(s.hargaPerLayanan),
-        0,
-      ),
-    margin:
-      allServices.reduce(
-        (acc, s) => acc + Number(s.unitLayanan) * Number(s.hargaPerLayanan),
-        0,
-      ) -
-      allTasks
-        .filter(
-          (t) =>
-            getTaskStatus(t.status as unknown as Record<string, null>) ===
-            "selesai",
-        )
-        .reduce((acc, t) => acc + Number(t.jamEfektif) * 0, 0),
-    layananAktifTotal: allServices.filter(
-      (s) =>
-        getServiceStatus(s.status as unknown as Record<string, null>) ===
-        "active",
-    ).length,
-    layananAktifTenang: allServices.filter(
-      (s) =>
-        getServiceStatus(s.status as unknown as Record<string, null>) ===
-          "active" &&
-        getTipe(s.tipeLayanan as unknown as Record<string, null>) === "tenang",
-    ).length,
-    layananAktifRapi: allServices.filter(
-      (s) =>
-        getServiceStatus(s.status as unknown as Record<string, null>) ===
-          "active" &&
-        getTipe(s.tipeLayanan as unknown as Record<string, null>) === "rapi",
-    ).length,
-    layananAktifFokus: allServices.filter(
-      (s) =>
-        getServiceStatus(s.status as unknown as Record<string, null>) ===
-          "active" &&
-        getTipe(s.tipeLayanan as unknown as Record<string, null>) === "fokus",
-    ).length,
-    layananAktifJaga: allServices.filter(
-      (s) =>
-        getServiceStatus(s.status as unknown as Record<string, null>) ===
-          "active" &&
-        getTipe(s.tipeLayanan as unknown as Record<string, null>) === "jaga",
-    ).length,
-    layananAktifEfisien: allServices.filter(
-      (s) =>
-        getServiceStatus(s.status as unknown as Record<string, null>) ===
-          "active" &&
-        getTipe(s.tipeLayanan as unknown as Record<string, null>) === "efisien",
-    ).length,
-  };
-
-  // ─── Chart data helpers ───────────────────────────────────────────────────
-  const userTimestamps = allUsers.map((u) => toMs(u.createdAt));
-  const clientTimestamps = allClients.map((u) => toMs(u.createdAt));
-  const partnerTimestamps = allPartners.map((p) => toMs(p.createdAt));
-  const taskOnprogressTimestamps = allTasks
-    .filter(
-      (t) =>
-        getTaskStatus(t.status as unknown as Record<string, null>) ===
-        "onprogress",
-    )
-    .map((t) => toMs(t.createdAt));
-  const taskSelesaiTimestamps = allTasks
-    .filter(
-      (t) =>
-        getTaskStatus(t.status as unknown as Record<string, null>) ===
-        "selesai",
-    )
-    .map((t) => toMs(t.createdAt));
-  const layananAktifTimestamps = allServices
-    .filter(
-      (s) =>
-        getServiceStatus(s.status as unknown as Record<string, null>) ===
-        "active",
-    )
-    .map((s) => toMs(s.createdAt));
+  // Charts use empty timestamps (flat lines) since we only have aggregates from backend
+  const emptyTs: number[] = [];
 
   if (isChecking) {
     return (
@@ -582,6 +371,27 @@ export default function DashboardInvestor() {
       </div>
     );
   }
+
+  const s = summary ?? {
+    totalUser: 0,
+    totalClient: 0,
+    totalPartner: 0,
+    taskOnprogress: 0,
+    taskSelesai: 0,
+    gmvTotal: 0,
+    gmvTenang: 0,
+    gmvRapi: 0,
+    gmvFokus: 0,
+    gmvJaga: 0,
+    gmvEfisien: 0,
+    margin: 0,
+    layananAktifTotal: 0,
+    layananAktifTenang: 0,
+    layananAktifRapi: 0,
+    layananAktifFokus: 0,
+    layananAktifJaga: 0,
+    layananAktifEfisien: 0,
+  };
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -659,8 +469,8 @@ export default function DashboardInvestor() {
               iconBg="bg-slate-100"
               iconColor="text-slate-600"
               label="Total User"
-              value={summary.totalUser}
-              chartData={buildChartData(userTimestamps, periods.totalUser!)}
+              value={s.totalUser}
+              chartData={buildChartData(emptyTs, periods.totalUser!)}
               chartColor="#64748b"
               period={periods.totalUser!}
               onPeriodChange={(v) => setPeriod("totalUser", v)}
@@ -672,8 +482,8 @@ export default function DashboardInvestor() {
               iconBg="bg-blue-50"
               iconColor="text-blue-600"
               label="Total Client"
-              value={summary.totalClient}
-              chartData={buildChartData(clientTimestamps, periods.totalClient!)}
+              value={s.totalClient}
+              chartData={buildChartData(emptyTs, periods.totalClient!)}
               chartColor="#3b82f6"
               period={periods.totalClient!}
               onPeriodChange={(v) => setPeriod("totalClient", v)}
@@ -685,11 +495,8 @@ export default function DashboardInvestor() {
               iconBg="bg-teal-50"
               iconColor="text-teal-600"
               label="Total Partner Aktif"
-              value={summary.totalPartner}
-              chartData={buildChartData(
-                partnerTimestamps,
-                periods.totalPartner!,
-              )}
+              value={s.totalPartner}
+              chartData={buildChartData(emptyTs, periods.totalPartner!)}
               chartColor="#14b8a6"
               period={periods.totalPartner!}
               onPeriodChange={(v) => setPeriod("totalPartner", v)}
@@ -701,11 +508,8 @@ export default function DashboardInvestor() {
               iconBg="bg-amber-50"
               iconColor="text-amber-600"
               label="Task On Progress"
-              value={summary.taskOnprogress}
-              chartData={buildChartData(
-                taskOnprogressTimestamps,
-                periods.taskOnprogress!,
-              )}
+              value={s.taskOnprogress}
+              chartData={buildChartData(emptyTs, periods.taskOnprogress!)}
               chartColor="#f59e0b"
               period={periods.taskOnprogress!}
               onPeriodChange={(v) => setPeriod("taskOnprogress", v)}
@@ -717,11 +521,8 @@ export default function DashboardInvestor() {
               iconBg="bg-emerald-50"
               iconColor="text-emerald-600"
               label="Task Selesai"
-              value={summary.taskSelesai}
-              chartData={buildChartData(
-                taskSelesaiTimestamps,
-                periods.taskSelesai!,
-              )}
+              value={s.taskSelesai}
+              chartData={buildChartData(emptyTs, periods.taskSelesai!)}
               chartColor="#10b981"
               period={periods.taskSelesai!}
               onPeriodChange={(v) => setPeriod("taskSelesai", v)}
@@ -733,8 +534,8 @@ export default function DashboardInvestor() {
               iconBg="bg-emerald-50"
               iconColor="text-emerald-600"
               label="GMV Total"
-              value={formatRp(summary.gmvTotal)}
-              chartData={buildGmvChartData(allServices, periods.gmvTotal!)}
+              value={formatRp(s.gmvTotal)}
+              chartData={buildChartData(emptyTs, periods.gmvTotal!)}
               chartColor="#10b981"
               period={periods.gmvTotal!}
               onPeriodChange={(v) => setPeriod("gmvTotal", v)}
@@ -751,23 +552,23 @@ export default function DashboardInvestor() {
                 <div className="flex flex-col gap-0.5">
                   <p className="text-[10px] text-slate-600">
                     <span className="font-semibold text-teal-600">TENANG</span>{" "}
-                    {formatRp(summary.gmvTenang)}
+                    {formatRp(s.gmvTenang)}
                   </p>
                   <p className="text-[10px] text-slate-600">
                     <span className="font-semibold text-blue-600">RAPI</span>{" "}
-                    {formatRp(summary.gmvRapi)}
+                    {formatRp(s.gmvRapi)}
                   </p>
                   <p className="text-[10px] text-slate-600">
                     <span className="font-semibold text-amber-600">FOKUS</span>{" "}
-                    {formatRp(summary.gmvFokus)}
+                    {formatRp(s.gmvFokus)}
                   </p>
                   <p className="text-[10px] text-slate-600">
                     <span className="font-semibold text-purple-600">JAGA</span>{" "}
-                    {formatRp(summary.gmvJaga)}
+                    {formatRp(s.gmvJaga)}
                   </p>
                 </div>
               }
-              chartData={buildGmvChartData(allServices, periods.gmvPerTipe!)}
+              chartData={buildChartData(emptyTs, periods.gmvPerTipe!)}
               chartColor="#6366f1"
               period={periods.gmvPerTipe!}
               onPeriodChange={(v) => setPeriod("gmvPerTipe", v)}
@@ -779,8 +580,8 @@ export default function DashboardInvestor() {
               iconBg="bg-purple-50"
               iconColor="text-purple-600"
               label="Margin"
-              value={formatRp(summary.margin)}
-              chartData={buildGmvChartData(allServices, periods.margin!)}
+              value={formatRp(s.margin)}
+              chartData={buildChartData(emptyTs, periods.margin!)}
               chartColor="#a855f7"
               period={periods.margin!}
               onPeriodChange={(v) => setPeriod("margin", v)}
@@ -792,11 +593,8 @@ export default function DashboardInvestor() {
               iconBg="bg-teal-50"
               iconColor="text-teal-600"
               label="Layanan Aktif Total"
-              value={summary.layananAktifTotal}
-              chartData={buildChartData(
-                layananAktifTimestamps,
-                periods.layananAktifTotal!,
-              )}
+              value={s.layananAktifTotal}
+              chartData={buildChartData(emptyTs, periods.layananAktifTotal!)}
               chartColor="#14b8a6"
               period={periods.layananAktifTotal!}
               onPeriodChange={(v) => setPeriod("layananAktifTotal", v)}
@@ -813,26 +611,23 @@ export default function DashboardInvestor() {
                 <div className="flex flex-col gap-0.5">
                   <p className="text-[10px] text-slate-600">
                     <span className="font-semibold text-teal-600">TENANG</span>{" "}
-                    {summary.layananAktifTenang}
+                    {s.layananAktifTenang}
                   </p>
                   <p className="text-[10px] text-slate-600">
                     <span className="font-semibold text-blue-600">RAPI</span>{" "}
-                    {summary.layananAktifRapi}
+                    {s.layananAktifRapi}
                   </p>
                   <p className="text-[10px] text-slate-600">
                     <span className="font-semibold text-amber-600">FOKUS</span>{" "}
-                    {summary.layananAktifFokus}
+                    {s.layananAktifFokus}
                   </p>
                   <p className="text-[10px] text-slate-600">
                     <span className="font-semibold text-purple-600">JAGA</span>{" "}
-                    {summary.layananAktifJaga}
+                    {s.layananAktifJaga}
                   </p>
                 </div>
               }
-              chartData={buildChartData(
-                layananAktifTimestamps,
-                periods.layananAktifPerTipe!,
-              )}
+              chartData={buildChartData(emptyTs, periods.layananAktifPerTipe!)}
               chartColor="#64748b"
               period={periods.layananAktifPerTipe!}
               onPeriodChange={(v) => setPeriod("layananAktifPerTipe", v)}

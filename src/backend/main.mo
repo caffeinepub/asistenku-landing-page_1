@@ -12,12 +12,60 @@ import Principal "mo:core/Principal";
 
 
 actor {
+  // Migration types (for stable variable compatibility when adding #investor)
+  type OldRole = {
+    #admin;
+    #asistenmu;
+    #operasional;
+    #client;
+    #partner;
+    #public_;
+  };
+
+  type OldUser = {
+    idUser : Text;
+    principalId : Text;
+    nama : Text;
+    email : Text;
+    whatsapp : Text;
+    role : OldRole;
+    status : Status;
+    createdAt : Int;
+  };
+
+  type OldPartner = {
+    idUser : Text;
+    principalId : Text;
+    nama : Text;
+    email : Text;
+    whatsapp : Text;
+    kota : Text;
+    level : LevelPartner;
+    verifiedSkill : [Text];
+    role : OldRole;
+    status : Status;
+    createdAt : Int;
+  };
+
+  type OldClient = {
+    idUser : Text;
+    principalId : Text;
+    nama : Text;
+    email : Text;
+    whatsapp : Text;
+    company : Text;
+    role : OldRole;
+    status : Status;
+    createdAt : Int;
+  };
+
   public type Role = {
     #admin;
     #asistenmu;
     #operasional;
     #client;
     #partner;
+    #investor;
     #public_;
   };
 
@@ -220,6 +268,27 @@ actor {
     totalTaskSelesai : Nat;
   };
 
+  public type InvestorSummary = {
+    totalUser : Nat;
+    totalClient : Nat;
+    totalPartner : Nat;
+    taskOnProgress : Nat;
+    taskSelesai : Nat;
+    gmvTotal : Nat;
+    gmvTenang : Nat;
+    gmvRapi : Nat;
+    gmvFokus : Nat;
+    gmvJaga : Nat;
+    gmvEfisien : Nat;
+    margin : Nat;
+    layananAktifTotal : Nat;
+    layananAktifTenang : Nat;
+    layananAktifRapi : Nat;
+    layananAktifFokus : Nat;
+    layananAktifJaga : Nat;
+    layananAktifEfisien : Nat;
+  };
+
   // Stable variables
   var userCounter : Nat = 0;
   var partnerCounter : Nat = 0;
@@ -245,17 +314,11 @@ actor {
   var stableArchivedServices : [(Text, Service)] = [];
 
   // Persistent Maps
-  let users = Map.fromIter<Principal, User>(
-    stableUsers.values()
-  );
+  let users : Map.Map<Principal, OldUser> = Map.empty<Principal, OldUser>();
 
-  let partners = Map.fromIter<Principal, Partner>(
-    stablePartners.values()
-  );
+  let partners : Map.Map<Principal, OldPartner> = Map.empty<Principal, OldPartner>();
 
-  let clients = Map.fromIter<Principal, Client>(
-    stableClients.values()
-  );
+  let clients : Map.Map<Principal, OldClient> = Map.empty<Principal, OldClient>();
 
   let services = Map.fromIter<Text, Service>(
     stableServices.values()
@@ -289,11 +352,28 @@ actor {
     stableArchivedServices.values()
   );
 
+  // Migrate old maps to new maps with updated Role type (adds #investor)
+  func migrateRole(r : OldRole) : Role {
+    switch r {
+      case (#admin) #admin;
+      case (#asistenmu) #asistenmu;
+      case (#operasional) #operasional;
+      case (#client) #client;
+      case (#partner) #partner;
+      case (#public_) #public_;
+    }
+  };
+
+  let usersM : Map.Map<Principal, User> = Map.empty<Principal, User>();
+  let partnersM : Map.Map<Principal, Partner> = Map.empty<Principal, Partner>();
+  let clientsM : Map.Map<Principal, Client> = Map.empty<Principal, Client>();
+  stable var roleV1MigrationDone : Bool = false;
+
   /// System
   system func preupgrade() {
-    stableUsers := users.toArray();
-    stablePartners := partners.toArray();
-    stableClients := clients.toArray();
+    stableUsers := usersM.toArray();
+    stablePartners := partnersM.toArray();
+    stableClients := clientsM.toArray();
     stableServices := services.toArray();
     stableTopUps := topUps.toArray();
     stableTasks := tasks.toArray();
@@ -305,6 +385,50 @@ actor {
   };
 
   system func postupgrade() {
+    // One-time migration: copy old Role maps (without #investor) to new maps (with #investor)
+    if (not roleV1MigrationDone) {
+      for ((k, v) in users.entries()) {
+        usersM.add(k, {
+          idUser = v.idUser;
+          principalId = v.principalId;
+          nama = v.nama;
+          email = v.email;
+          whatsapp = v.whatsapp;
+          role = migrateRole(v.role);
+          status = v.status;
+          createdAt = v.createdAt;
+        });
+      };
+      for ((k, v) in partners.entries()) {
+        partnersM.add(k, {
+          idUser = v.idUser;
+          principalId = v.principalId;
+          nama = v.nama;
+          email = v.email;
+          whatsapp = v.whatsapp;
+          kota = v.kota;
+          level = v.level;
+          verifiedSkill = v.verifiedSkill;
+          role = migrateRole(v.role);
+          status = v.status;
+          createdAt = v.createdAt;
+        });
+      };
+      for ((k, v) in clients.entries()) {
+        clientsM.add(k, {
+          idUser = v.idUser;
+          principalId = v.principalId;
+          nama = v.nama;
+          email = v.email;
+          whatsapp = v.whatsapp;
+          company = v.company;
+          role = migrateRole(v.role);
+          status = v.status;
+          createdAt = v.createdAt;
+        });
+      };
+      roleV1MigrationDone := true;
+    };
     stableUsers := [];
     stablePartners := [];
     stableClients := [];
@@ -324,14 +448,14 @@ actor {
   public shared ({ caller }) func forceClaimAdmin(nama : Text, email : Text, whatsapp : Text) : async () {
     let usersToRemove = List.empty<Principal>();
 
-    for ((principalId, user) in users.entries()) {
+    for ((principalId, user) in usersM.entries()) {
       if (user.role == #admin) {
         usersToRemove.add(principalId);
       };
     };
 
     for (pid in usersToRemove.values()) {
-      users.remove(pid);
+      usersM.remove(pid);
     };
 
     adminClaimed := true;
@@ -348,12 +472,12 @@ actor {
       createdAt = Time.now();
     };
 
-    users.add(caller, adminUser);
+    usersM.add(caller, adminUser);
   };
 
   /// Check admin or operational role
   func checkAdminOrOperasional(p : Principal) {
-    switch (users.get(p)) {
+    switch (usersM.get(p)) {
       case (?user) {
         switch (user.role) {
           case (#admin) {};
@@ -370,7 +494,7 @@ actor {
   };
 
   public query ({ caller }) func isAdmin(user : Principal) : async Bool {
-    switch (users.get(user)) {
+    switch (usersM.get(user)) {
       case (?user) { user.role == #admin };
       case (null) { false };
     };
@@ -378,13 +502,13 @@ actor {
 
   /// Get role of the caller
   public query ({ caller }) func getMyRole() : async ?Role {
-    switch (users.get(caller)) {
+    switch (usersM.get(caller)) {
       case (?user) { ?user.role };
       case (null) {
-        switch (partners.get(caller)) {
+        switch (partnersM.get(caller)) {
           case (?partner) { ?partner.role };
           case (null) {
-            switch (clients.get(caller)) {
+            switch (clientsM.get(caller)) {
               case (?client) { ?client.role };
               case (null) { null };
             };
@@ -396,13 +520,13 @@ actor {
 
   /// Get status of user by principal
   public query func getUserStatus(principal : Principal) : async ?Status {
-    switch (users.get(principal)) {
+    switch (usersM.get(principal)) {
       case (?user) { ?user.status };
       case (null) {
-        switch (partners.get(principal)) {
+        switch (partnersM.get(principal)) {
           case (?partner) { ?partner.status };
           case (null) {
-            switch (clients.get(principal)) {
+            switch (clientsM.get(principal)) {
               case (?client) { ?client.status };
               case (null) { null };
             };
@@ -441,15 +565,15 @@ actor {
   };
 
   public query ({ caller }) func getMyProfile() : async ?User {
-    users.get(caller);
+    usersM.get(caller);
   };
 
   public query ({ caller }) func getMyPartnerProfile() : async ?Partner {
-    partners.get(caller);
+    partnersM.get(caller);
   };
 
   public shared ({ caller }) func updateMyPartnerProfile(nama : Text, email : Text, whatsapp : Text, kota : Text) : async () {
-    switch (partners.get(caller)) {
+    switch (partnersM.get(caller)) {
       case (?partner) {
         let updatedPartner = {
           partner with
@@ -458,7 +582,7 @@ actor {
           whatsapp;
           kota;
         };
-        partners.add(caller, updatedPartner);
+        partnersM.add(caller, updatedPartner);
       };
       case (null) { Runtime.trap("Partner not found") };
     };
@@ -466,43 +590,43 @@ actor {
 
   /// NEW FUNCTION: Get client profile of the caller
   public query ({ caller }) func getMyClientProfile() : async ?Client {
-    clients.get(caller);
+    clientsM.get(caller);
   };
 
   /// Get all users, partners, clients, services, topups, etc.
   public query ({ caller }) func getUsers() : async [User] {
     checkAdminOrOperasional(caller);
-    users.values().toArray();
+    usersM.values().toArray();
   };
 
   public query ({ caller }) func getAllUsers() : async [User] {
     checkAdminOrOperasional(caller);
-    users.values().toArray();
+    usersM.values().toArray();
   };
 
   public query ({ caller }) func getAllPartners() : async [Partner] {
     checkAdminOrOperasional(caller);
-    partners.values().toArray();
+    partnersM.values().toArray();
   };
 
   public query ({ caller }) func getAllClients() : async [Client] {
     checkAdminOrOperasional(caller);
-    clients.values().toArray();
+    clientsM.values().toArray();
   };
 
   public query ({ caller }) func getClients() : async [Client] {
     checkAdminOrOperasional(caller);
-    clients.values().toArray();
+    clientsM.values().toArray();
   };
 
   public query ({ caller }) func getPartners() : async [Partner] {
     checkAdminOrOperasional(caller);
-    partners.values().toArray();
+    partnersM.values().toArray();
   };
 
   public query ({ caller }) func getAsistenmu() : async [User] {
     checkAdminOrOperasional(caller);
-    users.values().toArray().filter(
+    usersM.values().toArray().filter(
       func(user) {
         user.role == #asistenmu and user.status == #active;
       }
@@ -555,7 +679,7 @@ actor {
   /// NEW FUNCTION: Get tasks for the currently logged in client
   public query ({ caller }) func getMyTasksAsClient() : async [Task] {
     let callerText = caller.toText();
-    switch (clients.get(caller)) {
+    switch (clientsM.get(caller)) {
       case (?_) {
         tasks.values().toArray().filter(
           func(task) {
@@ -622,7 +746,7 @@ actor {
   public query ({ caller }) func getMyWallet() : async WalletInfo {
     let callerText = caller.toText();
     var rate = 0;
-    switch (partners.get(caller)) {
+    switch (partnersM.get(caller)) {
       case (null) { Runtime.trap("Partner not found") };
       case (?p) {
         rate := switch (p.level) {
@@ -710,11 +834,11 @@ actor {
       status = #active;
       createdAt = Time.now();
     };
-    users.add(caller, adminUser);
+    usersM.add(caller, adminUser);
   };
 
   public shared ({ caller }) func registerUser(nama : Text, email : Text, whatsapp : Text) : async Text {
-    if (users.containsKey(caller)) {
+    if (usersM.containsKey(caller)) {
       Runtime.trap("User already registered");
     };
     userCounter += 1;
@@ -729,12 +853,12 @@ actor {
       status = #pending;
       createdAt = Time.now();
     };
-    users.add(caller, newUser);
+    usersM.add(caller, newUser);
     idUser;
   };
 
   public shared ({ caller }) func registerPartner(nama : Text, email : Text, whatsapp : Text, kota : Text) : async Text {
-    if (partners.containsKey(caller)) { Runtime.trap("Partner already exists") };
+    if (partnersM.containsKey(caller)) { Runtime.trap("Partner already exists") };
     partnerCounter += 1;
     let idUser = genPartnerId(partnerCounter);
     let newPartner : Partner = {
@@ -750,12 +874,12 @@ actor {
       status = #pending;
       createdAt = Time.now();
     };
-    partners.add(caller, newPartner);
+    partnersM.add(caller, newPartner);
     idUser;
   };
 
   public shared ({ caller }) func registerClient(nama : Text, email : Text, whatsapp : Text, company : Text) : async Text {
-    if (clients.containsKey(caller)) { Runtime.trap("Client already exists") };
+    if (clientsM.containsKey(caller)) { Runtime.trap("Client already exists") };
     clientCounter += 1;
     let idUser = genClientId(clientCounter);
     let newClient : Client = {
@@ -769,16 +893,16 @@ actor {
       status = #pending;
       createdAt = Time.now();
     };
-    clients.add(caller, newClient);
+    clientsM.add(caller, newClient);
     idUser;
   };
 
   public shared ({ caller }) func approveInternalUser(principalId : Principal, role : Role) : async () {
     checkAdminOrOperasional(caller);
-    switch (users.get(principalId)) {
+    switch (usersM.get(principalId)) {
       case (?user) {
         let updatedUser = { user with role; status = #active };
-        users.add(principalId, updatedUser);
+        usersM.add(principalId, updatedUser);
         await addAdminLog(caller, "Approved internal user", principalId.toText());
       };
       case (null) { Runtime.trap("User not found") };
@@ -787,10 +911,10 @@ actor {
 
   public shared ({ caller }) func rejectUser(principalId : Principal) : async () {
     checkAdminOrOperasional(caller);
-    switch (users.get(principalId)) {
+    switch (usersM.get(principalId)) {
       case (?user) {
         let updatedUser = { user with status = #reject };
-        users.add(principalId, updatedUser);
+        usersM.add(principalId, updatedUser);
         await addAdminLog(caller, "Rejected user", principalId.toText());
       };
       case (null) { Runtime.trap("User not found") };
@@ -799,10 +923,10 @@ actor {
 
   public shared ({ caller }) func suspendUser(principalId : Principal) : async () {
     checkAdminOrOperasional(caller);
-    switch (users.get(principalId)) {
+    switch (usersM.get(principalId)) {
       case (?user) {
         let updatedUser = { user with status = #suspend };
-        users.add(principalId, updatedUser);
+        usersM.add(principalId, updatedUser);
         await addAdminLog(caller, "Suspended user", principalId.toText());
       };
       case (null) { Runtime.trap("User not found") };
@@ -811,10 +935,10 @@ actor {
 
   public shared ({ caller }) func reactivateUser(principalId : Principal) : async () {
     checkAdminOrOperasional(caller);
-    switch (users.get(principalId)) {
+    switch (usersM.get(principalId)) {
       case (?user) {
         let updatedUser = { user with status = #active };
-        users.add(principalId, updatedUser);
+        usersM.add(principalId, updatedUser);
         await addAdminLog(caller, "Reactivated user", principalId.toText());
       };
       case (null) { Runtime.trap("User not found") };
@@ -823,10 +947,10 @@ actor {
 
   public shared ({ caller }) func approveClient(principalId : Principal) : async () {
     checkAdminOrOperasional(caller);
-    switch (clients.get(principalId)) {
+    switch (clientsM.get(principalId)) {
       case (?client) {
         let updatedClient = { client with status = #active };
-        clients.add(principalId, updatedClient);
+        clientsM.add(principalId, updatedClient);
         await addAdminLog(caller, "Approved client", principalId.toText());
       };
       case (null) { Runtime.trap("Client not found") };
@@ -835,10 +959,10 @@ actor {
 
   public shared ({ caller }) func rejectClient(principalId : Principal) : async () {
     checkAdminOrOperasional(caller);
-    switch (clients.get(principalId)) {
+    switch (clientsM.get(principalId)) {
       case (?client) {
         let updatedClient = { client with status = #reject };
-        clients.add(principalId, updatedClient);
+        clientsM.add(principalId, updatedClient);
         await addAdminLog(caller, "Rejected client", principalId.toText());
       };
       case (null) { Runtime.trap("Client not found") };
@@ -847,10 +971,10 @@ actor {
 
   public shared ({ caller }) func suspendClient(principalId : Principal) : async () {
     checkAdminOrOperasional(caller);
-    switch (clients.get(principalId)) {
+    switch (clientsM.get(principalId)) {
       case (?client) {
         let updatedClient = { client with status = #suspend };
-        clients.add(principalId, updatedClient);
+        clientsM.add(principalId, updatedClient);
         await addAdminLog(caller, "Suspended client", principalId.toText());
       };
       case (null) { Runtime.trap("Client not found") };
@@ -859,10 +983,10 @@ actor {
 
   public shared ({ caller }) func reactivateClient(principalId : Principal) : async () {
     checkAdminOrOperasional(caller);
-    switch (clients.get(principalId)) {
+    switch (clientsM.get(principalId)) {
       case (?client) {
         let updatedClient = { client with status = #active };
-        clients.add(principalId, updatedClient);
+        clientsM.add(principalId, updatedClient);
         await addAdminLog(caller, "Reactivated client", principalId.toText());
       };
       case (null) { Runtime.trap("Client not found") };
@@ -871,10 +995,10 @@ actor {
 
   public shared ({ caller }) func approvePartner(principalId : Principal) : async () {
     checkAdminOrOperasional(caller);
-    switch (partners.get(principalId)) {
+    switch (partnersM.get(principalId)) {
       case (?partner) {
         let updatedPartner = { partner with status = #active };
-        partners.add(principalId, updatedPartner);
+        partnersM.add(principalId, updatedPartner);
         await addAdminLog(caller, "Approved partner", principalId.toText());
       };
       case (null) { Runtime.trap("Partner not found") };
@@ -883,10 +1007,10 @@ actor {
 
   public shared ({ caller }) func rejectPartner(principalId : Principal) : async () {
     checkAdminOrOperasional(caller);
-    switch (partners.get(principalId)) {
+    switch (partnersM.get(principalId)) {
       case (?partner) {
         let updatedPartner = { partner with status = #reject };
-        partners.add(principalId, updatedPartner);
+        partnersM.add(principalId, updatedPartner);
         await addAdminLog(caller, "Rejected partner", principalId.toText());
       };
       case (null) { Runtime.trap("Partner not found") };
@@ -895,10 +1019,10 @@ actor {
 
   public shared ({ caller }) func suspendPartner(principalId : Principal) : async () {
     checkAdminOrOperasional(caller);
-    switch (partners.get(principalId)) {
+    switch (partnersM.get(principalId)) {
       case (?partner) {
         let updatedPartner = { partner with status = #suspend };
-        partners.add(principalId, updatedPartner);
+        partnersM.add(principalId, updatedPartner);
         await addAdminLog(caller, "Suspended partner", principalId.toText());
       };
       case (null) { Runtime.trap("Partner not found") };
@@ -907,10 +1031,10 @@ actor {
 
   public shared ({ caller }) func reactivatePartner(principalId : Principal) : async () {
     checkAdminOrOperasional(caller);
-    switch (partners.get(principalId)) {
+    switch (partnersM.get(principalId)) {
       case (?partner) {
         let updatedPartner = { partner with status = #active };
-        partners.add(principalId, updatedPartner);
+        partnersM.add(principalId, updatedPartner);
         await addAdminLog(caller, "Reactivated partner", principalId.toText());
       };
       case (null) { Runtime.trap("Partner not found") };
@@ -919,14 +1043,14 @@ actor {
 
   public shared ({ caller }) func updatePartnerDetails(principalId : Principal, level : LevelPartner, verifiedSkill : [Text]) : async () {
     checkAdminOrOperasional(caller);
-    switch (partners.get(principalId)) {
+    switch (partnersM.get(principalId)) {
       case (?partner) {
         let updatedPartner = {
           partner with
           level;
           verifiedSkill;
         };
-        partners.add(principalId, updatedPartner);
+        partnersM.add(principalId, updatedPartner);
         await addAdminLog(caller, "Updated partner details", principalId.toText());
       };
       case (null) { Runtime.trap("Partner not found") };
@@ -1237,7 +1361,7 @@ actor {
   // === FINANCIALS ===
 
   public shared ({ caller }) func requestFinancialProfile(namaBankEwallet : Text, nomorRekening : Text, namaRekening : Text) : async Text {
-    switch (partners.get(caller)) {
+    switch (partnersM.get(caller)) {
       case (null) { Runtime.trap("Caller is not a valid partner") };
       case (?partner) {
         let partnerNama = partner.nama;
@@ -1292,7 +1416,7 @@ actor {
 
   public shared ({ caller }) func requestWithdraw(nominal : Nat) : async Text {
     let profileOpt = financialProfiles.get(caller.toText());
-    switch (partners.get(caller)) {
+    switch (partnersM.get(caller)) {
       case (?partner) {
         switch (profileOpt) {
           case (?profile) {
@@ -1346,7 +1470,7 @@ actor {
   // Helper functions
 
   func checkAdmin(p : Principal) {
-    switch (users.get(p)) {
+    switch (usersM.get(p)) {
       case (?user) {
         if (user.role != #admin) {
           Runtime.trap("Caller is not admin");
@@ -1483,7 +1607,7 @@ actor {
     };
 
     // Add services where caller's idUser (from clients map) is in sharingLayanan
-    switch (clients.get(caller)) {
+    switch (clientsM.get(caller)) {
       case (?client) {
         let callerIdUser = client.idUser;
         for (service in services.values()) {
@@ -1518,7 +1642,7 @@ actor {
 
   public query ({ caller }) func getPartnersAsAsistenmu() : async [Partner] {
     let callerText = caller.toText();
-    switch (users.get(caller)) {
+    switch (usersM.get(caller)) {
       case (?user) {
         if (user.role != #asistenmu or user.status != #active) {
           Runtime.trap("Not authorized (must be active asistenmu)");
@@ -1527,7 +1651,7 @@ actor {
       case (null) { Runtime.trap("Not authorized (must be active asistenmu)") };
     };
 
-    partners.values().toArray().filter(
+    partnersM.values().toArray().filter(
       func(p) {
         p.status == #active;
       }
@@ -1535,7 +1659,7 @@ actor {
   };
 
   public shared ({ caller }) func updateTaskStatusAsClient(idTask : Text, status : TaskStatus) : async () {
-    switch (clients.get(caller)) {
+    switch (clientsM.get(caller)) {
       case (null) { Runtime.trap("Not a valid client") };
       case (?_) {
         switch (tasks.get(idTask)) {
@@ -1575,7 +1699,7 @@ actor {
   };
 
   public shared ({ caller }) func cancelTask(idTask : Text) : async () {
-    switch (clients.get(caller)) {
+    switch (clientsM.get(caller)) {
       case (null) { Runtime.trap("Not a valid client") };
       case (?_) {
         switch (tasks.get(idTask)) {
@@ -1659,7 +1783,7 @@ actor {
         case (#selesai) {
           totalTaskSelesai += 1;
           // compute rate from partner level
-          switch (partners.get(Principal.fromText(task.partnerId))) {
+          switch (partnersM.get(Principal.fromText(task.partnerId))) {
             case (?p) {
               let rate = switch (p.level) {
                 case (#junior) { 35000 };
@@ -1724,6 +1848,120 @@ actor {
       totalTaskOnProgress;
       totalTaskRevisi;
       totalTaskSelesai;
+    };
+  };
+
+  public query ({ caller }) func getInvestorSummary() : async InvestorSummary {
+    switch (usersM.get(caller)) {
+      case (?user) {
+        if (user.role != #investor and user.role != #admin and user.role != #operasional) {
+          Runtime.trap("Unauthorized: hanya #investor, #admin, atau #operasional");
+        };
+      };
+      case (null) {
+        Runtime.trap("Unauthorized: user tidak ditemukan");
+      };
+    };
+
+    var totalUser = 0;
+    var totalClient = 0;
+    var totalPartner = 0;
+    for (u in usersM.values()) {
+      totalUser += 1;
+      if (u.role == #client) { totalClient += 1 };
+      if (u.role == #partner) { totalPartner += 1 };
+    };
+
+    var gmvTenang = 0; var gmvRapi = 0; var gmvFokus = 0; var gmvJaga = 0; var gmvEfisien = 0;
+    var layananAktifTenang = 0; var layananAktifRapi = 0; var layananAktifFokus = 0; var layananAktifJaga = 0; var layananAktifEfisien = 0;
+
+    for (svc in services.values()) {
+      let val = svc.unitLayanan * svc.hargaPerLayanan;
+      switch (svc.tipeLayanan) {
+        case (#tenang) { gmvTenang += val };
+        case (#rapi) { gmvRapi += val };
+        case (#fokus) { gmvFokus += val };
+        case (#jaga) { gmvJaga += val };
+        case (#efisien) { gmvEfisien += val };
+      };
+      if (svc.status == #active) {
+        switch (svc.tipeLayanan) {
+          case (#tenang) { layananAktifTenang += 1 };
+          case (#rapi) { layananAktifRapi += 1 };
+          case (#fokus) { layananAktifFokus += 1 };
+          case (#jaga) { layananAktifJaga += 1 };
+          case (#efisien) { layananAktifEfisien += 1 };
+        };
+      };
+    };
+
+    for (tu in topUps.values()) {
+      switch (services.get(tu.idService)) {
+        case (?svc) {
+          let val = tu.unitTambahan * svc.hargaPerLayanan;
+          switch (svc.tipeLayanan) {
+            case (#tenang) { gmvTenang += val };
+            case (#rapi) { gmvRapi += val };
+            case (#fokus) { gmvFokus += val };
+            case (#jaga) { gmvJaga += val };
+            case (#efisien) { gmvEfisien += val };
+          };
+        };
+        case (null) {};
+      };
+    };
+
+    let gmvTotal = gmvTenang + gmvRapi + gmvFokus + gmvJaga + gmvEfisien;
+
+    var taskOnProgress = 0;
+    var taskSelesai = 0;
+    var totalKonversi = 0;
+
+    for (task in tasks.values()) {
+      switch (task.status) {
+        case (#onprogress) { taskOnProgress += 1 };
+        case (#selesai) {
+          taskSelesai += 1;
+          switch (partnersM.get(Principal.fromText(task.partnerId))) {
+            case (?p) {
+              let rate = switch (p.level) {
+                case (#junior) { 35000 };
+                case (#senior) { 55000 };
+                case (#expert) { 75000 };
+              };
+              totalKonversi += task.jamEfektif * rate;
+            };
+            case (null) {};
+          };
+        };
+        case (_) {};
+      };
+    };
+
+    let rawMargin : Int = gmvTotal - totalKonversi;
+    let margin = if (rawMargin > 0) { rawMargin.toNat() } else { 0 };
+
+    let layananAktifTotal = layananAktifTenang + layananAktifRapi + layananAktifFokus + layananAktifJaga + layananAktifEfisien;
+
+    {
+      totalUser;
+      totalClient;
+      totalPartner;
+      taskOnProgress;
+      taskSelesai;
+      gmvTotal;
+      gmvTenang;
+      gmvRapi;
+      gmvFokus;
+      gmvJaga;
+      gmvEfisien;
+      margin;
+      layananAktifTotal;
+      layananAktifTenang;
+      layananAktifRapi;
+      layananAktifFokus;
+      layananAktifJaga;
+      layananAktifEfisien;
     };
   };
 };
