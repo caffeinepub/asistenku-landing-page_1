@@ -209,19 +209,6 @@ function getRole(obj: Record<string, null> | string): string {
   return extractKey(obj);
 }
 
-function toRoleVariant(role: string): Role {
-  const map: Record<string, unknown> = {
-    admin: { admin: null },
-    asistenmu: { asistenmu: null },
-    operasional: { operasional: null },
-    client: { client: null },
-    partner: { partner: null },
-    investor: { investor: null },
-    public_: { public: null },
-  };
-  return (map[role] ?? { public: null }) as Role;
-}
-
 function getTipe(obj: Record<string, null> | string): string {
   return extractKey(obj);
 }
@@ -3084,7 +3071,7 @@ function PendingRow({
                   () =>
                     act.approveInternalUser(
                       Principal.fromText(u.principalId),
-                      toRoleVariant(selectedRole),
+                      selectedRole as Role,
                     ),
                   `${u.nama} berhasil di-approve sebagai ${selectedRole}.`,
                 )
