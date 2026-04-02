@@ -399,6 +399,7 @@ export const idlFactory = ({ IDL }) => {
     'public' : IDL.Null,
     'asistenmu' : IDL.Null,
     'partner' : IDL.Null,
+    'investor' : IDL.Null,
   });
   const AdminLog = IDL.Record({
     'action' : IDL.Text,
