@@ -2628,10 +2628,9 @@ function PendingRow({
                 runAction(
                   `approve-${u.principalId}`,
                   () =>
-                    act.approveInternalUser(
-                      Principal.fromText(u.principalId),
-                      selectedRole as Role,
-                    ),
+                    act.approveInternalUser(Principal.fromText(u.principalId), {
+                      [selectedRole]: null,
+                    } as unknown as Role),
                   `${u.nama} berhasil di-approve sebagai ${selectedRole}.`,
                 )
               }

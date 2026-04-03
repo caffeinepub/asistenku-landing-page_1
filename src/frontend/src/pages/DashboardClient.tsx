@@ -614,7 +614,7 @@ export default function DashboardClient() {
                     ID Client
                   </dt>
                   <dd className="text-xs font-mono text-slate-700 bg-slate-100 px-2 py-0.5 rounded select-all">
-                    {clientData.clientDisplayId || clientData.idUser}
+                    {clientData.clientDisplayId || "-"}
                   </dd>
                 </div>
                 <div className="flex justify-between items-center gap-2">

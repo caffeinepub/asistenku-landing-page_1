@@ -59,16 +59,11 @@ export default function ClientRegister() {
         string,
         (...args: unknown[]) => Promise<unknown>
       >;
-      const idUser = (await act.registerClient(
-        trimNama,
-        trimEmail,
-        trimWa,
-        trimCompany,
-      )) as string;
+      await act.registerClient(trimNama, trimEmail, trimWa, trimCompany);
       setRegistrationResult(
-        `Pendaftaran berhasil! ID Anda: ${idUser}. Status: Menunggu persetujuan admin.`,
+        "Pendaftaran berhasil! Akun Anda sedang menunggu persetujuan admin.",
       );
-      toast.success(`Pendaftaran berhasil! ID: ${idUser}`);
+      toast.success("Pendaftaran berhasil! Silakan tunggu persetujuan admin.");
       setNama("");
       setEmail("");
       setWhatsapp("");
