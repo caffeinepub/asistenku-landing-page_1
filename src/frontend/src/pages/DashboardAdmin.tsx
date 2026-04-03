@@ -92,6 +92,7 @@ interface Partner {
 
 interface Client {
   idUser: string;
+  clientDisplayId?: string;
   principalId: string;
   nama: string;
   email: string;
@@ -2372,6 +2373,12 @@ export default function DashboardAdmin() {
                             <span className="text-xs font-mono text-slate-500">
                               {client.idUser}
                             </span>
+                            {client.clientDisplayId &&
+                              client.clientDisplayId !== client.idUser && (
+                                <span className="text-xs font-mono text-teal-600 bg-teal-50 px-1.5 py-0.5 rounded">
+                                  {client.clientDisplayId}
+                                </span>
+                              )}
                             <Badge variant="outline" className="text-xs">
                               Client
                             </Badge>
