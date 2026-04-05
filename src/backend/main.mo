@@ -7,6 +7,7 @@ import List "mo:core/List";
 import Runtime "mo:core/Runtime";
 import Order "mo:core/Order";
 import Text "mo:core/Text";
+import Int "mo:core/Int";
 import Principal "mo:core/Principal";
 
 
@@ -1514,14 +1515,20 @@ actor {
     result # numStr;
   };
 
-  func genClientId(num : Nat) : Text {
-    let numStr = num.toText();
-    let zerosToPad = 4 - numStr.size();
+  func genClientId(seed : Nat) : Text {
+    let chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    let charsArr = chars.toArray();
+    let charsSize : Nat = 36;
+    var s : Nat = (seed + Int.abs(Time.now())) % 4294967296;
     var result = "CA-";
-    for (_ in Nat.range(0, zerosToPad)) {
-      result #= "0";
+    var i = 0;
+    while (i < 6) {
+      s := (s * 1664525 + 1013904223) % 4294967296;
+      let idx : Nat = s % charsSize;
+      result #= Text.fromChar(charsArr[idx]);
+      i += 1;
     };
-    result # numStr;
+    result;
   };
 
   func genServiceId(num : Nat) : Text {

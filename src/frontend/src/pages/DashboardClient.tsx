@@ -611,10 +611,10 @@ export default function DashboardClient() {
               <dl className="flex flex-col gap-3 mt-4">
                 <div className="flex justify-between items-center gap-2">
                   <dt className="text-xs text-slate-500 font-medium">
-                    ID Client
+                    ID User
                   </dt>
                   <dd className="text-xs font-mono text-slate-700 bg-slate-100 px-2 py-0.5 rounded select-all">
-                    {clientData.clientDisplayId || "-"}
+                    {clientData.idUser}
                   </dd>
                 </div>
                 <div className="flex justify-between items-center gap-2">
