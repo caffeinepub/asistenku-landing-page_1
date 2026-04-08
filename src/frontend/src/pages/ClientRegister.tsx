@@ -1,10 +1,10 @@
+import { useInternetIdentity } from "@caffeineai/core-infrastructure";
 import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import Footer from "../components/Footer";
 import Header from "../components/Header";
 import { useActor } from "../hooks/useActor";
-import { useInternetIdentity } from "../hooks/useInternetIdentity";
 
 export default function ClientRegister() {
   const { identity, login, isLoggingIn, isInitializing } =

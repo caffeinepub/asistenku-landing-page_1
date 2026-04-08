@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import { useInternetIdentity } from "@caffeineai/core-infrastructure";
 import { Principal } from "@dfinity/principal";
 import { useNavigate } from "@tanstack/react-router";
 import {
@@ -25,6 +26,7 @@ import {
   ChevronUp,
   ClipboardList,
   ExternalLink,
+  Eye,
   FolderOpen,
   Loader2,
   LogOut,
@@ -33,6 +35,7 @@ import {
   RefreshCw,
   Send,
   ShieldCheck,
+  Ticket,
   UserCheck,
   UserX,
   Users,
@@ -48,7 +51,6 @@ import {
   type TipeLayanan,
 } from "../backend";
 import { useActor } from "../hooks/useActor";
-import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import { useRoleGuard } from "../hooks/useRoleGuard";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -126,6 +128,18 @@ interface AdminLogLocal {
   createdAt: bigint;
   idLog: string;
   targetId: string;
+}
+
+interface TicketLocal {
+  idTicket: string;
+  creatorId: string;
+  creatorNama: string;
+  judul: string;
+  detail: string;
+  divisi: string;
+  assignedTo: string;
+  status: string;
+  createdAt: bigint;
 }
 
 interface SharingEntry {
@@ -1628,6 +1642,7 @@ export default function DashboardOperasional() {
     FinancialProfileRequestLocal[]
   >([]);
   const [adminLogs, setAdminLogs] = useState<AdminLogLocal[]>([]);
+  const [tickets, setTickets] = useState<TicketLocal[]>([]);
 
   // ── Filter state: Manajemen Pengguna ─────────────────────────────────────────
   const [filterRole, setFilterRole] = useState("all");
@@ -1648,6 +1663,15 @@ export default function DashboardOperasional() {
   const [editPartner, setEditPartner] = useState<Partner | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
 
+  // ── Detail user modal state ──────────────────────────────────────────────────
+  const [detailUserEntry, setDetailUserEntry] = useState<
+    | ({ kind: "user" } & User)
+    | ({ kind: "partner" } & Partner)
+    | ({ kind: "client" } & Client)
+    | null
+  >(null);
+  const [detailUserOpen, setDetailUserOpen] = useState(false);
+
   // ── Task delegasi open state ─────────────────────────────────────────────────
   const [openDelegasiTaskId, setOpenDelegasiTaskId] = useState<string | null>(
     null,
@@ -1662,29 +1686,39 @@ export default function DashboardOperasional() {
         string,
         (...args: unknown[]) => Promise<unknown>
       >;
-      const [u, p, c, svc, cl, am, t, pl, wr, fpr, logs] = await Promise.all([
-        (act.getAllUsers() as Promise<User[]>).catch(() => [] as User[]),
-        (act.getAllPartners() as Promise<Partner[]>).catch(
-          () => [] as Partner[],
-        ),
-        (act.getAllClients() as Promise<Client[]>).catch(() => [] as Client[]),
-        (act.getServices() as Promise<Service[]>).catch(() => [] as Service[]),
-        (act.getClients() as Promise<Client[]>).catch(() => [] as Client[]),
-        (act.getAsistenmu() as Promise<User[]>).catch(() => [] as User[]),
-        (act.getAllTasks() as Promise<Task[]>).catch(() => [] as Task[]),
-        (act.getPartners() as Promise<Partner[]>).catch(() => [] as Partner[]),
-        (act.getWithdrawRequests() as Promise<WithdrawRequestLocal[]>).catch(
-          () => [] as WithdrawRequestLocal[],
-        ),
-        (
-          act.getFinancialProfileRequests() as Promise<
-            FinancialProfileRequestLocal[]
-          >
-        ).catch(() => [] as FinancialProfileRequestLocal[]),
-        (act.getAdminLogs() as Promise<AdminLogLocal[]>).catch(
-          () => [] as AdminLogLocal[],
-        ),
-      ]);
+      const [u, p, c, svc, cl, am, t, pl, wr, fpr, logs, tix] =
+        await Promise.all([
+          (act.getAllUsers() as Promise<User[]>).catch(() => [] as User[]),
+          (act.getAllPartners() as Promise<Partner[]>).catch(
+            () => [] as Partner[],
+          ),
+          (act.getAllClients() as Promise<Client[]>).catch(
+            () => [] as Client[],
+          ),
+          (act.getServices() as Promise<Service[]>).catch(
+            () => [] as Service[],
+          ),
+          (act.getClients() as Promise<Client[]>).catch(() => [] as Client[]),
+          (act.getAsistenmu() as Promise<User[]>).catch(() => [] as User[]),
+          (act.getAllTasks() as Promise<Task[]>).catch(() => [] as Task[]),
+          (act.getPartners() as Promise<Partner[]>).catch(
+            () => [] as Partner[],
+          ),
+          (act.getWithdrawRequests() as Promise<WithdrawRequestLocal[]>).catch(
+            () => [] as WithdrawRequestLocal[],
+          ),
+          (
+            act.getFinancialProfileRequests() as Promise<
+              FinancialProfileRequestLocal[]
+            >
+          ).catch(() => [] as FinancialProfileRequestLocal[]),
+          (act.getAdminLogs() as Promise<AdminLogLocal[]>).catch(
+            () => [] as AdminLogLocal[],
+          ),
+          (act.getMyTickets() as Promise<TicketLocal[]>).catch(
+            () => [] as TicketLocal[],
+          ),
+        ]);
       setUsers(u);
       setPartners(p);
       setClients(c);
@@ -1696,6 +1730,7 @@ export default function DashboardOperasional() {
       setWithdrawRequests(wr);
       setFinancialProfileRequests(fpr);
       setAdminLogs(logs);
+      setTickets(tix);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Gagal memuat data.";
       console.error("fetchAll error:", msg);
@@ -1776,7 +1811,10 @@ export default function DashboardOperasional() {
     const r = getRole(u.role);
     const s = getStatus(u.status);
     return (
-      (r === "admin" || r === "asistenmu") &&
+      (r === "admin" ||
+        r === "operasional" ||
+        r === "investor" ||
+        r === "concierge") &&
       s === "active" &&
       matchesUserFilter(u.nama, r)
     );
@@ -2109,38 +2147,52 @@ export default function DashboardOperasional() {
                             {client.email} &middot; {getClientCompany(client)}
                           </p>
                         </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          disabled={
-                            actionLoading[`suspend-${client.principalId}`]
-                          }
-                          onClick={() =>
-                            runAction(
-                              `suspend-${client.principalId}`,
-                              () =>
-                                (
-                                  actor as unknown as Record<
-                                    string,
-                                    (...args: unknown[]) => Promise<void>
-                                  >
-                                ).suspendClient(
-                                  Principal.fromText(client.principalId),
-                                ),
-                              `${client.nama} berhasil disuspend.`,
-                            )
-                          }
-                          className="text-red-600 border-red-200 hover:bg-red-50 flex-shrink-0 text-xs"
-                        >
-                          {actionLoading[`suspend-${client.principalId}`] ? (
-                            <Loader2 size={13} className="animate-spin" />
-                          ) : (
-                            <>
-                              <UserX size={13} className="mr-1" />
-                              Suspend
-                            </>
-                          )}
-                        </Button>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setDetailUserEntry({ kind: "client", ...client });
+                              setDetailUserOpen(true);
+                            }}
+                            className="text-xs"
+                          >
+                            <Eye size={13} className="mr-1" />
+                            Detail
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={
+                              actionLoading[`suspend-${client.principalId}`]
+                            }
+                            onClick={() =>
+                              runAction(
+                                `suspend-${client.principalId}`,
+                                () =>
+                                  (
+                                    actor as unknown as Record<
+                                      string,
+                                      (...args: unknown[]) => Promise<void>
+                                    >
+                                  ).suspendClient(
+                                    Principal.fromText(client.principalId),
+                                  ),
+                                `${client.nama} berhasil disuspend.`,
+                              )
+                            }
+                            className="text-red-600 border-red-200 hover:bg-red-50 text-xs"
+                          >
+                            {actionLoading[`suspend-${client.principalId}`] ? (
+                              <Loader2 size={13} className="animate-spin" />
+                            ) : (
+                              <>
+                                <UserX size={13} className="mr-1" />
+                                Suspend
+                              </>
+                            )}
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -2199,6 +2251,21 @@ export default function DashboardOperasional() {
                             variant="outline"
                             size="sm"
                             onClick={() => {
+                              setDetailUserEntry({
+                                kind: "partner",
+                                ...partner,
+                              });
+                              setDetailUserOpen(true);
+                            }}
+                            className="text-xs"
+                          >
+                            <Eye size={13} className="mr-1" />
+                            Detail
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
                               setEditPartner(partner);
                               setEditModalOpen(true);
                             }}
@@ -2252,9 +2319,9 @@ export default function DashboardOperasional() {
               )}
             </CollapsibleSection>
 
-            {/* 4. Admin & Asistenmu Aktif */}
+            {/* 4. Internal User */}
             <CollapsibleSection
-              title="Admin & Asistenmu Aktif"
+              title="Internal User"
               count={activeAdminAsisstenmu.length}
               accent="bg-slate-100 text-slate-600"
             >
@@ -2268,25 +2335,39 @@ export default function DashboardOperasional() {
                     {adminPag.paged.map((user) => (
                       <div
                         key={user.idUser}
-                        className="py-3 flex flex-col gap-0.5 min-w-0"
+                        className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
                       >
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs font-mono text-slate-500">
-                            {user.idUser}
-                          </span>
-                          <Badge
-                            variant={roleBadgeVariant(getRole(user.role))}
-                            className="text-xs"
-                          >
-                            {roleBadgeLabel(getRole(user.role))}
-                          </Badge>
+                        <div className="flex flex-col gap-0.5 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs font-mono text-slate-500">
+                              {user.idUser}
+                            </span>
+                            <Badge
+                              variant={roleBadgeVariant(getRole(user.role))}
+                              className="text-xs"
+                            >
+                              {roleBadgeLabel(getRole(user.role))}
+                            </Badge>
+                          </div>
+                          <p className="font-medium text-slate-900 text-sm truncate">
+                            {user.nama}
+                          </p>
+                          <p className="text-xs text-slate-500 truncate">
+                            {user.email}
+                          </p>
                         </div>
-                        <p className="font-medium text-slate-900 text-sm truncate">
-                          {user.nama}
-                        </p>
-                        <p className="text-xs text-slate-500 truncate">
-                          {user.email}
-                        </p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setDetailUserEntry({ kind: "user", ...user });
+                            setDetailUserOpen(true);
+                          }}
+                          className="text-xs flex-shrink-0"
+                        >
+                          <Eye size={13} className="mr-1" />
+                          Detail
+                        </Button>
                       </div>
                     ))}
                   </div>
@@ -2489,6 +2570,13 @@ export default function DashboardOperasional() {
             runAction={runAction}
           />
 
+          {/* ── Tiket Masuk ── */}
+          <TicketMasukSection
+            tickets={tickets}
+            actor={actor}
+            onRefresh={fetchAll}
+          />
+
           {/* ── History Aktivitas Admin (Outer Collapsible) ── */}
           <HistorySection adminLogs={adminLogs} />
         </div>
@@ -2503,6 +2591,16 @@ export default function DashboardOperasional() {
           if (!v) setEditPartner(null);
         }}
         onUpdate={handleUpdatePartner}
+      />
+
+      {/* ── Detail User Modal ── */}
+      <UserDetailModal
+        entry={detailUserEntry}
+        open={detailUserOpen}
+        onOpenChange={(v) => {
+          setDetailUserOpen(v);
+          if (!v) setDetailUserEntry(null);
+        }}
       />
 
       <footer className="bg-slate-900 text-slate-400 py-8 mt-auto">
@@ -2615,6 +2713,8 @@ function PendingRow({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="asistenmu">Asistenmu</SelectItem>
+              <SelectItem value="operasional">Operasional</SelectItem>
+              <SelectItem value="concierge">Concierge</SelectItem>
               <SelectItem value="investor">Investor</SelectItem>
             </SelectContent>
           </Select>
@@ -3830,5 +3930,346 @@ function SuspendedRow({
         )}
       </Button>
     </div>
+  );
+}
+
+// ── User Detail Modal ──────────────────────────────────────────────────────────
+function UserDetailModal({
+  entry,
+  open,
+  onOpenChange,
+}: {
+  entry:
+    | ({ kind: "user" } & User)
+    | ({ kind: "partner" } & Partner)
+    | ({ kind: "client" } & Client)
+    | null;
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+}) {
+  if (!entry) return null;
+
+  function DetailRow({ label, value }: { label: string; value: string }) {
+    return (
+      <div className="flex flex-col gap-0.5">
+        <p className="text-xs text-slate-400">{label}</p>
+        <p className="text-sm text-slate-800 break-all">{value || "—"}</p>
+      </div>
+    );
+  }
+
+  const roleKey = getRole(entry.role);
+  const statusKey = getStatus(entry.status);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="font-display">Profil User</DialogTitle>
+        </DialogHeader>
+        <div className="flex flex-col gap-3 py-2 max-h-[60vh] overflow-y-auto pr-1">
+          <div className="flex items-center gap-3 pb-2 border-b border-slate-100">
+            <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0 text-slate-600 font-bold text-lg">
+              {entry.nama.charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <p className="font-semibold text-slate-900">{entry.nama}</p>
+              <div className="flex items-center gap-2 mt-0.5">
+                <Badge variant="secondary" className="text-xs">
+                  {roleBadgeLabel(roleKey)}
+                </Badge>
+                <span
+                  className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                    statusKey === "active"
+                      ? "bg-emerald-50 text-emerald-700"
+                      : statusKey === "pending"
+                        ? "bg-amber-50 text-amber-700"
+                        : "bg-red-50 text-red-700"
+                  }`}
+                >
+                  {statusKey === "active"
+                    ? "Aktif"
+                    : statusKey === "pending"
+                      ? "Pending"
+                      : statusKey === "suspend"
+                        ? "Suspended"
+                        : statusKey}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3">
+            <DetailRow label="ID User" value={entry.idUser} />
+            <DetailRow label="Principal ID" value={entry.principalId} />
+            <DetailRow label="Email" value={entry.email} />
+            <DetailRow label="WhatsApp" value={entry.whatsapp} />
+            <DetailRow label="Terdaftar" value={formatDate(entry.createdAt)} />
+
+            {entry.kind === "client" && (
+              <DetailRow label="Perusahaan" value={getClientCompany(entry)} />
+            )}
+
+            {entry.kind === "partner" && (
+              <>
+                <DetailRow label="Kota" value={entry.kota} />
+                <DetailRow label="Level" value={getLevelLabel(entry.level)} />
+                <DetailRow
+                  label="Verified Skills"
+                  value={
+                    entry.verifiedSkill.length > 0
+                      ? entry.verifiedSkill.join(", ")
+                      : "—"
+                  }
+                />
+              </>
+            )}
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Tutup
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ── Ticket Masuk Section ───────────────────────────────────────────────────────
+function TicketMasukSection({
+  tickets,
+  actor,
+  onRefresh,
+}: {
+  tickets: TicketLocal[];
+  actor: unknown;
+  onRefresh: () => Promise<void>;
+}) {
+  const [selectedTicket, setSelectedTicket] = useState<TicketLocal | null>(
+    null,
+  );
+  const [ticketModalOpen, setTicketModalOpen] = useState(false);
+  const [newStatus, setNewStatus] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const ticketsPag = usePagination(tickets, 8);
+
+  function ticketStatusBadgeClass(status: string): string {
+    if (status === "open") return "bg-amber-50 text-amber-700 border-amber-200";
+    if (status === "inProgress" || status === "inprogress")
+      return "bg-blue-50 text-blue-700 border-blue-200";
+    if (status === "resolved")
+      return "bg-emerald-50 text-emerald-700 border-emerald-200";
+    return "bg-slate-50 text-slate-600 border-slate-200";
+  }
+
+  function ticketStatusLabel(status: string): string {
+    if (status === "open") return "Terbuka";
+    if (status === "inProgress" || status === "inprogress") return "Diproses";
+    if (status === "resolved") return "Selesai";
+    return status;
+  }
+
+  function formatTicketDate(ts: bigint): string {
+    const raw = Number(ts);
+    const ms = raw > 1e15 ? raw / 1_000_000 : raw;
+    const d = new Date(ms);
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const yyyy = d.getFullYear();
+    return `${dd}/${mm}/${yyyy}`;
+  }
+
+  async function handleSaveStatus() {
+    if (!selectedTicket || !newStatus) return;
+    setIsSaving(true);
+    try {
+      await (
+        actor as unknown as Record<
+          string,
+          (...args: unknown[]) => Promise<boolean>
+        >
+      ).updateTicketStatus(selectedTicket.idTicket, newStatus);
+      toast.success("Status tiket berhasil diperbarui.");
+      setTicketModalOpen(false);
+      setSelectedTicket(null);
+      await onRefresh();
+    } catch {
+      toast.error("Gagal memperbarui status tiket.");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  return (
+    <>
+      <OuterCollapsible
+        title="Tiket Masuk"
+        count={tickets.length}
+        countAccent={
+          tickets.filter((t) => t.status === "open").length > 0
+            ? "bg-amber-100 text-amber-700"
+            : "bg-slate-100 text-slate-600"
+        }
+      >
+        <CollapsibleSection
+          title="Daftar Tiket"
+          count={tickets.length}
+          accent="bg-amber-50 text-amber-700"
+          defaultOpen
+        >
+          {tickets.length === 0 ? (
+            <div className="flex flex-col items-center gap-2 py-8 text-center">
+              <Ticket size={32} className="text-slate-300" />
+              <p className="text-sm text-slate-400">Belum ada tiket masuk.</p>
+            </div>
+          ) : (
+            <>
+              <div className="flex flex-col divide-y divide-slate-100 mt-2">
+                {ticketsPag.paged.map((tkt) => (
+                  <button
+                    key={tkt.idTicket}
+                    type="button"
+                    className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50 -mx-2 px-2 rounded-lg transition-colors text-left w-full"
+                    onClick={() => {
+                      setSelectedTicket(tkt);
+                      setNewStatus(tkt.status);
+                      setTicketModalOpen(true);
+                    }}
+                  >
+                    <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs font-mono text-slate-500">
+                          {tkt.idTicket}
+                        </span>
+                        <span
+                          className={`text-xs px-2 py-0.5 rounded-full border font-medium ${ticketStatusBadgeClass(tkt.status)}`}
+                        >
+                          {ticketStatusLabel(tkt.status)}
+                        </span>
+                        <span className="text-xs text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
+                          {tkt.divisi}
+                        </span>
+                      </div>
+                      <p className="font-medium text-slate-900 text-sm truncate max-w-xs sm:max-w-sm">
+                        {tkt.judul.length > 50
+                          ? `${tkt.judul.slice(0, 50)}…`
+                          : tkt.judul}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        Dari: {tkt.creatorNama} &middot;{" "}
+                        {formatTicketDate(tkt.createdAt)}
+                      </p>
+                    </div>
+                    <Eye size={15} className="text-slate-400 flex-shrink-0" />
+                  </button>
+                ))}
+              </div>
+              <PaginationControls
+                page={ticketsPag.page}
+                totalPages={ticketsPag.totalPages}
+                setPage={ticketsPag.setPage}
+              />
+            </>
+          )}
+        </CollapsibleSection>
+      </OuterCollapsible>
+
+      {/* Ticket Detail Modal */}
+      <Dialog
+        open={ticketModalOpen}
+        onOpenChange={(v) => {
+          setTicketModalOpen(v);
+          if (!v) setSelectedTicket(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="font-display flex items-center gap-2">
+              <Ticket size={18} className="text-amber-600" />
+              Detail Tiket
+            </DialogTitle>
+          </DialogHeader>
+          {selectedTicket && (
+            <div className="flex flex-col gap-4 py-2 max-h-[60vh] overflow-y-auto pr-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-mono text-slate-500">
+                  {selectedTicket.idTicket}
+                </span>
+                <span className="text-xs text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
+                  Divisi: {selectedTicket.divisi}
+                </span>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <p className="text-xs text-slate-400">Judul</p>
+                <p className="text-sm font-semibold text-slate-900">
+                  {selectedTicket.judul}
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <p className="text-xs text-slate-400">Detail Masalah</p>
+                <div className="bg-slate-50 rounded-lg p-3 text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+                  {selectedTicket.detail}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <p className="text-xs text-slate-400">Dari</p>
+                  <p className="text-slate-800">{selectedTicket.creatorNama}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-400">Ditugaskan ke</p>
+                  <p className="text-slate-800">
+                    {selectedTicket.assignedTo || "—"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="ticket-status" className="text-sm font-medium">
+                  Update Status
+                </Label>
+                <Select value={newStatus} onValueChange={setNewStatus}>
+                  <SelectTrigger id="ticket-status">
+                    <SelectValue placeholder="Pilih status..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="open">Terbuka</SelectItem>
+                    <SelectItem value="inProgress">Diproses</SelectItem>
+                    <SelectItem value="resolved">Selesai</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setTicketModalOpen(false)}
+              disabled={isSaving}
+            >
+              Tutup
+            </Button>
+            <Button
+              onClick={() => void handleSaveStatus()}
+              disabled={isSaving || !newStatus}
+              className="bg-slate-900 text-white hover:bg-slate-700"
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 size={13} className="animate-spin mr-1" />
+                  Menyimpan...
+                </>
+              ) : (
+                "Simpan"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

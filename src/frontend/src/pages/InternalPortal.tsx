@@ -2,7 +2,6 @@ import { useNavigate } from "@tanstack/react-router";
 import { AlertCircle, CheckCircle2, Loader2, ShieldCheck } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Role } from "../backend";
 import Footer from "../components/Footer";
 import Header from "../components/Header";
 import { useActor } from "../hooks/useActor";
@@ -113,10 +112,8 @@ export default function InternalPortal() {
     setIsCheckingRole(true);
     setRoleError(null);
     try {
-      const roleResult = await (
-        actor as unknown as Record<string, () => Promise<unknown>>
-      ).getMyRole();
-      // roleResult may be a variant object { admin: null } or { asistenmu: null } or null/undefined
+      const roleResult = await actor.getMyRole();
+      // roleResult may be a Role enum string or a variant object { admin: null }
       if (!roleResult) {
         setRoleError("Anda belum terdaftar. Silakan daftar terlebih dahulu.");
         toast.error("Anda belum terdaftar. Silakan daftar terlebih dahulu.");
@@ -130,18 +127,19 @@ export default function InternalPortal() {
         roleKey = Object.keys(roleResult as Record<string, null>)[0] ?? "";
       }
 
-      if (roleKey === Role.admin || roleKey === "admin") {
+      if (roleKey === "admin") {
         void navigate({ to: "/dashboard-admin" });
-      } else if (roleKey === Role.asistenmu || roleKey === "asistenmu") {
+      } else if (roleKey === "asistenmu") {
         void navigate({ to: "/dashboard-asistenmu" });
-      } else if (roleKey === Role.operasional || roleKey === "operasional") {
+      } else if (roleKey === "operasional") {
         void navigate({ to: "/dashboard-operasional" });
+      } else if (roleKey === "investor") {
+        void navigate({ to: "/dashboard-investor" });
+      } else if (roleKey === "concierge") {
+        void navigate({ to: "/dashboard-concierge" });
       } else if (
-        roleKey === Role.client ||
         roleKey === "client" ||
-        roleKey === Role.partner ||
         roleKey === "partner" ||
-        roleKey === Role.public_ ||
         roleKey === "public_" ||
         roleKey === "public"
       ) {

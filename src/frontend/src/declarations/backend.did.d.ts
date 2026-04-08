@@ -68,6 +68,26 @@ export interface FinancialProfileRequest {
   'oldProfile' : [] | [FinancialProfile],
   'idRequest' : string,
 }
+export interface InvestorSummary {
+  'layananAktifTenang' : bigint,
+  'taskSelesai' : bigint,
+  'gmvEfisien' : bigint,
+  'taskOnProgress' : bigint,
+  'totalUser' : bigint,
+  'gmvTenang' : bigint,
+  'gmvJaga' : bigint,
+  'gmvRapi' : bigint,
+  'gmvFokus' : bigint,
+  'layananAktifFokus' : bigint,
+  'gmvTotal' : bigint,
+  'layananAktifTotal' : bigint,
+  'totalPartner' : bigint,
+  'margin' : bigint,
+  'totalClient' : bigint,
+  'layananAktifJaga' : bigint,
+  'layananAktifRapi' : bigint,
+  'layananAktifEfisien' : bigint,
+}
 export type LevelPartner = { 'junior' : null } |
   { 'senior' : null } |
   { 'expert' : null };
@@ -88,6 +108,7 @@ export type Role = { 'client' : null } |
   { 'admin' : null } |
   { 'operasional' : null } |
   { 'public' : null } |
+  { 'concierge' : null } |
   { 'asistenmu' : null } |
   { 'partner' : null } |
   { 'investor' : null };
@@ -142,6 +163,17 @@ export type TaskStatus = { 'revisi' : null } |
   { 'qaasistenmu' : null } |
   { 'selesai' : null } |
   { 'onprogress' : null };
+export interface Ticket {
+  'idTicket' : string,
+  'status' : string,
+  'assignedTo' : string,
+  'createdAt' : bigint,
+  'creatorId' : string,
+  'judul' : string,
+  'creatorNama' : string,
+  'detail' : string,
+  'divisi' : string,
+}
 export type TipeLayanan = { 'fokus' : null } |
   { 'jaga' : null } |
   { 'rapi' : null } |
@@ -211,6 +243,10 @@ export interface _SERVICE {
     [string, string, bigint, string, string, string, string, string],
     string
   >,
+  /**
+   * / Create a ticket - accessible by any internal user (admin/operasional/asistenmu/concierge)
+   */
+  'createTicket' : ActorMethod<[string, string, string, string], string>,
   'delegasiTask' : ActorMethod<
     [string, string, string, bigint, bigint, string, string, string],
     undefined
@@ -229,6 +265,10 @@ export interface _SERVICE {
   'getAllPartners' : ActorMethod<[], Array<Partner>>,
   'getAllTasks' : ActorMethod<[], Array<Task>>,
   'getAllTasksByAsistenmu' : ActorMethod<[], Array<Task>>,
+  /**
+   * / Get all tickets - accessible by admin/operasional/concierge
+   */
+  'getAllTickets' : ActorMethod<[], Array<Ticket>>,
   'getAllUsers' : ActorMethod<[], Array<User>>,
   /**
    * / Get all archived services (admin/operasional only)
@@ -245,6 +285,7 @@ export interface _SERVICE {
     [],
     Array<FinancialProfileRequest>
   >,
+  'getInvestorSummary' : ActorMethod<[], InvestorSummary>,
   /**
    * / NEW FUNCTION: Get client profile of the caller
    */
@@ -266,6 +307,10 @@ export interface _SERVICE {
    * / NEW FUNCTION: Get tasks for the currently logged in partner
    */
   'getMyTasksAsPartner' : ActorMethod<[], Array<Task>>,
+  /**
+   * / Get tickets assigned to the caller (by principalId or matching divisi/role)
+   */
+  'getMyTickets' : ActorMethod<[], Array<Ticket>>,
   'getMyWallet' : ActorMethod<[], WalletInfo>,
   'getMyWithdrawRequests' : ActorMethod<[], Array<WithdrawRequest>>,
   'getPartners' : ActorMethod<[], Array<Partner>>,
@@ -323,6 +368,10 @@ export interface _SERVICE {
   'updateTaskStatusAsAsistenmu' : ActorMethod<[string, TaskStatus], undefined>,
   'updateTaskStatusAsClient' : ActorMethod<[string, TaskStatus], undefined>,
   'updateTaskStatusAsPartner' : ActorMethod<[string, TaskStatus], undefined>,
+  /**
+   * / Update ticket status - accessible by admin/operasional or the assigned user
+   */
+  'updateTicketStatus' : ActorMethod<[string, string], boolean>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

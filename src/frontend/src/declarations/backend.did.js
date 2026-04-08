@@ -25,6 +25,7 @@ export const Role = IDL.Variant({
   'admin' : IDL.Null,
   'operasional' : IDL.Null,
   'public' : IDL.Null,
+  'concierge' : IDL.Null,
   'asistenmu' : IDL.Null,
   'partner' : IDL.Null,
   'investor' : IDL.Null,
@@ -122,6 +123,17 @@ export const Task = IDL.Record({
   'idTask' : IDL.Text,
   'judulTask' : IDL.Text,
 });
+export const Ticket = IDL.Record({
+  'idTicket' : IDL.Text,
+  'status' : IDL.Text,
+  'assignedTo' : IDL.Text,
+  'createdAt' : IDL.Int,
+  'creatorId' : IDL.Text,
+  'judul' : IDL.Text,
+  'creatorNama' : IDL.Text,
+  'detail' : IDL.Text,
+  'divisi' : IDL.Text,
+});
 export const User = IDL.Record({
   'status' : Status,
   'nama' : IDL.Text,
@@ -168,6 +180,26 @@ export const FinancialProfileRequest = IDL.Record({
   'partnerId' : IDL.Text,
   'oldProfile' : IDL.Opt(FinancialProfile),
   'idRequest' : IDL.Text,
+});
+export const InvestorSummary = IDL.Record({
+  'layananAktifTenang' : IDL.Nat,
+  'taskSelesai' : IDL.Nat,
+  'gmvEfisien' : IDL.Nat,
+  'taskOnProgress' : IDL.Nat,
+  'totalUser' : IDL.Nat,
+  'gmvTenang' : IDL.Nat,
+  'gmvJaga' : IDL.Nat,
+  'gmvRapi' : IDL.Nat,
+  'gmvFokus' : IDL.Nat,
+  'layananAktifFokus' : IDL.Nat,
+  'gmvTotal' : IDL.Nat,
+  'layananAktifTotal' : IDL.Nat,
+  'totalPartner' : IDL.Nat,
+  'margin' : IDL.Nat,
+  'totalClient' : IDL.Nat,
+  'layananAktifJaga' : IDL.Nat,
+  'layananAktifRapi' : IDL.Nat,
+  'layananAktifEfisien' : IDL.Nat,
 });
 export const WalletInfo = IDL.Record({
   'saldoTersedia' : IDL.Nat,
@@ -234,6 +266,11 @@ export const idlService = IDL.Service({
       [IDL.Text],
       [],
     ),
+  'createTicket' : IDL.Func(
+      [IDL.Text, IDL.Text, IDL.Text, IDL.Text],
+      [IDL.Text],
+      [],
+    ),
   'delegasiTask' : IDL.Func(
       [
         IDL.Text,
@@ -269,6 +306,7 @@ export const idlService = IDL.Service({
   'getAllPartners' : IDL.Func([], [IDL.Vec(Partner)], ['query']),
   'getAllTasks' : IDL.Func([], [IDL.Vec(Task)], ['query']),
   'getAllTasksByAsistenmu' : IDL.Func([], [IDL.Vec(Task)], ['query']),
+  'getAllTickets' : IDL.Func([], [IDL.Vec(Ticket)], ['query']),
   'getAllUsers' : IDL.Func([], [IDL.Vec(User)], ['query']),
   'getArchivedServices' : IDL.Func([], [IDL.Vec(Service)], ['query']),
   'getAsistenmu' : IDL.Func([], [IDL.Vec(User)], ['query']),
@@ -288,6 +326,7 @@ export const idlService = IDL.Service({
       [IDL.Vec(FinancialProfileRequest)],
       ['query'],
     ),
+  'getInvestorSummary' : IDL.Func([], [InvestorSummary], ['query']),
   'getMyClientProfile' : IDL.Func([], [IDL.Opt(Client)], ['query']),
   'getMyFinancialProfile' : IDL.Func(
       [],
@@ -301,6 +340,7 @@ export const idlService = IDL.Service({
   'getMyServicesAsClient' : IDL.Func([], [IDL.Vec(Service)], ['query']),
   'getMyTasksAsClient' : IDL.Func([], [IDL.Vec(Task)], ['query']),
   'getMyTasksAsPartner' : IDL.Func([], [IDL.Vec(Task)], ['query']),
+  'getMyTickets' : IDL.Func([], [IDL.Vec(Ticket)], ['query']),
   'getMyWallet' : IDL.Func([], [WalletInfo], ['query']),
   'getMyWithdrawRequests' : IDL.Func([], [IDL.Vec(WithdrawRequest)], ['query']),
   'getPartners' : IDL.Func([], [IDL.Vec(Partner)], ['query']),
@@ -375,6 +415,7 @@ export const idlService = IDL.Service({
   'updateTaskStatusAsAsistenmu' : IDL.Func([IDL.Text, TaskStatus], [], []),
   'updateTaskStatusAsClient' : IDL.Func([IDL.Text, TaskStatus], [], []),
   'updateTaskStatusAsPartner' : IDL.Func([IDL.Text, TaskStatus], [], []),
+  'updateTicketStatus' : IDL.Func([IDL.Text, IDL.Text], [IDL.Bool], []),
 });
 
 export const idlInitArgs = [];
@@ -397,6 +438,7 @@ export const idlFactory = ({ IDL }) => {
     'admin' : IDL.Null,
     'operasional' : IDL.Null,
     'public' : IDL.Null,
+    'concierge' : IDL.Null,
     'asistenmu' : IDL.Null,
     'partner' : IDL.Null,
     'investor' : IDL.Null,
@@ -494,6 +536,17 @@ export const idlFactory = ({ IDL }) => {
     'idTask' : IDL.Text,
     'judulTask' : IDL.Text,
   });
+  const Ticket = IDL.Record({
+    'idTicket' : IDL.Text,
+    'status' : IDL.Text,
+    'assignedTo' : IDL.Text,
+    'createdAt' : IDL.Int,
+    'creatorId' : IDL.Text,
+    'judul' : IDL.Text,
+    'creatorNama' : IDL.Text,
+    'detail' : IDL.Text,
+    'divisi' : IDL.Text,
+  });
   const User = IDL.Record({
     'status' : Status,
     'nama' : IDL.Text,
@@ -540,6 +593,26 @@ export const idlFactory = ({ IDL }) => {
     'partnerId' : IDL.Text,
     'oldProfile' : IDL.Opt(FinancialProfile),
     'idRequest' : IDL.Text,
+  });
+  const InvestorSummary = IDL.Record({
+    'layananAktifTenang' : IDL.Nat,
+    'taskSelesai' : IDL.Nat,
+    'gmvEfisien' : IDL.Nat,
+    'taskOnProgress' : IDL.Nat,
+    'totalUser' : IDL.Nat,
+    'gmvTenang' : IDL.Nat,
+    'gmvJaga' : IDL.Nat,
+    'gmvRapi' : IDL.Nat,
+    'gmvFokus' : IDL.Nat,
+    'layananAktifFokus' : IDL.Nat,
+    'gmvTotal' : IDL.Nat,
+    'layananAktifTotal' : IDL.Nat,
+    'totalPartner' : IDL.Nat,
+    'margin' : IDL.Nat,
+    'totalClient' : IDL.Nat,
+    'layananAktifJaga' : IDL.Nat,
+    'layananAktifRapi' : IDL.Nat,
+    'layananAktifEfisien' : IDL.Nat,
   });
   const WalletInfo = IDL.Record({
     'saldoTersedia' : IDL.Nat,
@@ -606,6 +679,11 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Text],
         [],
       ),
+    'createTicket' : IDL.Func(
+        [IDL.Text, IDL.Text, IDL.Text, IDL.Text],
+        [IDL.Text],
+        [],
+      ),
     'delegasiTask' : IDL.Func(
         [
           IDL.Text,
@@ -641,6 +719,7 @@ export const idlFactory = ({ IDL }) => {
     'getAllPartners' : IDL.Func([], [IDL.Vec(Partner)], ['query']),
     'getAllTasks' : IDL.Func([], [IDL.Vec(Task)], ['query']),
     'getAllTasksByAsistenmu' : IDL.Func([], [IDL.Vec(Task)], ['query']),
+    'getAllTickets' : IDL.Func([], [IDL.Vec(Ticket)], ['query']),
     'getAllUsers' : IDL.Func([], [IDL.Vec(User)], ['query']),
     'getArchivedServices' : IDL.Func([], [IDL.Vec(Service)], ['query']),
     'getAsistenmu' : IDL.Func([], [IDL.Vec(User)], ['query']),
@@ -660,6 +739,7 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Vec(FinancialProfileRequest)],
         ['query'],
       ),
+    'getInvestorSummary' : IDL.Func([], [InvestorSummary], ['query']),
     'getMyClientProfile' : IDL.Func([], [IDL.Opt(Client)], ['query']),
     'getMyFinancialProfile' : IDL.Func(
         [],
@@ -673,6 +753,7 @@ export const idlFactory = ({ IDL }) => {
     'getMyServicesAsClient' : IDL.Func([], [IDL.Vec(Service)], ['query']),
     'getMyTasksAsClient' : IDL.Func([], [IDL.Vec(Task)], ['query']),
     'getMyTasksAsPartner' : IDL.Func([], [IDL.Vec(Task)], ['query']),
+    'getMyTickets' : IDL.Func([], [IDL.Vec(Ticket)], ['query']),
     'getMyWallet' : IDL.Func([], [WalletInfo], ['query']),
     'getMyWithdrawRequests' : IDL.Func(
         [],
@@ -751,6 +832,7 @@ export const idlFactory = ({ IDL }) => {
     'updateTaskStatusAsAsistenmu' : IDL.Func([IDL.Text, TaskStatus], [], []),
     'updateTaskStatusAsClient' : IDL.Func([IDL.Text, TaskStatus], [], []),
     'updateTaskStatusAsPartner' : IDL.Func([IDL.Text, TaskStatus], [], []),
+    'updateTicketStatus' : IDL.Func([IDL.Text, IDL.Text], [IDL.Bool], []),
   });
 };
 

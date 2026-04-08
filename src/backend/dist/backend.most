@@ -1,0 +1,309 @@
+// Version: 1.0.0
+type AdminLog__43982951 =
+  {
+    action : Text;
+    adminPrincipalId : Text;
+    createdAt : Int;
+    idLog : Text;
+    targetId : Text
+  };
+type Client__171211559 =
+  {
+    company : Text;
+    createdAt : Int;
+    email : Text;
+    idUser : Text;
+    nama : Text;
+    principalId : Text;
+    role : Role__931309261;
+    status : Status__1000080315;
+    whatsapp : Text
+  };
+type Data__791452850<K, V> =
+  {var count : Nat__490723111; kvs : [var ?(K, V)]};
+type FPRequestStatus__241872094 = {#approved; #pending; #rejected};
+type FinancialProfileRequest__945263859 =
+  {
+    createdAt : Int;
+    idRequest : Text;
+    newProfile : FinancialProfile__232075293;
+    oldProfile : ?FinancialProfile__232075293;
+    partnerId : Text;
+    partnerNama : Text;
+    status : FPRequestStatus__241872094
+  };
+type FinancialProfile__232075293 =
+  {
+    createdAt : Int;
+    namaBankEwallet : Text;
+    namaRekening : Text;
+    nomorRekening : Text
+  };
+type Internal__8484328<K, V> =
+  {children : [var ?Node__46230540<K, V>]; data : Data__791452850<K, V>};
+type Leaf__809889148<K, V> = {data : Data__791452850<K, V>};
+type LevelPartner__626398796 = {#expert; #junior; #senior};
+type Nat__490723111 = Nat__920180692;
+type Nat__920180692 = Nat;
+type Node__46230540<K, V> =
+  {#internal : Internal__8484328<K, V>; #leaf : Leaf__809889148<K, V>};
+type OldClient__32696524 =
+  {
+    company : Text;
+    createdAt : Int;
+    email : Text;
+    idUser : Text;
+    nama : Text;
+    principalId : Text;
+    role : OldRole__941502677;
+    status : Status__1000080315;
+    whatsapp : Text
+  };
+type OldPartner__557120421 =
+  {
+    createdAt : Int;
+    email : Text;
+    idUser : Text;
+    kota : Text;
+    level : LevelPartner__626398796;
+    nama : Text;
+    principalId : Text;
+    role : OldRole__941502677;
+    status : Status__1000080315;
+    verifiedSkill : [Text];
+    whatsapp : Text
+  };
+type OldRole__941502677 =
+  {#admin; #asistenmu; #client; #operasional; #partner; #public_};
+type OldUser__700246305 =
+  {
+    createdAt : Int;
+    email : Text;
+    idUser : Text;
+    nama : Text;
+    principalId : Text;
+    role : OldRole__941502677;
+    status : Status__1000080315;
+    whatsapp : Text
+  };
+type Partner__110764128 =
+  {
+    createdAt : Int;
+    email : Text;
+    idUser : Text;
+    kota : Text;
+    level : LevelPartner__626398796;
+    nama : Text;
+    principalId : Text;
+    role : Role__931309261;
+    status : Status__1000080315;
+    verifiedSkill : [Text];
+    whatsapp : Text
+  };
+type Role__931309261 =
+  {
+    #admin;
+    #asistenmu;
+    #client;
+    #concierge;
+    #investor;
+    #operasional;
+    #partner;
+    #public_
+  };
+type ServiceStatus__973009612 = {#active; #inactive};
+type Service__311281967 =
+  {
+    asistenmuNama : Text;
+    asistenmuPrincipalId : Text;
+    clientNama : Text;
+    clientPrincipalId : Text;
+    createdAt : Int;
+    hargaPerLayanan : Nat;
+    idService : Text;
+    sharingLayanan : [SharingEntry__19129362];
+    status : ServiceStatus__973009612;
+    tipeLayanan : TipeLayanan__1057737324;
+    unitLayanan : Nat
+  };
+type SharingEntry__19129362 =
+  {idUser : Text; nama : Text; principalId : Text};
+type Status__1000080315 = {#active; #pending; #reject; #suspend};
+type TaskStatus__324548698 =
+  {
+    #ditolak;
+    #onprogress;
+    #permintaanbaru;
+    #qaasistenmu;
+    #reviewclient;
+    #revisi;
+    #selesai
+  };
+type Task__972485619 =
+  {
+    asistenmuId : Text;
+    asistenmuNama : Text;
+    clientId : Text;
+    clientNama : Text;
+    createdAt : Int;
+    deadline : Int;
+    detailTask : Text;
+    idTask : Text;
+    jamEfektif : Nat;
+    judulTask : Text;
+    linkGdriveClient : Text;
+    linkGdriveInternal : Text;
+    notesAsistenmu : Text;
+    partnerId : Text;
+    partnerNama : Text;
+    serviceId : Text;
+    status : TaskStatus__324548698;
+    unitLayanan : Nat
+  };
+type Ticket__555330507 =
+  {
+    assignedTo : Text;
+    createdAt : Int;
+    creatorId : Text;
+    creatorNama : Text;
+    detail : Text;
+    divisi : Text;
+    idTicket : Text;
+    judul : Text;
+    status : Text
+  };
+type TipeLayanan__1057737324 = {#efisien; #fokus; #jaga; #rapi; #tenang};
+type TopUp__1040411191 =
+  {
+    createdAt : Int;
+    idService : Text;
+    idTopUp : Text;
+    namaClient : Text;
+    unitTambahan : Nat
+  };
+type User__831686142 =
+  {
+    createdAt : Int;
+    email : Text;
+    idUser : Text;
+    nama : Text;
+    principalId : Text;
+    role : Role__931309261;
+    status : Status__1000080315;
+    whatsapp : Text
+  };
+type WithdrawRequest__723197494 =
+  {
+    createdAt : Int;
+    idWithdraw : Text;
+    namaBankEwallet : Text;
+    namaRekening : Text;
+    nominal : Nat;
+    nomorRekening : Text;
+    partnerId : Text;
+    partnerNama : Text;
+    status : WithdrawStatus__589544267
+  };
+type WithdrawStatus__589544267 = {#approved; #pending; #rejected};
+actor {
+  stable var adminClaimed : Bool;
+  stable adminLogs :
+    {
+      var root : Node__46230540<Text, AdminLog__43982951>;
+      var size : Nat__490723111
+    };
+  stable archivedServices :
+    {
+      var root : Node__46230540<Text, Service__311281967>;
+      var size : Nat__490723111
+    };
+  stable var clientCounter : Nat;
+  stable clients :
+    {
+      var root : Node__46230540<Principal, OldClient__32696524>;
+      var size : Nat__490723111
+    };
+  stable clientsM :
+    {
+      var root : Node__46230540<Principal, Client__171211559>;
+      var size : Nat__490723111
+    };
+  stable financialProfileRequests :
+    {
+      var root : Node__46230540<Text, FinancialProfileRequest__945263859>;
+      var size : Nat__490723111
+    };
+  stable financialProfiles :
+    {
+      var root : Node__46230540<Text, FinancialProfile__232075293>;
+      var size : Nat__490723111
+    };
+  stable var fpRequestCounter : Nat;
+  stable var logCounter : Nat;
+  stable var partnerCounter : Nat;
+  stable partners :
+    {
+      var root : Node__46230540<Principal, OldPartner__557120421>;
+      var size : Nat__490723111
+    };
+  stable partnersM :
+    {
+      var root : Node__46230540<Principal, Partner__110764128>;
+      var size : Nat__490723111
+    };
+  stable var roleV1MigrationDone : Bool;
+  stable var serviceCounter : Nat;
+  stable services :
+    {
+      var root : Node__46230540<Text, Service__311281967>;
+      var size : Nat__490723111
+    };
+  stable var stableAdminLogs : [(Text, AdminLog__43982951)];
+  stable var stableArchivedServices : [(Text, Service__311281967)];
+  stable var stableClients : [(Principal, Client__171211559)];
+  stable var stableFinancialProfileRequests :
+    [(Text, FinancialProfileRequest__945263859)];
+  stable var stableFinancialProfiles : [(Text, FinancialProfile__232075293)];
+  stable var stablePartners : [(Principal, Partner__110764128)];
+  stable var stableServices : [(Text, Service__311281967)];
+  stable var stableTasks : [(Text, Task__972485619)];
+  stable var stableTickets : [(Text, Ticket__555330507)];
+  stable var stableTopUps : [(Text, TopUp__1040411191)];
+  stable var stableUsers : [(Principal, User__831686142)];
+  stable var stableWithdrawRequests : [(Text, WithdrawRequest__723197494)];
+  stable var taskCounter : Nat;
+  stable tasks :
+    {
+      var root : Node__46230540<Text, Task__972485619>;
+      var size : Nat__490723111
+    };
+  stable var ticketCounter : Nat;
+  stable ticketsM :
+    {
+      var root : Node__46230540<Text, Ticket__555330507>;
+      var size : Nat__490723111
+    };
+  stable var topUpCounter : Nat;
+  stable topUps :
+    {
+      var root : Node__46230540<Text, TopUp__1040411191>;
+      var size : Nat__490723111
+    };
+  stable var userCounter : Nat;
+  stable users :
+    {
+      var root : Node__46230540<Principal, OldUser__700246305>;
+      var size : Nat__490723111
+    };
+  stable usersM :
+    {
+      var root : Node__46230540<Principal, User__831686142>;
+      var size : Nat__490723111
+    };
+  stable var withdrawCounter : Nat;
+  stable withdrawRequests :
+    {
+      var root : Node__46230540<Text, WithdrawRequest__723197494>;
+      var size : Nat__490723111
+    }
+};

@@ -1,0 +1,356 @@
+type WithdrawStatus = 
+ variant {
+   approved;
+   pending;
+   rejected;
+ };
+type WithdrawRequest = 
+ record {
+   createdAt: int;
+   idWithdraw: text;
+   namaBankEwallet: text;
+   namaRekening: text;
+   nominal: nat;
+   nomorRekening: text;
+   partnerId: text;
+   partnerNama: text;
+   status: WithdrawStatus;
+ };
+type WalletInfo = 
+ record {
+   saldoPengajuan: nat;
+   saldoTersedia: nat;
+ };
+type User = 
+ record {
+   createdAt: int;
+   email: text;
+   idUser: text;
+   nama: text;
+   principalId: text;
+   role: Role;
+   status: Status;
+   whatsapp: text;
+ };
+type TopUp = 
+ record {
+   createdAt: int;
+   idService: text;
+   idTopUp: text;
+   namaClient: text;
+   unitTambahan: nat;
+ };
+type TipeLayanan = 
+ variant {
+   efisien;
+   fokus;
+   jaga;
+   rapi;
+   tenang;
+ };
+type Ticket = 
+ record {
+   assignedTo: text;
+   createdAt: int;
+   creatorId: text;
+   creatorNama: text;
+   detail: text;
+   divisi: text;
+   idTicket: text;
+   judul: text;
+   status: text;
+ };
+type TaskStatus = 
+ variant {
+   ditolak;
+   onprogress;
+   permintaanbaru;
+   qaasistenmu;
+   reviewclient;
+   revisi;
+   selesai;
+ };
+type Task = 
+ record {
+   asistenmuId: text;
+   asistenmuNama: text;
+   clientId: text;
+   clientNama: text;
+   createdAt: int;
+   deadline: int;
+   detailTask: text;
+   idTask: text;
+   jamEfektif: nat;
+   judulTask: text;
+   linkGdriveClient: text;
+   linkGdriveInternal: text;
+   notesAsistenmu: text;
+   partnerId: text;
+   partnerNama: text;
+   serviceId: text;
+   status: TaskStatus;
+   unitLayanan: nat;
+ };
+type Status = 
+ variant {
+   active;
+   pending;
+   reject;
+   suspend;
+ };
+type SharingEntry = 
+ record {
+   idUser: text;
+   nama: text;
+   principalId: text;
+ };
+type ServiceStatus = 
+ variant {
+   active;
+   inactive;
+ };
+type Service = 
+ record {
+   asistenmuNama: text;
+   asistenmuPrincipalId: text;
+   clientNama: text;
+   clientPrincipalId: text;
+   createdAt: int;
+   hargaPerLayanan: nat;
+   idService: text;
+   sharingLayanan: vec SharingEntry;
+   status: ServiceStatus;
+   tipeLayanan: TipeLayanan;
+   unitLayanan: nat;
+ };
+type Role = 
+ variant {
+   admin;
+   asistenmu;
+   client;
+   concierge;
+   investor;
+   operasional;
+   partner;
+   public;
+ };
+type Partner = 
+ record {
+   createdAt: int;
+   email: text;
+   idUser: text;
+   kota: text;
+   level: LevelPartner;
+   nama: text;
+   principalId: text;
+   role: Role;
+   status: Status;
+   verifiedSkill: vec text;
+   whatsapp: text;
+ };
+type LevelPartner = 
+ variant {
+   expert;
+   junior;
+   senior;
+ };
+type InvestorSummary = 
+ record {
+   gmvEfisien: nat;
+   gmvFokus: nat;
+   gmvJaga: nat;
+   gmvRapi: nat;
+   gmvTenang: nat;
+   gmvTotal: nat;
+   layananAktifEfisien: nat;
+   layananAktifFokus: nat;
+   layananAktifJaga: nat;
+   layananAktifRapi: nat;
+   layananAktifTenang: nat;
+   layananAktifTotal: nat;
+   margin: nat;
+   taskOnProgress: nat;
+   taskSelesai: nat;
+   totalClient: nat;
+   totalPartner: nat;
+   totalUser: nat;
+ };
+type FinancialProfileRequest = 
+ record {
+   createdAt: int;
+   idRequest: text;
+   newProfile: FinancialProfile;
+   oldProfile: opt FinancialProfile;
+   partnerId: text;
+   partnerNama: text;
+   status: FPRequestStatus;
+ };
+type FinancialProfile = 
+ record {
+   createdAt: int;
+   namaBankEwallet: text;
+   namaRekening: text;
+   nomorRekening: text;
+ };
+type FPRequestStatus = 
+ variant {
+   approved;
+   pending;
+   rejected;
+ };
+type Client = 
+ record {
+   company: text;
+   createdAt: int;
+   email: text;
+   idUser: text;
+   nama: text;
+   principalId: text;
+   role: Role;
+   status: Status;
+   whatsapp: text;
+ };
+type AdminSummary = 
+ record {
+   gmvEfisien: nat;
+   gmvFokus: nat;
+   gmvJaga: nat;
+   gmvRapi: nat;
+   gmvTenang: nat;
+   gmvTotal: nat;
+   layananAktifEfisien: nat;
+   layananAktifFokus: nat;
+   layananAktifJaga: nat;
+   layananAktifRapi: nat;
+   layananAktifTenang: nat;
+   margin: nat;
+   totalLayananAktif: nat;
+   totalSaldoPartner: nat;
+   totalSudahWithdraw: nat;
+   totalTaskOnProgress: nat;
+   totalTaskRevisi: nat;
+   totalTaskSelesai: nat;
+   totalUnitAktif: nat;
+   totalUnitOnHold: nat;
+ };
+type AdminLog = 
+ record {
+   action: text;
+   adminPrincipalId: text;
+   createdAt: int;
+   idLog: text;
+   targetId: text;
+ };
+service : {
+  aktivasiLayanan: (tipe: TipeLayanan, clientPrincipalId: text, clientNama:
+   text, asistenmuPrincipalId: text, asistenmuNama: text, unitLayanan: 
+   nat, hargaPerLayanan: nat, sharingLayanan: vec SharingEntry) -> (text);
+  approveClient: (principalId: principal) -> ();
+  approveFinancialProfileRequest: (idRequest: text) -> ();
+  approveInternalUser: (principalId: principal, role: Role) -> ();
+  approvePartner: (principalId: principal) -> ();
+  approveWithdraw: (idWithdraw: text) -> ();
+  /// Archive a service (admin/operasional only)
+  archiveService: (idService: text) -> ();
+  cancelTask: (idTask: text) -> ();
+  claimAdmin: (nama: text, email: text, whatsapp: text) -> ();
+  createTask: (judulTask: text, detailTask: text, deadline: int, serviceId:
+   text, clientId: text, clientNama: text, asistenmuId: text, asistenmuNama:
+   text) -> (text);
+  /// Create a ticket - accessible by any internal user (admin/operasional/asistenmu/concierge)
+  createTicket: (judul: text, detail: text, divisi: text, assignedTo:
+   text) -> (text);
+  delegasiTask: (idTask: text, partnerId: text, partnerNama: text,
+   jamEfektif: nat, unitLayanan: nat, notesAsistenmu: text,
+   linkGdriveInternal: text, linkGdriveClient: text) -> ();
+  delegasiTaskAsAsistenmu: (idTask: text, partnerId: text, partnerNama: 
+   text, jamEfektif: nat, unitLayanan: nat, notesAsistenmu: text,
+   linkGdriveInternal: text, linkGdriveClient: text) -> ();
+  /// Admin Functions
+  forceClaimAdmin: (nama: text, email: text, whatsapp: text) -> ();
+  getAdminLogs: () -> (vec AdminLog) query;
+  getAdminSummary: () -> (AdminSummary) query;
+  getAllClients: () -> (vec Client) query;
+  getAllPartners: () -> (vec Partner) query;
+  getAllTasks: () -> (vec Task) query;
+  getAllTasksByAsistenmu: () -> (vec Task) query;
+  /// Get all tickets - accessible by admin/operasional/concierge
+  getAllTickets: () -> (vec Ticket) query;
+  getAllUsers: () -> (vec User) query;
+  /// Get all archived services (admin/operasional only)
+  getArchivedServices: () -> (vec Service) query;
+  getAsistenmu: () -> (vec User) query;
+  getClients: () -> (vec Client) query;
+  getFPRequestStatus: (idRequest: text) -> (opt FPRequestStatus) query;
+  getFinancialProfileByPartnerId: (partnerId: text) ->
+   (opt FinancialProfile) query;
+  getFinancialProfileRequests: () -> (vec FinancialProfileRequest) query;
+  getInvestorSummary: () -> (InvestorSummary) query;
+  /// NEW FUNCTION: Get client profile of the caller
+  getMyClientProfile: () -> (opt Client) query;
+  getMyFinancialProfile: () -> (opt FinancialProfile) query;
+  getMyPartnerProfile: () -> (opt Partner) query;
+  getMyProfile: () -> (opt User) query;
+  /// Get role of the caller
+  getMyRole: () -> (opt Role) query;
+  getMyServicesAsAsistenmu: () -> (vec Service) query;
+  getMyServicesAsClient: () -> (vec Service) query;
+  /// NEW FUNCTION: Get tasks for the currently logged in client
+  getMyTasksAsClient: () -> (vec Task) query;
+  /// NEW FUNCTION: Get tasks for the currently logged in partner
+  getMyTasksAsPartner: () -> (vec Task) query;
+  /// Get tickets assigned to the caller (by principalId or matching divisi/role)
+  getMyTickets: () -> (vec Ticket) query;
+  getMyWallet: () -> (WalletInfo) query;
+  getMyWithdrawRequests: () -> (vec WithdrawRequest) query;
+  getPartners: () -> (vec Partner) query;
+  getPartnersAsAsistenmu: () -> (vec Partner) query;
+  getServiceStatus: (idService: text) -> (opt ServiceStatus) query;
+  getServices: () -> (vec Service) query;
+  getTaskStatus: (idTask: text) -> (opt TaskStatus) query;
+  getTasksByAsistenmu: () -> (vec Task) query;
+  getTasksByPartner: () -> (vec Task) query;
+  getTopUps: () -> (vec TopUp) query;
+  /// Get status of user by principal
+  getUserStatus: ("principal": principal) -> (opt Status) query;
+  /// Get all users, partners, clients, services, topups, etc.
+  getUsers: () -> (vec User) query;
+  getWithdrawRequests: () -> (vec WithdrawRequest) query;
+  getWithdrawStatus: (idWithdraw: text) -> (opt WithdrawStatus) query;
+  isAdmin: (user: principal) -> (bool) query;
+  isAdminClaimed: () -> (bool) query;
+  reactivateClient: (principalId: principal) -> ();
+  reactivatePartner: (principalId: principal) -> ();
+  reactivateUser: (principalId: principal) -> ();
+  registerClient: (nama: text, email: text, whatsapp: text, company: 
+   text) -> (text);
+  registerPartner: (nama: text, email: text, whatsapp: text, kota: text) ->
+   (text);
+  registerUser: (nama: text, email: text, whatsapp: text) -> (text);
+  rejectClient: (principalId: principal) -> ();
+  rejectFinancialProfileRequest: (idRequest: text) -> ();
+  rejectPartner: (principalId: principal) -> ();
+  rejectUser: (principalId: principal) -> ();
+  rejectWithdraw: (idWithdraw: text) -> ();
+  requestFinancialProfile: (namaBankEwallet: text, nomorRekening: text,
+   namaRekening: text) -> (text);
+  requestWithdraw: (nominal: nat) -> (text);
+  suspendClient: (principalId: principal) -> ();
+  suspendPartner: (principalId: principal) -> ();
+  suspendUser: (principalId: principal) -> ();
+  terimaTask: (idTask: text) -> ();
+  tolakTask: (idTask: text) -> ();
+  topUpService: (idService: text, unitTambahan: nat) -> (text);
+  updateMyPartnerProfile: (nama: text, email: text, whatsapp: text, kota:
+   text) -> ();
+  updatePartnerDetails: (principalId: principal, level: LevelPartner,
+   verifiedSkill: vec text) -> ();
+  updateService: (idService: text, newStatus: ServiceStatus, newSharing:
+   vec SharingEntry) -> ();
+  updateTaskStatus: (idTask: text, status: TaskStatus) -> ();
+  updateTaskStatusAsAsistenmu: (idTask: text, status: TaskStatus) -> ();
+  updateTaskStatusAsClient: (idTask: text, status: TaskStatus) -> ();
+  updateTaskStatusAsPartner: (idTask: text, status: TaskStatus) -> ();
+  /// Update ticket status - accessible by admin/operasional or the assigned user
+  updateTicketStatus: (idTicket: text, newStatus: text) -> (bool);
+}

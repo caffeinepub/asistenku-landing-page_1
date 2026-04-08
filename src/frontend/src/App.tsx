@@ -15,6 +15,7 @@ import ClientRegister from "./pages/ClientRegister";
 import DashboardAdmin from "./pages/DashboardAdmin";
 import DashboardAsistenmu from "./pages/DashboardAsistenmu";
 import DashboardClient from "./pages/DashboardClient";
+import DashboardConcierge from "./pages/DashboardConcierge";
 import DashboardInvestor from "./pages/DashboardInvestor";
 import DashboardOperasional from "./pages/DashboardOperasional";
 import DashboardPartner from "./pages/DashboardPartner";
@@ -710,6 +711,12 @@ const dashboardInvestorRoute = createRoute({
   component: DashboardInvestor,
 });
 
+const dashboardConciergeRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/dashboard-concierge",
+  component: DashboardConcierge,
+});
+
 const notFoundRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "$",
@@ -730,6 +737,7 @@ const routeTree = rootRoute.addChildren([
   claimAdminAsRoute,
   tentangPartnerAsistemuRoute,
   dashboardInvestorRoute,
+  dashboardConciergeRoute,
   notFoundRoute,
 ]);
 

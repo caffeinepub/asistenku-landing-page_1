@@ -1,7 +1,7 @@
+import { useInternetIdentity } from "@caffeineai/core-infrastructure";
 import { CheckCircle2, Loader2, ShieldCheck, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useActor } from "../hooks/useActor";
-import { useInternetIdentity } from "../hooks/useInternetIdentity";
 
 const ALLOWED_PRINCIPALS = [
   "fjkli-fsbma-6it5u-allin-kv6rp-v6j7f-bayef-3iut6-bd3td-2corr-gqe", // live

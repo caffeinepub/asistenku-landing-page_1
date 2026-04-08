@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import { useInternetIdentity } from "@caffeineai/core-infrastructure";
 import { Principal } from "@dfinity/principal";
 import { useNavigate } from "@tanstack/react-router";
 import {
@@ -29,6 +30,7 @@ import {
   ClipboardList,
   Clock,
   ExternalLink,
+  Eye,
   FolderOpen,
   Layers,
   Loader2,
@@ -59,11 +61,24 @@ import {
   type TipeLayanan,
 } from "../backend";
 import { useActor } from "../hooks/useActor";
-import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import { useRoleGuard } from "../hooks/useRoleGuard";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 type VariantOrString = Record<string, null> | string;
+
+interface Ticket {
+  idTicket: string;
+  creatorId: string;
+  creatorNama: string;
+  judul: string;
+  detail: string;
+  divisi: string;
+  assignedTo: string;
+  status: string;
+  createdAt: bigint;
+}
+
+type SummaryPeriod = "hari" | "mingguan" | "bulanan";
 
 interface User {
   idUser: string;
@@ -240,6 +255,7 @@ function roleBadgeLabel(role: string): string {
     asistenmu: "Asistenmu",
     operasional: "Operasional",
     investor: "Investor",
+    concierge: "Concierge",
     client: "Client",
     partner: "Partner",
     public_: "Publik",
@@ -1163,6 +1179,515 @@ function SummaryCardSkeleton() {
   );
 }
 
+// ── Period filter helper ───────────────────────────────────────────────────────
+function isWithinPeriod(createdAt: bigint, period: SummaryPeriod): boolean {
+  const msNow = Date.now();
+  const msCreated =
+    Number(createdAt) > 1e15
+      ? Number(createdAt) / 1_000_000
+      : Number(createdAt);
+  const dateCreated = new Date(msCreated);
+  const dateNow = new Date(msNow);
+  if (period === "hari") {
+    return (
+      dateCreated.getFullYear() === dateNow.getFullYear() &&
+      dateCreated.getMonth() === dateNow.getMonth() &&
+      dateCreated.getDate() === dateNow.getDate()
+    );
+  }
+  if (period === "mingguan") {
+    return msNow - msCreated <= 7 * 24 * 60 * 60 * 1000;
+  }
+  // bulanan
+  return msNow - msCreated <= 30 * 24 * 60 * 60 * 1000;
+}
+
+// ── SummaryCard with period filter ────────────────────────────────────────────
+function SummaryCardFiltered({
+  icon,
+  label,
+  allItems,
+  getCreatedAt,
+  bg,
+  highlight,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  allItems: { createdAt: bigint }[];
+  getCreatedAt?: (item: { createdAt: bigint }) => bigint;
+  bg?: string;
+  highlight?: boolean;
+}) {
+  const [period, setPeriod] = useState<SummaryPeriod>("hari");
+  const getter = getCreatedAt ?? ((item) => item.createdAt);
+  const count = allItems.filter((item) =>
+    isWithinPeriod(getter(item), period),
+  ).length;
+  return (
+    <div
+      className={`bg-white rounded-2xl shadow-soft border ${highlight ? "border-amber-200" : "border-slate-100"} p-4 flex flex-col gap-3`}
+    >
+      <div className="flex items-center gap-3">
+        <div
+          className={`w-10 h-10 rounded-xl ${bg ?? "bg-slate-100"} flex items-center justify-center flex-shrink-0`}
+        >
+          {icon}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs text-slate-500 leading-tight truncate">
+            {label}
+          </p>
+          <p
+            className={`font-display font-bold text-2xl mt-0.5 ${highlight ? "text-amber-600" : "text-slate-900"}`}
+          >
+            {count}
+          </p>
+        </div>
+      </div>
+      <div className="flex gap-1">
+        {(["hari", "mingguan", "bulanan"] as SummaryPeriod[]).map((p) => (
+          <button
+            key={p}
+            type="button"
+            onClick={() => setPeriod(p)}
+            className={`flex-1 text-xs py-1 rounded-lg font-medium transition-colors ${
+              period === p
+                ? "bg-slate-900 text-white"
+                : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+            }`}
+          >
+            {p === "hari" ? "Hari" : p === "mingguan" ? "Minggu" : "Bulan"}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── User Detail Modal ──────────────────────────────────────────────────────────
+type UserDetailEntry =
+  | ({ kind: "user" } & User)
+  | ({ kind: "partner" } & Partner)
+  | ({ kind: "client" } & Client);
+
+function UserDetailModal({
+  entry,
+  open,
+  onClose,
+}: {
+  entry: UserDetailEntry | null;
+  open: boolean;
+  onClose: () => void;
+}) {
+  if (!entry) return null;
+  const role = getRole(entry.role);
+  const status = getStatus(entry.status);
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        if (!v) onClose();
+      }}
+    >
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="font-display">Detail Profil</DialogTitle>
+        </DialogHeader>
+        <div className="flex flex-col gap-3 py-1 text-sm">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+            <div>
+              <p className="text-xs text-slate-400">ID User</p>
+              <p className="font-mono text-slate-700 text-xs break-all">
+                {entry.idUser}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-400">Nama</p>
+              <p className="text-slate-900 font-medium">{entry.nama}</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-400">Email</p>
+              <p className="text-slate-700 truncate">{entry.email}</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-400">WhatsApp</p>
+              <p className="text-slate-700">{entry.whatsapp}</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-400">Role</p>
+              <Badge
+                variant={roleBadgeVariant(role)}
+                className="text-xs mt-0.5"
+              >
+                {roleBadgeLabel(role)}
+              </Badge>
+            </div>
+            <div>
+              <p className="text-xs text-slate-400">Status</p>
+              <span
+                className={`text-xs px-2 py-0.5 rounded-full font-medium inline-block mt-0.5 ${
+                  status === "active"
+                    ? "bg-emerald-50 text-emerald-700"
+                    : status === "pending"
+                      ? "bg-amber-50 text-amber-700"
+                      : "bg-red-50 text-red-700"
+                }`}
+              >
+                {status === "active"
+                  ? "Aktif"
+                  : status === "pending"
+                    ? "Pending"
+                    : "Suspend"}
+              </span>
+            </div>
+          </div>
+          <div>
+            <p className="text-xs text-slate-400">Principal ID</p>
+            <p className="font-mono text-xs text-slate-600 break-all mt-0.5">
+              {entry.principalId}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-slate-400">Terdaftar</p>
+            <p className="text-slate-700 text-xs">
+              {formatDate(entry.createdAt)}
+            </p>
+          </div>
+          {entry.kind === "client" && (
+            <div>
+              <p className="text-xs text-slate-400">Perusahaan</p>
+              <p className="text-slate-700">{entry.company || "—"}</p>
+            </div>
+          )}
+          {entry.kind === "partner" && (
+            <>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                <div>
+                  <p className="text-xs text-slate-400">Kota</p>
+                  <p className="text-slate-700">{entry.kota || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-400">Level</p>
+                  <p className="text-slate-700">{getLevelLabel(entry.level)}</p>
+                </div>
+              </div>
+              {entry.verifiedSkill.length > 0 && (
+                <div>
+                  <p className="text-xs text-slate-400">Verified Skills</p>
+                  <p className="text-teal-700 text-sm">
+                    {entry.verifiedSkill.join(", ")}
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Tutup
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ── Ticket Status helpers ──────────────────────────────────────────────────────
+function ticketStatusBadge(status: string): string {
+  if (status === "open" || status === "Open")
+    return "bg-amber-50 text-amber-700 border-amber-200";
+  if (status === "inProgress" || status === "in_progress")
+    return "bg-blue-50 text-blue-700 border-blue-200";
+  if (status === "resolved" || status === "Resolved")
+    return "bg-emerald-50 text-emerald-700 border-emerald-200";
+  return "bg-slate-50 text-slate-600 border-slate-200";
+}
+
+function ticketStatusLabel(status: string): string {
+  if (status === "open" || status === "Open") return "Terbuka";
+  if (status === "inProgress" || status === "in_progress") return "Diproses";
+  if (status === "resolved" || status === "Resolved") return "Selesai";
+  return status;
+}
+
+// ── Ticket Detail Modal ────────────────────────────────────────────────────────
+function TicketDetailModal({
+  ticket,
+  open,
+  onClose,
+  actor,
+  onRefresh,
+}: {
+  ticket: Ticket | null;
+  open: boolean;
+  onClose: () => void;
+  actor: unknown;
+  onRefresh: () => void;
+}) {
+  const [newStatus, setNewStatus] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (ticket) setNewStatus(ticket.status);
+  }, [ticket]);
+
+  async function handleSave() {
+    if (!ticket || !actor || !newStatus) return;
+    setIsSaving(true);
+    try {
+      await (
+        actor as unknown as Record<
+          string,
+          (...args: unknown[]) => Promise<unknown>
+        >
+      ).updateTicketStatus(ticket.idTicket, newStatus);
+      toast.success("Status tiket diperbarui.");
+      onRefresh();
+      onClose();
+    } catch (err) {
+      const msg =
+        err instanceof Error ? err.message : "Gagal memperbarui status.";
+      toast.error(msg);
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  if (!ticket) return null;
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        if (!v) onClose();
+      }}
+    >
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="font-display">Detail Tiket</DialogTitle>
+        </DialogHeader>
+        <div className="flex flex-col gap-3 py-1 text-sm">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-mono text-xs text-slate-500">
+              {ticket.idTicket}
+            </span>
+            <span
+              className={`text-xs px-2 py-0.5 rounded-full border font-medium ${ticketStatusBadge(ticket.status)}`}
+            >
+              {ticketStatusLabel(ticket.status)}
+            </span>
+          </div>
+          <div>
+            <p className="text-xs text-slate-400">Judul</p>
+            <p className="text-slate-900 font-medium mt-0.5">{ticket.judul}</p>
+          </div>
+          <div>
+            <p className="text-xs text-slate-400">Detail Masalah</p>
+            <p className="text-slate-700 mt-0.5 whitespace-pre-wrap text-sm">
+              {ticket.detail}
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+            <div>
+              <p className="text-xs text-slate-400">Divisi</p>
+              <p className="text-slate-700">{ticket.divisi}</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-400">Pengirim</p>
+              <p className="text-slate-700">{ticket.creatorNama}</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-400">Tgl Masuk</p>
+              <p className="text-slate-700">{formatDate(ticket.createdAt)}</p>
+            </div>
+          </div>
+          <div className="flex flex-col gap-1.5 pt-2 border-t border-slate-100">
+            <Label>Update Status</Label>
+            <Select value={newStatus} onValueChange={setNewStatus}>
+              <SelectTrigger>
+                <SelectValue placeholder="Pilih status..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="open">Terbuka</SelectItem>
+                <SelectItem value="inProgress">Diproses</SelectItem>
+                <SelectItem value="resolved">Selesai</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={onClose} disabled={isSaving}>
+            Tutup
+          </Button>
+          <Button
+            onClick={handleSave}
+            disabled={isSaving || newStatus === ticket.status}
+            className="bg-slate-900 text-white hover:bg-slate-700"
+          >
+            {isSaving ? (
+              <>
+                <Loader2 size={13} className="animate-spin mr-1" />
+                Menyimpan...
+              </>
+            ) : (
+              "Simpan"
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ── Tiket Masuk Section ────────────────────────────────────────────────────────
+function TiketMasukSection({
+  actor,
+}: {
+  actor: unknown;
+}) {
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+
+  const fetchTickets = useCallback(async () => {
+    if (!actor) return;
+    setIsLoading(true);
+    try {
+      const result = await (
+        actor as unknown as Record<string, () => Promise<Ticket[]>>
+      ).getMyTickets();
+      setTickets(result ?? []);
+    } catch {
+      setTickets([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [actor]);
+
+  useEffect(() => {
+    void fetchTickets();
+  }, [fetchTickets]);
+
+  const filtered = tickets.filter((t) => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      t.idTicket.toLowerCase().includes(q) ||
+      t.judul.toLowerCase().includes(q) ||
+      t.divisi.toLowerCase().includes(q) ||
+      t.creatorNama.toLowerCase().includes(q)
+    );
+  });
+
+  const ticketPag = usePagination(filtered, 5);
+
+  return (
+    <OuterCollapsible
+      title="Tiket Masuk"
+      count={tickets.length}
+      countAccent="bg-blue-50 text-blue-700"
+    >
+      <div className="flex gap-3 mb-2">
+        <Input
+          placeholder="Cari tiket (ID, judul, divisi, pengirim)..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="text-sm flex-1"
+        />
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => void fetchTickets()}
+          disabled={isLoading}
+          className="flex-shrink-0"
+        >
+          <RefreshCw size={13} className={isLoading ? "animate-spin" : ""} />
+        </Button>
+      </div>
+
+      {isLoading ? (
+        <div className="flex flex-col gap-2">
+          {[1, 2, 3].map((k) => (
+            <Skeleton key={k} className="h-14 w-full rounded-xl" />
+          ))}
+        </div>
+      ) : filtered.length === 0 ? (
+        <p className="text-sm text-slate-400 py-4 text-center">
+          {tickets.length === 0
+            ? "Belum ada tiket masuk."
+            : "Tidak ada tiket yang cocok."}
+        </p>
+      ) : (
+        <>
+          <div className="flex flex-col divide-y divide-slate-100">
+            {ticketPag.paged.map((ticket) => (
+              <div
+                key={ticket.idTicket}
+                className="py-3 flex items-center justify-between gap-3"
+                data-ocid="ticket-row"
+              >
+                <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-mono text-slate-500">
+                      {ticket.idTicket}
+                    </span>
+                    <span
+                      className={`text-xs px-2 py-0.5 rounded-full border font-medium ${ticketStatusBadge(ticket.status)}`}
+                    >
+                      {ticketStatusLabel(ticket.status)}
+                    </span>
+                    <span className="text-xs text-slate-400">
+                      {ticket.divisi}
+                    </span>
+                  </div>
+                  <p className="text-sm font-medium text-slate-900 truncate max-w-xs">
+                    {ticket.judul.length > 50
+                      ? `${ticket.judul.slice(0, 50)}...`
+                      : ticket.judul}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    Dari: {ticket.creatorNama} · {formatDate(ticket.createdAt)}
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedTicket(ticket);
+                    setDetailOpen(true);
+                  }}
+                  className="flex-shrink-0 text-xs"
+                  data-ocid="ticket-detail-btn"
+                >
+                  <Eye size={13} className="mr-1" />
+                  Detail
+                </Button>
+              </div>
+            ))}
+          </div>
+          <PaginationControls
+            page={ticketPag.page}
+            totalPages={ticketPag.totalPages}
+            setPage={ticketPag.setPage}
+          />
+        </>
+      )}
+
+      <TicketDetailModal
+        ticket={selectedTicket}
+        open={detailOpen}
+        onClose={() => {
+          setDetailOpen(false);
+          setSelectedTicket(null);
+        }}
+        actor={actor}
+        onRefresh={() => void fetchTickets()}
+      />
+    </OuterCollapsible>
+  );
+}
+
 // ── Filter bar ─────────────────────────────────────────────────────────────────
 function UserFilterBar({
   filterRole,
@@ -1676,6 +2201,10 @@ export default function DashboardAdmin() {
   const [editPartner, setEditPartner] = useState<Partner | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
 
+  // ── User detail modal state ──────────────────────────────────────────────────
+  const [detailEntry, setDetailEntry] = useState<UserDetailEntry | null>(null);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
+
   // ── Task delegasi open state ─────────────────────────────────────────────────
   const [openDelegasiTaskId, setOpenDelegasiTaskId] = useState<string | null>(
     null,
@@ -1804,15 +2333,13 @@ export default function DashboardAdmin() {
     const r = getRole(u.role);
     const s = getStatus(u.status);
     return (
-      (r === "admin" || r === "asistenmu") &&
+      (r === "admin" ||
+        r === "operasional" ||
+        r === "investor" ||
+        r === "concierge") &&
       s === "active" &&
       matchesUserFilter(u.nama, r)
     );
-  });
-  const activeOperasional = users.filter((u) => {
-    const r = getRole(u.role);
-    const s = getStatus(u.status);
-    return r === "operasional" && s === "active";
   });
 
   const suspendedUsers = users.filter(
@@ -1835,21 +2362,10 @@ export default function DashboardAdmin() {
   ];
 
   // ── Summary counts (unfiltered) ────────────────────────────────────────────────
-  const totalAll = users.length + partners.length + clients.length;
   const totalPending =
     users.filter((u) => getStatus(u.status) === "pending").length +
     partners.filter((p) => getStatus(p.status) === "pending").length +
     clients.filter((c) => getStatus(c.status) === "pending").length;
-  const totalAktifClient = clients.filter(
-    (c) => getStatus(c.status) === "active",
-  ).length;
-  const totalAktifPartner = partners.filter(
-    (p) => getStatus(p.status) === "active",
-  ).length;
-  const totalAktifAsisstenmu = users.filter(
-    (u) => getRole(u.role) === "asistenmu" && getStatus(u.status) === "active",
-  ).length;
-  const totalUserAktif = activeOperasional.length;
 
   // Total for manajemen pengguna outer badge (use filtered sum)
   const totalUserFiltered =
@@ -1988,47 +2504,75 @@ export default function DashboardAdmin() {
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                <SummaryCard
-                  icon={<Users size={22} className="text-slate-700" />}
+                <SummaryCardFiltered
+                  icon={<Users size={20} className="text-slate-700" />}
                   label="Total Semua User"
-                  value={totalAll}
+                  allItems={[
+                    ...users.map((u) => ({ createdAt: u.createdAt })),
+                    ...partners.map((p) => ({ createdAt: p.createdAt })),
+                    ...clients.map((c) => ({ createdAt: c.createdAt })),
+                  ]}
                   bg="bg-slate-100"
                 />
-                <SummaryCard
-                  icon={<Loader2 size={22} className="text-amber-600" />}
+                <SummaryCardFiltered
+                  icon={<Loader2 size={20} className="text-amber-600" />}
                   label="Pending User"
-                  value={totalPending}
+                  allItems={[
+                    ...users
+                      .filter((u) => getStatus(u.status) === "pending")
+                      .map((u) => ({ createdAt: u.createdAt })),
+                    ...partners
+                      .filter((p) => getStatus(p.status) === "pending")
+                      .map((p) => ({ createdAt: p.createdAt })),
+                    ...clients
+                      .filter((c) => getStatus(c.status) === "pending")
+                      .map((c) => ({ createdAt: c.createdAt })),
+                  ]}
                   bg="bg-amber-50"
                   highlight={totalPending > 0}
                 />
-                <SummaryCard
-                  icon={<UserCheck size={22} className="text-emerald-600" />}
+                <SummaryCardFiltered
+                  icon={<UserCheck size={20} className="text-emerald-600" />}
                   label="User Aktif"
-                  value={totalUserAktif}
+                  allItems={users
+                    .filter((u) => getStatus(u.status) === "active")
+                    .map((u) => ({ createdAt: u.createdAt }))}
                   bg="bg-emerald-50"
                 />
-                <SummaryCard
+                <SummaryCardFiltered
                   icon={
-                    <span className="text-lg font-bold text-blue-600">CA</span>
+                    <span className="text-base font-bold text-blue-600">
+                      CA
+                    </span>
                   }
                   label="Client Aktif"
-                  value={totalAktifClient}
+                  allItems={clients
+                    .filter((c) => getStatus(c.status) === "active")
+                    .map((c) => ({ createdAt: c.createdAt }))}
                   bg="bg-blue-50"
                 />
-                <SummaryCard
+                <SummaryCardFiltered
                   icon={
-                    <span className="text-lg font-bold text-purple-600">
+                    <span className="text-base font-bold text-purple-600">
                       PA
                     </span>
                   }
                   label="Partner Aktif"
-                  value={totalAktifPartner}
+                  allItems={partners
+                    .filter((p) => getStatus(p.status) === "active")
+                    .map((p) => ({ createdAt: p.createdAt }))}
                   bg="bg-purple-50"
                 />
-                <SummaryCard
-                  icon={<ShieldCheck size={22} className="text-teal-600" />}
+                <SummaryCardFiltered
+                  icon={<ShieldCheck size={20} className="text-teal-600" />}
                   label="Asistenmu Aktif"
-                  value={totalAktifAsisstenmu}
+                  allItems={users
+                    .filter(
+                      (u) =>
+                        getRole(u.role) === "asistenmu" &&
+                        getStatus(u.status) === "active",
+                    )
+                    .map((u) => ({ createdAt: u.createdAt }))}
                   bg="bg-teal-50"
                 />
               </div>
@@ -2393,6 +2937,19 @@ export default function DashboardAdmin() {
                         <Button
                           variant="outline"
                           size="sm"
+                          onClick={() => {
+                            setDetailEntry({ kind: "client", ...client });
+                            setDetailModalOpen(true);
+                          }}
+                          className="text-xs"
+                          data-ocid="client-detail-btn"
+                        >
+                          <Eye size={13} className="mr-1" />
+                          Detail
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
                           disabled={
                             actionLoading[`suspend-${client.principalId}`]
                           }
@@ -2480,6 +3037,19 @@ export default function DashboardAdmin() {
                             variant="outline"
                             size="sm"
                             onClick={() => {
+                              setDetailEntry({ kind: "partner", ...partner });
+                              setDetailModalOpen(true);
+                            }}
+                            className="text-xs"
+                            data-ocid="partner-detail-btn"
+                          >
+                            <Eye size={13} className="mr-1" />
+                            Detail
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
                               setEditPartner(partner);
                               setEditModalOpen(true);
                             }}
@@ -2533,9 +3103,9 @@ export default function DashboardAdmin() {
               )}
             </CollapsibleSection>
 
-            {/* 4. Admin & Asistenmu Aktif */}
+            {/* 4. Internal User */}
             <CollapsibleSection
-              title="Admin & Asistenmu Aktif"
+              title="Internal User"
               count={activeAdminAsisstenmu.length}
               accent="bg-slate-100 text-slate-600"
             >
@@ -2549,25 +3119,40 @@ export default function DashboardAdmin() {
                     {adminPag.paged.map((user) => (
                       <div
                         key={user.idUser}
-                        className="py-3 flex flex-col gap-0.5 min-w-0"
+                        className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-0"
                       >
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs font-mono text-slate-500">
-                            {user.idUser}
-                          </span>
-                          <Badge
-                            variant={roleBadgeVariant(getRole(user.role))}
-                            className="text-xs"
-                          >
-                            {roleBadgeLabel(getRole(user.role))}
-                          </Badge>
+                        <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs font-mono text-slate-500">
+                              {user.idUser}
+                            </span>
+                            <Badge
+                              variant={roleBadgeVariant(getRole(user.role))}
+                              className="text-xs"
+                            >
+                              {roleBadgeLabel(getRole(user.role))}
+                            </Badge>
+                          </div>
+                          <p className="font-medium text-slate-900 text-sm truncate">
+                            {user.nama}
+                          </p>
+                          <p className="text-xs text-slate-500 truncate">
+                            {user.email}
+                          </p>
                         </div>
-                        <p className="font-medium text-slate-900 text-sm truncate">
-                          {user.nama}
-                        </p>
-                        <p className="text-xs text-slate-500 truncate">
-                          {user.email}
-                        </p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setDetailEntry({ kind: "user", ...user });
+                            setDetailModalOpen(true);
+                          }}
+                          className="text-xs flex-shrink-0"
+                          data-ocid="admin-detail-btn"
+                        >
+                          <Eye size={13} className="mr-1" />
+                          Detail
+                        </Button>
                       </div>
                     ))}
                   </div>
@@ -2784,6 +3369,9 @@ export default function DashboardAdmin() {
             runAction={runAction}
           />
 
+          {/* ── Tiket Masuk ── */}
+          <TiketMasukSection actor={actor} />
+
           {/* ── History Aktivitas Admin (Outer Collapsible) ── */}
           <HistorySection adminLogs={adminLogs} />
         </div>
@@ -2798,6 +3386,16 @@ export default function DashboardAdmin() {
           if (!v) setEditPartner(null);
         }}
         onUpdate={handleUpdatePartner}
+      />
+
+      {/* ── User Detail Modal ── */}
+      <UserDetailModal
+        entry={detailEntry}
+        open={detailModalOpen}
+        onClose={() => {
+          setDetailModalOpen(false);
+          setDetailEntry(null);
+        }}
       />
 
       {/* ── Edit Layanan Modal ── */}
@@ -2966,40 +3564,6 @@ export default function DashboardAdmin() {
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
-function SummaryCard({
-  icon,
-  label,
-  value,
-  bg,
-  highlight,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: number;
-  bg?: string;
-  highlight?: boolean;
-}) {
-  return (
-    <div
-      className={`bg-white rounded-2xl shadow-soft border ${highlight ? "border-amber-200" : "border-slate-100"} p-5 flex items-center gap-4`}
-    >
-      <div
-        className={`w-11 h-11 rounded-xl ${bg ?? "bg-slate-100"} flex items-center justify-center flex-shrink-0`}
-      >
-        {icon}
-      </div>
-      <div>
-        <p className="text-xs text-slate-500 leading-tight">{label}</p>
-        <p
-          className={`font-display font-bold text-2xl mt-0.5 ${highlight ? "text-amber-600" : "text-slate-900"}`}
-        >
-          {value}
-        </p>
-      </div>
-    </div>
-  );
-}
-
 // ── Pending row ────────────────────────────────────────────────────────────────
 function PendingRow({
   entry,
@@ -3064,6 +3628,7 @@ function PendingRow({
               <SelectItem value="operasional">Operasional</SelectItem>
               <SelectItem value="asistenmu">Asistenmu</SelectItem>
               <SelectItem value="investor">Investor</SelectItem>
+              <SelectItem value="concierge">Concierge</SelectItem>
             </SelectContent>
           </Select>
           <div className="flex gap-2">

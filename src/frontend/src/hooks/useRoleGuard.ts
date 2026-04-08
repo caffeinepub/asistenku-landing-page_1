@@ -10,6 +10,7 @@ type RoleKey =
   | "client"
   | "partner"
   | "investor"
+  | "concierge"
   | null;
 
 function roleToDashboardPath(role: RoleKey): string {
@@ -26,6 +27,8 @@ function roleToDashboardPath(role: RoleKey): string {
       return "/dashboard-partner";
     case "investor":
       return "/dashboard-investor";
+    case "concierge":
+      return "/dashboard-concierge";
     default:
       return "/";
   }

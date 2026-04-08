@@ -285,26 +285,7 @@ export default function DashboardInvestor() {
     if (!actor) return;
     setLoading(true);
     try {
-      const data = (await (actor as any).getInvestorSummary()) as {
-        totalUser: bigint;
-        totalClient: bigint;
-        totalPartner: bigint;
-        taskOnProgress: bigint;
-        taskSelesai: bigint;
-        gmvTotal: bigint;
-        gmvTenang: bigint;
-        gmvRapi: bigint;
-        gmvFokus: bigint;
-        gmvJaga: bigint;
-        gmvEfisien: bigint;
-        margin: bigint;
-        layananAktifTotal: bigint;
-        layananAktifTenang: bigint;
-        layananAktifRapi: bigint;
-        layananAktifFokus: bigint;
-        layananAktifJaga: bigint;
-        layananAktifEfisien: bigint;
-      };
+      const data = await actor.getInvestorSummary();
       setSummary({
         totalUser: Number(data.totalUser),
         totalClient: Number(data.totalClient),

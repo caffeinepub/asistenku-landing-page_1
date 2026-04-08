@@ -127,6 +127,37 @@ export interface SharingEntry {
     idUser: string;
     principalId: string;
 }
+export interface Ticket {
+    idTicket: string;
+    status: string;
+    assignedTo: string;
+    createdAt: bigint;
+    creatorId: string;
+    judul: string;
+    creatorNama: string;
+    detail: string;
+    divisi: string;
+}
+export interface InvestorSummary {
+    layananAktifTenang: bigint;
+    taskSelesai: bigint;
+    gmvEfisien: bigint;
+    taskOnProgress: bigint;
+    totalUser: bigint;
+    gmvTenang: bigint;
+    gmvJaga: bigint;
+    gmvRapi: bigint;
+    gmvFokus: bigint;
+    layananAktifFokus: bigint;
+    gmvTotal: bigint;
+    layananAktifTotal: bigint;
+    totalPartner: bigint;
+    margin: bigint;
+    totalClient: bigint;
+    layananAktifJaga: bigint;
+    layananAktifRapi: bigint;
+    layananAktifEfisien: bigint;
+}
 export interface Client {
     status: Status;
     nama: string;
@@ -155,6 +186,7 @@ export enum Role {
     admin = "admin",
     operasional = "operasional",
     public_ = "public",
+    concierge = "concierge",
     asistenmu = "asistenmu",
     partner = "partner",
     investor = "investor"
@@ -204,6 +236,10 @@ export interface backendInterface {
     cancelTask(idTask: string): Promise<void>;
     claimAdmin(nama: string, email: string, whatsapp: string): Promise<void>;
     createTask(judulTask: string, detailTask: string, deadline: bigint, serviceId: string, clientId: string, clientNama: string, asistenmuId: string, asistenmuNama: string): Promise<string>;
+    /**
+     * / Create a ticket - accessible by any internal user (admin/operasional/asistenmu/concierge)
+     */
+    createTicket(judul: string, detail: string, divisi: string, assignedTo: string): Promise<string>;
     delegasiTask(idTask: string, partnerId: string, partnerNama: string, jamEfektif: bigint, unitLayanan: bigint, notesAsistenmu: string, linkGdriveInternal: string, linkGdriveClient: string): Promise<void>;
     delegasiTaskAsAsistenmu(idTask: string, partnerId: string, partnerNama: string, jamEfektif: bigint, unitLayanan: bigint, notesAsistenmu: string, linkGdriveInternal: string, linkGdriveClient: string): Promise<void>;
     /**
@@ -216,6 +252,10 @@ export interface backendInterface {
     getAllPartners(): Promise<Array<Partner>>;
     getAllTasks(): Promise<Array<Task>>;
     getAllTasksByAsistenmu(): Promise<Array<Task>>;
+    /**
+     * / Get all tickets - accessible by admin/operasional/concierge
+     */
+    getAllTickets(): Promise<Array<Ticket>>;
     getAllUsers(): Promise<Array<User>>;
     /**
      * / Get all archived services (admin/operasional only)
@@ -226,6 +266,7 @@ export interface backendInterface {
     getFPRequestStatus(idRequest: string): Promise<FPRequestStatus | null>;
     getFinancialProfileByPartnerId(partnerId: string): Promise<FinancialProfile | null>;
     getFinancialProfileRequests(): Promise<Array<FinancialProfileRequest>>;
+    getInvestorSummary(): Promise<InvestorSummary>;
     /**
      * / NEW FUNCTION: Get client profile of the caller
      */
@@ -247,6 +288,10 @@ export interface backendInterface {
      * / NEW FUNCTION: Get tasks for the currently logged in partner
      */
     getMyTasksAsPartner(): Promise<Array<Task>>;
+    /**
+     * / Get tickets assigned to the caller (by principalId or matching divisi/role)
+     */
+    getMyTickets(): Promise<Array<Ticket>>;
     getMyWallet(): Promise<WalletInfo>;
     getMyWithdrawRequests(): Promise<Array<WithdrawRequest>>;
     getPartners(): Promise<Array<Partner>>;
@@ -295,4 +340,8 @@ export interface backendInterface {
     updateTaskStatusAsAsistenmu(idTask: string, status: TaskStatus): Promise<void>;
     updateTaskStatusAsClient(idTask: string, status: TaskStatus): Promise<void>;
     updateTaskStatusAsPartner(idTask: string, status: TaskStatus): Promise<void>;
+    /**
+     * / Update ticket status - accessible by admin/operasional or the assigned user
+     */
+    updateTicketStatus(idTicket: string, newStatus: string): Promise<boolean>;
 }

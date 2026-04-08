@@ -209,6 +209,37 @@ export interface SharingEntry {
     idUser: string;
     principalId: string;
 }
+export interface Ticket {
+    idTicket: string;
+    status: string;
+    assignedTo: string;
+    createdAt: bigint;
+    creatorId: string;
+    judul: string;
+    creatorNama: string;
+    detail: string;
+    divisi: string;
+}
+export interface InvestorSummary {
+    layananAktifTenang: bigint;
+    taskSelesai: bigint;
+    gmvEfisien: bigint;
+    taskOnProgress: bigint;
+    totalUser: bigint;
+    gmvTenang: bigint;
+    gmvJaga: bigint;
+    gmvRapi: bigint;
+    gmvFokus: bigint;
+    layananAktifFokus: bigint;
+    gmvTotal: bigint;
+    layananAktifTotal: bigint;
+    totalPartner: bigint;
+    margin: bigint;
+    totalClient: bigint;
+    layananAktifJaga: bigint;
+    layananAktifRapi: bigint;
+    layananAktifEfisien: bigint;
+}
 export interface Client {
     status: Status;
     nama: string;
@@ -237,6 +268,7 @@ export enum Role {
     admin = "admin",
     operasional = "operasional",
     public_ = "public",
+    concierge = "concierge",
     asistenmu = "asistenmu",
     partner = "partner",
     investor = "investor"
@@ -286,6 +318,10 @@ export interface backendInterface {
     cancelTask(idTask: string): Promise<void>;
     claimAdmin(nama: string, email: string, whatsapp: string): Promise<void>;
     createTask(judulTask: string, detailTask: string, deadline: bigint, serviceId: string, clientId: string, clientNama: string, asistenmuId: string, asistenmuNama: string): Promise<string>;
+    /**
+     * / Create a ticket - accessible by any internal user (admin/operasional/asistenmu/concierge)
+     */
+    createTicket(judul: string, detail: string, divisi: string, assignedTo: string): Promise<string>;
     delegasiTask(idTask: string, partnerId: string, partnerNama: string, jamEfektif: bigint, unitLayanan: bigint, notesAsistenmu: string, linkGdriveInternal: string, linkGdriveClient: string): Promise<void>;
     delegasiTaskAsAsistenmu(idTask: string, partnerId: string, partnerNama: string, jamEfektif: bigint, unitLayanan: bigint, notesAsistenmu: string, linkGdriveInternal: string, linkGdriveClient: string): Promise<void>;
     /**
@@ -298,6 +334,10 @@ export interface backendInterface {
     getAllPartners(): Promise<Array<Partner>>;
     getAllTasks(): Promise<Array<Task>>;
     getAllTasksByAsistenmu(): Promise<Array<Task>>;
+    /**
+     * / Get all tickets - accessible by admin/operasional/concierge
+     */
+    getAllTickets(): Promise<Array<Ticket>>;
     getAllUsers(): Promise<Array<User>>;
     /**
      * / Get all archived services (admin/operasional only)
@@ -308,6 +348,7 @@ export interface backendInterface {
     getFPRequestStatus(idRequest: string): Promise<FPRequestStatus | null>;
     getFinancialProfileByPartnerId(partnerId: string): Promise<FinancialProfile | null>;
     getFinancialProfileRequests(): Promise<Array<FinancialProfileRequest>>;
+    getInvestorSummary(): Promise<InvestorSummary>;
     /**
      * / NEW FUNCTION: Get client profile of the caller
      */
@@ -329,6 +370,10 @@ export interface backendInterface {
      * / NEW FUNCTION: Get tasks for the currently logged in partner
      */
     getMyTasksAsPartner(): Promise<Array<Task>>;
+    /**
+     * / Get tickets assigned to the caller (by principalId or matching divisi/role)
+     */
+    getMyTickets(): Promise<Array<Ticket>>;
     getMyWallet(): Promise<WalletInfo>;
     getMyWithdrawRequests(): Promise<Array<WithdrawRequest>>;
     getPartners(): Promise<Array<Partner>>;
@@ -377,6 +422,10 @@ export interface backendInterface {
     updateTaskStatusAsAsistenmu(idTask: string, status: TaskStatus): Promise<void>;
     updateTaskStatusAsClient(idTask: string, status: TaskStatus): Promise<void>;
     updateTaskStatusAsPartner(idTask: string, status: TaskStatus): Promise<void>;
+    /**
+     * / Update ticket status - accessible by admin/operasional or the assigned user
+     */
+    updateTicketStatus(idTicket: string, newStatus: string): Promise<boolean>;
 }
 import type { Client as _Client, FPRequestStatus as _FPRequestStatus, FinancialProfile as _FinancialProfile, FinancialProfileRequest as _FinancialProfileRequest, LevelPartner as _LevelPartner, Partner as _Partner, Role as _Role, Service as _Service, ServiceStatus as _ServiceStatus, SharingEntry as _SharingEntry, Status as _Status, Task as _Task, TaskStatus as _TaskStatus, TipeLayanan as _TipeLayanan, User as _User, WithdrawRequest as _WithdrawRequest, WithdrawStatus as _WithdrawStatus } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
@@ -521,6 +570,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async createTicket(arg0: string, arg1: string, arg2: string, arg3: string): Promise<string> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.createTicket(arg0, arg1, arg2, arg3);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.createTicket(arg0, arg1, arg2, arg3);
+            return result;
+        }
+    }
     async delegasiTask(arg0: string, arg1: string, arg2: string, arg3: bigint, arg4: bigint, arg5: string, arg6: string, arg7: string): Promise<void> {
         if (this.processError) {
             try {
@@ -647,6 +710,20 @@ export class Backend implements backendInterface {
             return from_candid_vec_n17(this._uploadFile, this._downloadFile, result);
         }
     }
+    async getAllTickets(): Promise<Array<Ticket>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getAllTickets();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getAllTickets();
+            return result;
+        }
+    }
     async getAllUsers(): Promise<Array<User>> {
         if (this.processError) {
             try {
@@ -743,6 +820,20 @@ export class Backend implements backendInterface {
         } else {
             const result = await this.actor.getFinancialProfileRequests();
             return from_candid_vec_n36(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getInvestorSummary(): Promise<InvestorSummary> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getInvestorSummary();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getInvestorSummary();
+            return result;
         }
     }
     async getMyClientProfile(): Promise<Client | null> {
@@ -869,6 +960,20 @@ export class Backend implements backendInterface {
         } else {
             const result = await this.actor.getMyTasksAsPartner();
             return from_candid_vec_n17(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getMyTickets(): Promise<Array<Ticket>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getMyTickets();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getMyTickets();
+            return result;
         }
     }
     async getMyWallet(): Promise<WalletInfo> {
@@ -1459,6 +1564,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async updateTicketStatus(arg0: string, arg1: string): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateTicketStatus(arg0, arg1);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateTicketStatus(arg0, arg1);
+            return result;
+        }
+    }
 }
 function from_candid_Client_n6(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _Client): Client {
     return from_candid_record_n7(_uploadFile, _downloadFile, value);
@@ -1805,13 +1924,15 @@ function from_candid_variant_n11(_uploadFile: (file: ExternalBlob) => Promise<Ui
 } | {
     public: null;
 } | {
+    concierge: null;
+} | {
     asistenmu: null;
 } | {
     partner: null;
 } | {
     investor: null;
 }): Role {
-    return "client" in value ? Role.client : "admin" in value ? Role.admin : "operasional" in value ? Role.operasional : "public" in value ? Role.public_ : "asistenmu" in value ? Role.asistenmu : "partner" in value ? Role.partner : "investor" in value ? Role.investor : (value as unknown as Role);
+    return "client" in value ? Role.client : "admin" in value ? Role.admin : "operasional" in value ? Role.operasional : "public" in value ? Role.public : "concierge" in value ? Role.concierge : "asistenmu" in value ? Role.asistenmu : "partner" in value ? Role.partner : "investor" in value ? Role.investor : value;
 }
 function from_candid_variant_n16(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     junior: null;
@@ -1947,6 +2068,8 @@ function to_candid_variant_n4(_uploadFile: (file: ExternalBlob) => Promise<Uint8
 } | {
     public: null;
 } | {
+    concierge: null;
+} | {
     asistenmu: null;
 } | {
     partner: null;
@@ -1959,15 +2082,17 @@ function to_candid_variant_n4(_uploadFile: (file: ExternalBlob) => Promise<Uint8
         admin: null
     } : value == Role.operasional ? {
         operasional: null
-    } : value == Role.public_ ? {
-        public: null
+    } : value == Role.public ? {
+        public_: null
+    } : value == Role.concierge ? {
+        concierge: null
     } : value == Role.asistenmu ? {
         asistenmu: null
     } : value == Role.partner ? {
         partner: null
     } : value == Role.investor ? {
         investor: null
-    } : (value as unknown as { investor: null });
+    } : value;
 }
 function to_candid_variant_n52(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: LevelPartner): {
     junior: null;

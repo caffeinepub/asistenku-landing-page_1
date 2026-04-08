@@ -67,6 +67,7 @@ actor {
     #client;
     #partner;
     #investor;
+    #concierge;
     #public_;
   };
 
@@ -241,6 +242,18 @@ actor {
     createdAt : Int;
   };
 
+  public type Ticket = {
+    idTicket : Text;
+    creatorId : Text;
+    creatorNama : Text;
+    judul : Text;
+    detail : Text;
+    divisi : Text;
+    assignedTo : Text;
+    status : Text;
+    createdAt : Int;
+  };
+
   public type WalletInfo = {
     saldoTersedia : Nat;
     saldoPengajuan : Nat;
@@ -300,6 +313,7 @@ actor {
   var withdrawCounter : Nat = 0;
   var fpRequestCounter : Nat = 0;
   var logCounter : Nat = 0;
+  var ticketCounter : Nat = 0;
   var adminClaimed : Bool = false;
 
   var stableUsers : [(Principal, User)] = [];
@@ -313,6 +327,7 @@ actor {
   var stableFinancialProfileRequests : [(Text, FinancialProfileRequest)] = [];
   var stableAdminLogs : [(Text, AdminLog)] = [];
   var stableArchivedServices : [(Text, Service)] = [];
+  var stableTickets : [(Text, Ticket)] = [];
 
   // Persistent Maps
   let users : Map.Map<Principal, OldUser> = Map.empty<Principal, OldUser>();
@@ -353,6 +368,10 @@ actor {
     stableArchivedServices.values()
   );
 
+  let ticketsM = Map.fromIter<Text, Ticket>(
+    stableTickets.values()
+  );
+
   // Migrate old maps to new maps with updated Role type (adds #investor)
   func migrateRole(r : OldRole) : Role {
     switch r {
@@ -383,6 +402,7 @@ actor {
     stableFinancialProfileRequests := financialProfileRequests.toArray();
     stableAdminLogs := adminLogs.toArray();
     stableArchivedServices := archivedServices.toArray();
+    stableTickets := ticketsM.toArray();
   };
 
   system func postupgrade() {
@@ -441,6 +461,7 @@ actor {
     stableFinancialProfileRequests := [];
     stableAdminLogs := [];
     stableArchivedServices := [];
+    stableTickets := [];
   };
 
   // === CANISTER ENTRYPOINTS (Public Functions) ===
@@ -1581,6 +1602,109 @@ actor {
     result # numStr;
   };
 
+  func genTicketId(seed : Nat) : Text {
+    var s : Nat = (seed + Int.abs(Time.now())) % 4294967296;
+    var result = "tiket-";
+    var i = 0;
+    while (i < 6) {
+      s := (s * 1664525 + 1013904223) % 4294967296;
+      let digit : Nat = s % 10;
+      result #= digit.toText();
+      i += 1;
+    };
+    result;
+  };
+
+  // === TICKET FUNCTIONS ===
+
+  /// Create a ticket - accessible by any internal user (admin/operasional/asistenmu/concierge)
+  public shared ({ caller }) func createTicket(judul : Text, detail : Text, divisi : Text, assignedTo : Text) : async Text {
+    let creatorUser = switch (usersM.get(caller)) {
+      case (?u) { u };
+      case (null) { Runtime.trap("Caller is not a registered internal user") };
+    };
+    switch (creatorUser.role) {
+      case (#admin) {};
+      case (#operasional) {};
+      case (#asistenmu) {};
+      case (#concierge) {};
+      case (_) { Runtime.trap("Unauthorized: hanya internal user yang dapat membuat tiket") };
+    };
+    ticketCounter += 1;
+    let idTicket = genTicketId(ticketCounter);
+    let newTicket : Ticket = {
+      idTicket;
+      creatorId = caller.toText();
+      creatorNama = creatorUser.nama;
+      judul;
+      detail;
+      divisi;
+      assignedTo;
+      status = "open";
+      createdAt = Time.now();
+    };
+    ticketsM.add(idTicket, newTicket);
+    idTicket;
+  };
+
+  /// Get all tickets - accessible by admin/operasional/concierge
+  public query ({ caller }) func getAllTickets() : async [Ticket] {
+    let callerUser = switch (usersM.get(caller)) {
+      case (?u) { u };
+      case (null) { Runtime.trap("Caller not found") };
+    };
+    switch (callerUser.role) {
+      case (#admin) {};
+      case (#operasional) {};
+      case (#concierge) {};
+      case (_) { Runtime.trap("Unauthorized: hanya admin, operasional, atau concierge") };
+    };
+    ticketsM.values().toArray();
+  };
+
+  /// Get tickets assigned to the caller (by principalId or matching divisi/role)
+  public query ({ caller }) func getMyTickets() : async [Ticket] {
+    let callerText = caller.toText();
+    let callerRoleText = switch (usersM.get(caller)) {
+      case (?u) {
+        switch (u.role) {
+          case (#admin) { "admin" };
+          case (#operasional) { "operasional" };
+          case (#asistenmu) { "asistenmu" };
+          case (#concierge) { "concierge" };
+          case (_) { "" };
+        };
+      };
+      case (null) { "" };
+    };
+    ticketsM.values().toArray().filter(
+      func(t) {
+        t.assignedTo == callerText or t.divisi == callerRoleText;
+      }
+    );
+  };
+
+  /// Update ticket status - accessible by admin/operasional or the assigned user
+  public shared ({ caller }) func updateTicketStatus(idTicket : Text, newStatus : Text) : async Bool {
+    let callerText = caller.toText();
+    switch (ticketsM.get(idTicket)) {
+      case (null) { false };
+      case (?ticket) {
+        let isAdminOp = switch (usersM.get(caller)) {
+          case (?u) { u.role == #admin or u.role == #operasional };
+          case (null) { false };
+        };
+        let isAssigned = ticket.assignedTo == callerText;
+        if (not isAdminOp and not isAssigned) {
+          Runtime.trap("Unauthorized: hanya admin, operasional, atau user yang dituju");
+        };
+        let updated = { ticket with status = newStatus };
+        ticketsM.add(idTicket, updated);
+        true;
+      };
+    };
+  };
+
   func genLogId(num : Nat) : Text {
     let numStr = num.toText();
     let zerosToPad = 5 - numStr.size();
@@ -1929,16 +2053,18 @@ actor {
         case (#onprogress) { taskOnProgress += 1 };
         case (#selesai) {
           taskSelesai += 1;
-          switch (partnersM.get(Principal.fromText(task.partnerId))) {
-            case (?p) {
-              let rate = switch (p.level) {
-                case (#junior) { 35000 };
-                case (#senior) { 55000 };
-                case (#expert) { 75000 };
+          if (task.partnerId != "") {
+            switch (partnersM.get(Principal.fromText(task.partnerId))) {
+              case (?p) {
+                let rate = switch (p.level) {
+                  case (#junior) { 35000 };
+                  case (#senior) { 55000 };
+                  case (#expert) { 75000 };
+                };
+                totalKonversi += task.jamEfektif * rate;
               };
-              totalKonversi += task.jamEfektif * rate;
+              case (null) {};
             };
-            case (null) {};
           };
         };
         case (_) {};

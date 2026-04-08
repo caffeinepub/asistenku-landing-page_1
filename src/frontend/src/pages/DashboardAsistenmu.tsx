@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import { useInternetIdentity } from "@caffeineai/core-infrastructure";
 import { useNavigate } from "@tanstack/react-router";
 import {
   ChevronDown,
@@ -18,12 +19,13 @@ import {
   RotateCcw,
   Send,
   Star,
+  Ticket,
   UserCheck,
+  X,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useActor } from "../hooks/useActor";
-import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import { useRoleGuard } from "../hooks/useRoleGuard";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -88,6 +90,18 @@ interface PartnerItem {
   status: Record<string, null> | string;
 }
 
+interface TicketItem {
+  idTicket: string;
+  creatorId: string;
+  creatorNama: string;
+  judul: string;
+  detail: string;
+  divisi: string;
+  assignedTo: string;
+  status: string;
+  createdAt: bigint;
+}
+
 // ── Helpers ────────────────────────────────────────────────────────────────────
 // Handle both Motoko variant { key: null } and string enum values
 function extractKey(obj: unknown): string {
@@ -138,6 +152,24 @@ function tipeBadgeClass(tipe: string): string {
     efisien: "bg-emerald-50 text-emerald-700 border-emerald-200",
   };
   return map[tipe] ?? "bg-slate-50 text-slate-700 border-slate-200";
+}
+
+function ticketStatusLabel(status: string): string {
+  const map: Record<string, string> = {
+    open: "Terbuka",
+    inProgress: "Diproses",
+    resolved: "Selesai",
+  };
+  return map[status] ?? status;
+}
+
+function ticketStatusClass(status: string): string {
+  const map: Record<string, string> = {
+    open: "bg-yellow-50 text-yellow-700 border-yellow-200",
+    inProgress: "bg-blue-50 text-blue-700 border-blue-200",
+    resolved: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  };
+  return map[status] ?? "bg-slate-50 text-slate-700 border-slate-200";
 }
 
 // ── Pagination ─────────────────────────────────────────────────────────────────
@@ -277,6 +309,12 @@ export default function DashboardAsistenmu() {
   );
   const [partners, setPartners] = useState<PartnerItem[]>([]);
 
+  // Ticket state
+  const [tickets, setTickets] = useState<TicketItem[]>([]);
+  const [ticketsLoading, setTicketsLoading] = useState(false);
+  const [ticketsError, setTicketsError] = useState<string | null>(null);
+  const [selectedTicket, setSelectedTicket] = useState<TicketItem | null>(null);
+
   // Delegasi form state (shared between Permintaan Baru and Ditolak)
   const [delegasiOpenFor, setDelegasiOpenFor] = useState<string | null>(null);
   const [delegasiParterSearch, setDelegasiPartnerSearch] = useState("");
@@ -329,11 +367,32 @@ export default function DashboardAsistenmu() {
     }
   }, [actor]);
 
+  const fetchTickets = useCallback(async () => {
+    if (!actor) return;
+    setTicketsLoading(true);
+    setTicketsError(null);
+    try {
+      const act = actor as unknown as Record<
+        string,
+        (...args: unknown[]) => Promise<unknown>
+      >;
+      const result = await (act.getMyTickets() as Promise<TicketItem[]>).catch(
+        () => [] as TicketItem[],
+      );
+      setTickets(result);
+    } catch {
+      setTicketsError("Gagal memuat tiket. Coba refresh halaman.");
+    } finally {
+      setTicketsLoading(false);
+    }
+  }, [actor]);
+
   useEffect(() => {
     if (isActorReady) {
       void fetchData();
+      void fetchTickets();
     }
-  }, [isActorReady, fetchData]);
+  }, [isActorReady, fetchData, fetchTickets]);
 
   function handleLogout() {
     clear();
@@ -1600,8 +1659,163 @@ export default function DashboardAsistenmu() {
               </>
             )}
           </CollapsibleSection>
+
+          {/* Tiket Masuk */}
+          <CollapsibleSection
+            title="Tiket Masuk"
+            count={tickets.length}
+            accent="bg-violet-100 text-violet-700"
+          >
+            {ticketsLoading ? (
+              <div className="flex items-center gap-2 py-6 justify-center">
+                <Loader2 size={18} className="animate-spin text-slate-400" />
+                <span className="text-sm text-slate-400">Memuat tiket...</span>
+              </div>
+            ) : ticketsError ? (
+              <p className="text-sm text-red-500 py-4 text-center">
+                {ticketsError}
+              </p>
+            ) : tickets.length === 0 ? (
+              <p className="text-sm text-slate-400 py-4 text-center">
+                Belum ada tiket masuk.
+              </p>
+            ) : (
+              <div className="flex flex-col divide-y divide-slate-100 mt-2">
+                {tickets.map((tkt) => (
+                  <button
+                    key={tkt.idTicket}
+                    type="button"
+                    data-ocid="ticket-row"
+                    className="w-full text-left py-3 flex flex-col gap-1.5 hover:bg-slate-50 transition-colors rounded-lg px-2 -mx-2"
+                    onClick={() => setSelectedTicket(tkt)}
+                  >
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-mono text-slate-500">
+                        {tkt.idTicket}
+                      </span>
+                      <span
+                        className={`text-xs px-2 py-0.5 rounded-full border font-medium ${ticketStatusClass(tkt.status)}`}
+                      >
+                        {ticketStatusLabel(tkt.status)}
+                      </span>
+                    </div>
+                    <p className="text-sm font-medium text-slate-900 line-clamp-1">
+                      {tkt.judul.length > 50
+                        ? `${tkt.judul.slice(0, 50)}…`
+                        : tkt.judul}
+                    </p>
+                    <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-slate-500">
+                      <span>
+                        Divisi:{" "}
+                        <span className="text-slate-700">{tkt.divisi}</span>
+                      </span>
+                      <span>
+                        Dibuat:{" "}
+                        <span className="text-slate-700">
+                          {formatDate(tkt.createdAt)}
+                        </span>
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </CollapsibleSection>
         </div>
       </main>
+
+      {/* Ticket Detail Modal */}
+      {selectedTicket && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+          onClick={() => setSelectedTicket(null)}
+          onKeyDown={(e) => e.key === "Escape" && setSelectedTicket(null)}
+          tabIndex={-1}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-xl border border-slate-100 w-full max-w-lg max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between p-6 border-b border-slate-100">
+              <div className="flex items-center gap-2 min-w-0">
+                <Ticket size={18} className="text-violet-600 flex-shrink-0" />
+                <h2 className="font-display font-bold text-slate-900 text-base truncate">
+                  Detail Tiket
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedTicket(null)}
+                className="ml-3 flex-shrink-0 p-1 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition-colors"
+                aria-label="Tutup modal"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div className="p-6 flex flex-col gap-4">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-mono text-slate-500">
+                  {selectedTicket.idTicket}
+                </span>
+                <span
+                  className={`text-xs px-2.5 py-0.5 rounded-full border font-semibold ${ticketStatusClass(selectedTicket.status)}`}
+                >
+                  {ticketStatusLabel(selectedTicket.status)}
+                </span>
+              </div>
+              <div>
+                <p className="text-xs text-slate-400 mb-1">Judul Tiket</p>
+                <p className="text-sm font-semibold text-slate-900">
+                  {selectedTicket.judul}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-400 mb-1">Detail Masalah</p>
+                <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+                  {selectedTicket.detail}
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-slate-400 mb-1">Divisi</p>
+                  <p className="text-sm text-slate-700 font-medium">
+                    {selectedTicket.divisi}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-400 mb-1">Ditujukan Ke</p>
+                  <p className="text-sm text-slate-700 font-medium break-all">
+                    {selectedTicket.assignedTo || "—"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-400 mb-1">Dari</p>
+                  <p className="text-sm text-slate-700 font-medium">
+                    {selectedTicket.creatorNama || "—"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-400 mb-1">Tanggal</p>
+                  <p className="text-sm text-slate-700">
+                    {formatDate(selectedTicket.createdAt)}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="px-6 pb-6">
+              <Button
+                variant="outline"
+                className="w-full rounded-full text-sm"
+                onClick={() => setSelectedTicket(null)}
+                data-ocid="ticket-modal-close"
+              >
+                Tutup
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <footer className="bg-slate-900 text-slate-400 py-8 mt-auto">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
